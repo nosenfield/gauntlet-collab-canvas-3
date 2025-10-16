@@ -57,6 +57,7 @@ Build the foundational infrastructure for a Figma-like collaborative design tool
 - Grid stroke width: 2px for better visibility
 - Canvas background: Dark gray (#2d3748) for better contrast
 - Grid toggle button in toolbar
+- Grid visible by default for better user experience
 - Grid visibility persists during pan/zoom operations
 
 **3.1.4 Performance Requirements**

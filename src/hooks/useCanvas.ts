@@ -40,7 +40,7 @@ export const useCanvas = () => {
   });
 
   const [grid, setGrid] = useState<GridState>({
-    isVisible: false,
+    isVisible: true,
     spacing: GRID_CONFIG.DEFAULT_SPACING,
     color: GRID_CONFIG.DEFAULT_COLOR,
     opacity: GRID_CONFIG.DEFAULT_OPACITY
