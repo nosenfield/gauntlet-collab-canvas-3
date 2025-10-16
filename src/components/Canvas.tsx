@@ -5,12 +5,16 @@
  * user interactions for drawing and navigation.
  */
 
-import React, { useEffect, useState } from 'react';
-import { Stage, Layer, Rect, Circle, Text } from 'react-konva';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Stage, Layer, Rect } from 'react-konva';
 import { useAuth } from '@/hooks/useAuth';
 import { usePresence } from '@/hooks/usePresence';
 import { useShapes } from '@/hooks/useShapes';
+import { useDrawing } from '@/hooks/useDrawing';
+import { useCanvasEvents } from '@/hooks/useCanvasEvents';
 import { Grid } from '@/components/Grid';
+import { Cursor } from '@/components/Cursor';
+import { DrawingPreview } from '@/components/DrawingPreview';
 import type { CanvasHook } from '@/types';
 import { TOOLBAR_HEIGHT } from '@/types';
 
@@ -33,32 +37,31 @@ export const Canvas: React.FC<CanvasProps> = ({ className, canvasHook }) => {
     isReady,
     bounds,
     stageRef,
-    handleWheel,
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-    screenToCanvas
+    handleWheel
   } = canvasHook;
 
   const { currentUser } = useAuth();
   const { 
     activeUsers, 
     isLoading: presenceLoading, 
-    updateCursor: updatePresenceCursor,
     joinSession,
     leaveSession,
     setupCleanup
   } = usePresence();
-  const { shapes, addShape } = useShapes();
+  const { shapes } = useShapes();
+  const drawingHook = useDrawing();
+  const { isDrawing, drawStart, drawCurrent } = drawingHook;
+  const eventHandlers = useCanvasEvents(canvasHook, drawingHook);
 
   const [stageSize, setStageSize] = useState({
     width: window.innerWidth,
     height: window.innerHeight - TOOLBAR_HEIGHT
   });
 
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
-  const [drawCurrent, setDrawCurrent] = useState<{ x: number; y: number } | null>(null);
+  /**
+   * Memoized active users array for performance
+   */
+  const activeUsersArray = useMemo(() => activeUsers, [activeUsers]);
 
   /**
    * Handle window resize
@@ -93,87 +96,6 @@ export const Canvas: React.FC<CanvasProps> = ({ className, canvasHook }) => {
     };
   }, [currentUser, presenceLoading, joinSession, leaveSession, setupCleanup]);
 
-  /**
-   * Handle cursor position updates
-   */
-  const handleCursorMove = (event: any) => {
-    if (!currentUser || !currentUser.id) return;
-
-    const canvasPos = screenToCanvas(event.evt.clientX, event.evt.clientY);
-    updatePresenceCursor(currentUser.id, canvasPos);
-  };
-
-  /**
-   * Handle mouse down for drawing
-   */
-  const handleCanvasMouseDown = (event: any) => {
-    if (!currentUser) return;
-
-    const canvasPos = screenToCanvas(event.evt.clientX, event.evt.clientY);
-    
-    if (tool.activeTool === 'rectangle') {
-      setIsDrawing(true);
-      setDrawStart(canvasPos);
-      setDrawCurrent(canvasPos);
-    } else {
-      // Call original handler for panning
-      handleMouseDown(event);
-    }
-  };
-
-  /**
-   * Handle mouse move during drawing
-   */
-  const handleCanvasMouseMove = (event: any) => {
-    if (!currentUser || !currentUser.id) return;
-
-    const canvasPos = screenToCanvas(event.evt.clientX, event.evt.clientY);
-    updatePresenceCursor(currentUser.id, canvasPos);
-
-    if (isDrawing && tool.activeTool === 'rectangle') {
-      setDrawCurrent(canvasPos);
-    } else {
-      // Call original handler for other interactions
-      handleMouseMove(event);
-    }
-  };
-
-  /**
-   * Handle mouse up to complete drawing
-   */
-  const handleCanvasMouseUp = () => {
-    if (!currentUser) return;
-
-    if (isDrawing && tool.activeTool === 'rectangle' && drawStart && drawCurrent) {
-      // Calculate rectangle dimensions
-      const x = Math.min(drawStart.x, drawCurrent.x);
-      const y = Math.min(drawStart.y, drawCurrent.y);
-      const width = Math.abs(drawCurrent.x - drawStart.x);
-      const height = Math.abs(drawCurrent.y - drawStart.y);
-
-      // Only create rectangle if it has meaningful dimensions
-      if (width > 5 && height > 5) {
-        addShape({
-          type: 'rectangle',
-          x,
-          y,
-          width,
-          height,
-          fill: currentUser.color,
-          createdBy: currentUser.id
-        });
-      }
-
-      // Reset drawing state
-      setIsDrawing(false);
-      setDrawStart(null);
-      setDrawCurrent(null);
-    } else {
-      // Call original handler for other interactions
-      handleMouseUp();
-    }
-  };
-
   if (!isReady) {
     return (
       <div className={`canvas-loading ${className || ''}`}>
@@ -193,12 +115,12 @@ export const Canvas: React.FC<CanvasProps> = ({ className, canvasHook }) => {
         x={viewport.x}
         y={viewport.y}
         onWheel={handleWheel}
-        onMouseDown={handleCanvasMouseDown}
+        onMouseDown={eventHandlers.handleCanvasMouseDown}
         onMouseMove={(e) => {
-          handleCanvasMouseMove(e);
-          handleCursorMove(e);
+          eventHandlers.handleCanvasMouseMove(e);
+          eventHandlers.handleCursorMove(e);
         }}
-        onMouseUp={handleCanvasMouseUp}
+        onMouseUp={eventHandlers.handleCanvasMouseUp}
         draggable={false}  // We handle dragging manually via wheel events
       >
         <Layer>
@@ -217,21 +139,14 @@ export const Canvas: React.FC<CanvasProps> = ({ className, canvasHook }) => {
           {/* Grid overlay */}
           <Grid grid={grid} />
           
-          
-          {/* Render preview rectangle while drawing */}
-          {isDrawing && drawStart && drawCurrent && tool.activeTool === 'rectangle' && (
-            <Rect
-              x={Math.min(drawStart.x, drawCurrent.x)}
-              y={Math.min(drawStart.y, drawCurrent.y)}
-              width={Math.abs(drawCurrent.x - drawStart.x)}
-              height={Math.abs(drawCurrent.y - drawStart.y)}
-              fill={currentUser?.color || '#007bff'}
-              stroke="#000000"
-              strokeWidth={1}
-              opacity={0.7}
-              listening={false}
-            />
-          )}
+          {/* Drawing preview */}
+          <DrawingPreview
+            isDrawing={isDrawing}
+            drawStart={drawStart}
+            drawCurrent={drawCurrent}
+            tool={tool}
+            userColor={currentUser?.color || '#007bff'}
+          />
 
           {/* Render shapes */}
           {shapes.map((shape) => (
@@ -247,46 +162,18 @@ export const Canvas: React.FC<CanvasProps> = ({ className, canvasHook }) => {
               draggable={true}
               onDragEnd={() => {
                 // Handle shape drag end
-                console.log('Shape dragged:', shape.id);
               }}
             />
           ))}
           
           {/* Render multiplayer cursors */}
-          {activeUsers.map((user, index) => {
-            // Don't render current user's cursor
-            if (currentUser && user.id === currentUser.id) return null;
-            
-            // Skip if cursor position is not available
-            if (!user.cursorPosition || typeof user.cursorPosition.x !== 'number' || typeof user.cursorPosition.y !== 'number') {
-              return null;
-            }
-            
-            return (
-              <React.Fragment key={user.id || `cursor-${index}`}>
-                {/* Cursor circle */}
-                <Circle
-                  x={user.cursorPosition.x}
-                  y={user.cursorPosition.y}
-                  radius={8}
-                  fill={user.color || '#666666'}
-                  stroke="#ffffff"
-                  strokeWidth={2}
-                  listening={false}
-                />
-                {/* User label */}
-                <Text
-                  x={user.cursorPosition.x + 12}
-                  y={user.cursorPosition.y - 8}
-                  text={user.displayName || 'Unknown'}
-                  fontSize={12}
-                  fill={user.color || '#666666'}
-                  fontStyle="bold"
-                  listening={false}
-                />
-              </React.Fragment>
-            );
-          })}
+          {activeUsersArray.map((user) => (
+            <Cursor
+              key={user.id}
+              user={user}
+              isCurrentUser={!!(currentUser && user.id === currentUser.id)}
+            />
+          ))}
         </Layer>
       </Stage>
     </div>

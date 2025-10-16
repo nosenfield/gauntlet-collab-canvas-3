@@ -45,9 +45,13 @@ export const usePresence = () => {
    */
   const joinSession = useCallback(async (userId: string): Promise<void> => {
     try {
-      await joinCanvasSession(userId);
+      await joinCanvasSession(userId, (error) => {
+        setPresenceState(prev => ({
+          ...prev,
+          error: error.message
+        }));
+      });
     } catch (error) {
-      console.error('Failed to join canvas session:', error);
       setPresenceState(prev => ({
         ...prev,
         error: error instanceof Error ? error.message : 'Failed to join session'
@@ -62,7 +66,7 @@ export const usePresence = () => {
     try {
       await leaveCanvasSession(userId);
     } catch (error) {
-      console.error('Failed to leave canvas session:', error);
+      // Silent fail for leave operations
     }
   }, []);
 
@@ -92,7 +96,6 @@ export const usePresence = () => {
         }));
       },
       (error: Error) => {
-        console.error('Error in active users listener:', error);
         setPresenceState(prev => ({
           ...prev,
           isLoading: false,
@@ -119,8 +122,8 @@ export const usePresence = () => {
       (session: CanvasSession | null) => {
         setCanvasSession(session);
       },
-      (error: Error) => {
-        console.error('Error in canvas session listener:', error);
+      (_error: Error) => {
+        // Silent fail for session listener errors
       }
     );
 

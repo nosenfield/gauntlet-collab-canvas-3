@@ -84,15 +84,9 @@ export const createUserDocument = async (firebaseUser: FirebaseUser): Promise<Us
     lastActive: serverTimestamp()
   });
 
-  console.log('Created user document:', {
-    id: `${firebaseUser.uid}_${tabId}`,
-    ...userData
-  });
-
   // Set up disconnect handler to clean up user data
   // Note: onDisconnect is not available in client SDK
   // This would typically be handled by Cloud Functions
-  console.log('User disconnect cleanup would be handled by Cloud Functions');
 
   return {
     id: `${firebaseUser.uid}_${tabId}`,

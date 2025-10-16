@@ -39,13 +39,6 @@ export const listenToActiveUsers = (
         users.push(userData);
       });
       
-      console.log('Active users updated:', users.map(u => ({ 
-        id: u.id, 
-        name: u.displayName, 
-        cursor: u.cursorPosition,
-        lastActive: u.lastActive 
-      })));
-      
       callback(users);
     },
     (error) => {
@@ -88,8 +81,6 @@ export const updateCursorPosition = (
         cursorPosition: position,
         lastActive: serverTimestamp()
       }, { merge: true });
-      
-      console.log('Updated cursor position:', { userId, position });
     } catch (error) {
       console.error('Error updating cursor position:', error);
     }
@@ -111,11 +102,14 @@ export const updateUserHeartbeat = async (userId: string): Promise<void> => {
 /**
  * Set up user presence in canvas session
  */
-export const joinCanvasSession = async (userId: string): Promise<void> => {
+export const joinCanvasSession = async (
+  userId: string, 
+  onError?: (error: Error) => void
+): Promise<void> => {
   try {
     // Validate userId before proceeding
     if (!userId || typeof userId !== 'string') {
-      console.error('Invalid userId provided to joinCanvasSession:', userId);
+      onError?.(new Error('Invalid userId provided to joinCanvasSession'));
       return;
     }
 
@@ -130,7 +124,6 @@ export const joinCanvasSession = async (userId: string): Promise<void> => {
     // Set up disconnect handler to remove user from session
     // Note: onDisconnect is not available in client SDK
     // This would typically be handled by Cloud Functions
-    console.log('Session disconnect cleanup would be handled by Cloud Functions');
   } catch (error) {
     console.error('Error joining canvas session:', error);
   }
@@ -142,15 +135,12 @@ export const joinCanvasSession = async (userId: string): Promise<void> => {
 export const leaveCanvasSession = async (userId?: string): Promise<void> => {
   try {
     if (!userId) {
-      console.log('No userId provided for leaveCanvasSession');
       return;
     }
 
     // Remove user document to mark them as offline
     const userRef = doc(db, 'users', userId);
     await deleteDoc(userRef);
-    
-    console.log('User removed from session:', userId);
   } catch (error) {
     console.error('Error leaving canvas session:', error);
   }
@@ -208,16 +198,11 @@ export const cleanupStaleUsers = async (): Promise<void> => {
       const lastActive = userData.lastActive?.toDate();
       
       if (lastActive && (now.getTime() - lastActive.getTime()) > staleThreshold) {
-        console.log('Removing stale user:', docSnapshot.id);
         staleUserPromises.push(deleteDoc(doc(db, 'users', docSnapshot.id)));
       }
     });
     
     await Promise.all(staleUserPromises);
-    
-    if (staleUserPromises.length > 0) {
-      console.log(`Cleaned up ${staleUserPromises.length} stale users`);
-    }
   } catch (error) {
     console.error('Error cleaning up stale users:', error);
   }
