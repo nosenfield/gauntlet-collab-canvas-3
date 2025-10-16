@@ -1,0 +1,44 @@
+/**
+ * TypeScript type definitions for CollabCanvas MVP
+ * 
+ * This file exports all type definitions used throughout the application.
+ * Organized by domain: User, Shape, Canvas, and Application state.
+ */
+
+// User-related types
+export type { User, CreateUserData, UpdateUserData } from './User';
+
+// Shape-related types
+export type { 
+  Shape, 
+  ShapeType, 
+  CreateShapeData, 
+  UpdateShapeData, 
+  RectangleShape, 
+  InProgressShape 
+} from './Shape';
+
+// Canvas-related types
+export type { CanvasSession, UpdateCanvasSessionData } from './canvas';
+
+// Canvas interaction types
+export type {
+  CanvasViewport,
+  CanvasBounds,
+  CanvasMouseEvent,
+  DrawingTool,
+  CanvasHandlers,
+  ShapeDragState
+} from './CanvasTypes';
+
+// Application state types
+export type {
+  UserState,
+  PresenceState,
+  ShapeState,
+  CanvasState,
+  AppState,
+  ServiceResponse,
+  FirebaseResult,
+  ListenerOptions
+} from './AppTypes';
