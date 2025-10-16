@@ -13,18 +13,18 @@
 - [x] Install dependencies (react-konva, konva, firebase)
 - [x] Configure Firebase project (Firestore + Anonymous Auth)
 - [x] Set up environment variables
-- [ ] Configure TypeScript types for Konva and Firebase
-- [ ] Set up project folder structure per architecture guide
-- [ ] Configure path aliases in vite.config.ts
+- [x] Configure TypeScript types for Konva and Firebase
+- [x] Set up project folder structure per architecture guide
+- [x] Configure path aliases in vite.config.ts
 
 ### 1.2 Firebase Integration
-- [ ] Create Firebase configuration service (`src/services/firebase.ts`)
-- [ ] Initialize Firestore connection
-- [ ] Set up Anonymous Authentication
-- [ ] Implement user creation on app load
-- [ ] Assign random color to new users
-- [ ] Create Firestore security rules
-- [ ] Deploy security rules to Firebase
+- [x] Create Firebase configuration service (`src/services/firebase.ts`)
+- [x] Initialize Firestore connection
+- [x] Set up Anonymous Authentication
+- [x] Implement user creation on app load
+- [x] Assign random color to new users
+- [x] Create Firestore security rules
+- [x] Deploy security rules to Firebase
 
 ### 1.3 Canvas Core Rendering
 - [ ] Create Canvas component with Konva Stage
