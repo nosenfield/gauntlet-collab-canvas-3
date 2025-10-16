@@ -23,4 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment vars
 .env
+
+# Context docs, consider ignoring if these get outsized
+# context-summaries/SESSION_SUMMARY*.md
