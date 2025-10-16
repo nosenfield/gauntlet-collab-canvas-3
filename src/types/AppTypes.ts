@@ -1,6 +1,6 @@
-import { User } from './User';
-import { Shape } from './Shape';
-import { CanvasViewport, DrawingTool } from './CanvasTypes';
+import type { User } from './User';
+import type { Shape } from './Shape';
+import type { CanvasViewport, DrawingTool } from './CanvasTypes';
 
 /**
  * Application state interfaces
