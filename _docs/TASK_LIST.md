@@ -53,34 +53,34 @@
 ## Phase 2: Multiplayer Foundation (Priority: CRITICAL)
 
 ### 2.1 User Presence System
-- [ ] Create User data model (TypeScript interface)
-- [ ] Create Firestore `users` collection structure
-- [ ] Implement user document creation on auth
-- [ ] Store user data: id, color, displayName, lastActive
-- [ ] Set up real-time listener for active users
-- [ ] Implement user cleanup on disconnect
-- [ ] Test: Multiple browser windows show presence
+- [x] Create User data model (TypeScript interface)
+- [x] Create Firestore `users` collection structure
+- [x] Implement user document creation on auth
+- [x] Store user data: id, color, displayName, lastActive
+- [x] Set up real-time listener for active users
+- [x] Implement user cleanup on disconnect
+- [x] Test: Multiple browser windows show presence
 
 ### 2.2 Cursor Synchronization
-- [ ] Track local cursor position on canvas
-- [ ] Convert screen coordinates to canvas coordinates
-- [ ] Debounce cursor updates (≤50ms throttle)
-- [ ] Update user's cursor position in Firestore
-- [ ] Listen to other users' cursor positions
-- [ ] Render multiplayer cursors on canvas
-  - [ ] Create cursor component (colored pointer)
-  - [ ] Add user ID label to cursor
-  - [ ] Position cursor at correct canvas coordinates
-- [ ] Test: Cursor sync between 2+ users under 50ms
-- [ ] Test: Cursor removal on user disconnect
+- [x] Track local cursor position on canvas
+- [x] Convert screen coordinates to canvas coordinates
+- [x] Debounce cursor updates (≤50ms throttle)
+- [x] Update user's cursor position in Firestore
+- [x] Listen to other users' cursor positions
+- [x] Render multiplayer cursors on canvas
+  - [x] Create cursor component (colored pointer)
+  - [x] Add user ID label to cursor
+  - [x] Position cursor at correct canvas coordinates
+- [x] Test: Cursor sync between 2+ users under 50ms
+- [x] Test: Cursor removal on user disconnect
 
 ### 2.3 Session Management
-- [ ] Create CanvasSession data model
-- [ ] Initialize canvas session on app load
-- [ ] Track active users in session
-- [ ] Update lastActive timestamp (heartbeat)
-- [ ] Handle user reconnection
-- [ ] Test: Session persistence across refreshes
+- [x] Create CanvasSession data model
+- [x] Initialize canvas session on app load
+- [x] Track active users in session
+- [x] Update lastActive timestamp (heartbeat)
+- [x] Handle user reconnection
+- [x] Test: Session persistence across refreshes
 
 ---
 

@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Stage, Layer, Rect } from 'react-konva';
+import { Stage, Layer, Rect, Circle, Text } from 'react-konva';
 import { useCanvas } from '@/hooks/useCanvas';
 import { useAuth } from '@/hooks/useAuth';
 import { usePresence } from '@/hooks/usePresence';
@@ -37,7 +37,14 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
   } = useCanvas();
 
   const { currentUser } = useAuth();
-  const { updateCursor: updatePresenceCursor } = usePresence();
+  const { 
+    activeUsers, 
+    isLoading: presenceLoading, 
+    error: presenceError,
+    updateCursor: updatePresenceCursor,
+    joinSession,
+    leaveSession
+  } = usePresence();
   const { shapes, addShape } = useShapes();
 
   const [stageSize, setStageSize] = useState({
@@ -59,6 +66,22 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  /**
+   * Join session when user is authenticated
+   */
+  useEffect(() => {
+    if (currentUser && !presenceLoading) {
+      joinSession(currentUser.id);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (currentUser) {
+        leaveSession();
+      }
+    };
+  }, [currentUser, presenceLoading, joinSession, leaveSession]);
 
   /**
    * Handle cursor position updates
@@ -152,8 +175,36 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
             />
           ))}
           
-          {/* Render cursors */}
-          {/* Cursors will be rendered here */}
+          {/* Render multiplayer cursors */}
+          {Array.from(activeUsers.values()).map((user) => {
+            // Don't render current user's cursor
+            if (currentUser && user.id === currentUser.id) return null;
+            
+            return (
+              <React.Fragment key={user.id}>
+                {/* Cursor circle */}
+                <Circle
+                  x={user.cursorPosition.x}
+                  y={user.cursorPosition.y}
+                  radius={8}
+                  fill={user.color}
+                  stroke="#ffffff"
+                  strokeWidth={2}
+                  listening={false}
+                />
+                {/* User label */}
+                <Text
+                  x={user.cursorPosition.x + 12}
+                  y={user.cursorPosition.y - 8}
+                  text={user.displayName}
+                  fontSize={12}
+                  fill={user.color}
+                  fontStyle="bold"
+                  listening={false}
+                />
+              </React.Fragment>
+            );
+          })}
         </Layer>
       </Stage>
     </div>
