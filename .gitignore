@@ -27,4 +27,4 @@ dist-ssr
 .env
 
 # Context docs, consider ignoring if these get outsized
-# context-summaries/SESSION_SUMMARY*.md
+# context-summaries/SESSION_SUMMARY*.mdpackage-lock.json
