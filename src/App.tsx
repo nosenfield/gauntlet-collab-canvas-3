@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { Canvas } from '@/components/Canvas';
 import './App.css';
 
 function App() {
@@ -29,10 +30,7 @@ function App() {
 
   return (
     <div className="App">
-      <h1>CollabCanvas MVP</h1>
-      <p>Welcome, {currentUser?.displayName || 'Anonymous User'}!</p>
-      <p>Your color: {currentUser?.color}</p>
-      <p>Setup complete. Ready for development.</p>
+      <Canvas />
     </div>
   );
 }

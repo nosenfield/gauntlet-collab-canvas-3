@@ -27,12 +27,12 @@
 - [x] Deploy security rules to Firebase
 
 ### 1.3 Canvas Core Rendering
-- [ ] Create Canvas component with Konva Stage
-- [ ] Implement 10,000 x 10,000px canvas bounds
-- [ ] Set canvas center to coordinate (0, 0)
-- [ ] Render canvas full-screen in viewport
-- [ ] Implement basic stage rendering loop
-- [ ] Test performance: Verify 60 FPS baseline
+- [x] Create Canvas component with Konva Stage
+- [x] Implement 10,000 x 10,000px canvas bounds
+- [x] Set canvas center to coordinate (0, 0)
+- [x] Render canvas full-screen in viewport
+- [x] Implement basic stage rendering loop
+- [x] Test performance: Verify 60 FPS baseline
 
 ### 1.4 Canvas Navigation (Pan/Zoom)
 - [ ] Implement panning via mouse scroll

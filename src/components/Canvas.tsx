@@ -5,8 +5,8 @@
  * user interactions for drawing and navigation.
  */
 
-import React from 'react';
-import { Stage, Layer } from 'react-konva';
+import React, { useEffect, useState } from 'react';
+import { Stage, Layer, Rect } from 'react-konva';
 import { useCanvas } from '@/hooks/useCanvas';
 import { useAuth } from '@/hooks/useAuth';
 import { usePresence } from '@/hooks/usePresence';
@@ -39,6 +39,26 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
   const { currentUser } = useAuth();
   const { updateCursor: updatePresenceCursor } = usePresence();
   const { shapes, addShape } = useShapes();
+
+  const [stageSize, setStageSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
+
+  /**
+   * Handle window resize
+   */
+  useEffect(() => {
+    const handleResize = () => {
+      setStageSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   /**
    * Handle cursor position updates
@@ -84,8 +104,8 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
     <div className={`canvas-container ${className || ''}`}>
       <Stage
         ref={stageRef}
-        width={window.innerWidth}
-        height={window.innerHeight}
+        width={stageSize.width}
+        height={stageSize.height}
         scaleX={viewport.scale}
         scaleY={viewport.scale}
         x={viewport.x}
@@ -102,23 +122,34 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
       >
         <Layer>
           {/* Canvas background */}
-          <div
-            style={{
-              position: 'absolute',
-              left: -bounds.width / 2,
-              top: -bounds.height / 2,
-              width: bounds.width,
-              height: bounds.height,
-              backgroundColor: '#f8f9fa',
-              border: '1px solid #dee2e6'
-            }}
+          <Rect
+            x={-bounds.width / 2}
+            y={-bounds.height / 2}
+            width={bounds.width}
+            height={bounds.height}
+            fill="#f8f9fa"
+            stroke="#dee2e6"
+            strokeWidth={1}
+            listening={false}
           />
           
           {/* Render shapes */}
           {shapes.map((shape) => (
-            <div key={shape.id}>
-              {/* Shape will be rendered here */}
-            </div>
+            <Rect
+              key={shape.id}
+              x={shape.x}
+              y={shape.y}
+              width={shape.width}
+              height={shape.height}
+              fill={shape.fill}
+              stroke="#000000"
+              strokeWidth={1}
+              draggable={true}
+              onDragEnd={(e) => {
+                // Handle shape drag end
+                console.log('Shape dragged:', shape.id);
+              }}
+            />
           ))}
           
           {/* Render cursors */}
