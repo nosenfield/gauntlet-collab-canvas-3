@@ -50,10 +50,20 @@ Build the foundational infrastructure for a Figma-like collaborative design tool
 - Maintain canvas boundaries during all navigation
 - Viewport cannot display area outside canvas bounds
 
-**3.1.3 Performance Requirements**
+**3.1.3 Canvas Grid**
+- Toggleable grid overlay for visual alignment assistance
+- Grid spacing: 100px intervals
+- Grid color: Light gray (#e2e8f0) with 0.8 opacity
+- Grid stroke width: 2px for better visibility
+- Canvas background: Dark gray (#2d3748) for better contrast
+- Grid toggle button in toolbar
+- Grid visibility persists during pan/zoom operations
+
+**3.1.4 Performance Requirements**
 - 60 FPS during pan/zoom operations
 - Smooth rendering with 500+ objects on canvas
 - No visible lag during concurrent user actions
+- Grid rendering maintains 60 FPS performance
 
 ### 3.2 User System
 
@@ -109,8 +119,8 @@ Build the foundational infrastructure for a Figma-like collaborative design tool
 **3.4.1 Toolbar**
 - Fixed position (does not move with pan/zoom)
 - Located at top of viewport
-- Contains: "Draw Rect" toggle button
-- Visual state: Active/inactive indication
+- Contains: "Draw Rect" toggle button, "Grid" toggle button
+- Visual state: Active/inactive indication for all tools
 
 **3.4.2 Viewport**
 - Full browser window coverage
@@ -237,6 +247,9 @@ interface CanvasSession {
 - [ ] User cursors visible to all users in <50ms
 - [ ] User presence updates on connect/disconnect
 - [ ] "Draw Rect" button toggles tool state
+- [ ] "Grid" button toggles grid visibility
+- [ ] Grid renders at 100px intervals with proper opacity
+- [ ] Grid maintains performance during pan/zoom
 - [ ] Rectangles drawn via press/drag/release
 - [ ] In-progress drawings visible to all users
 - [ ] Completed shapes saved and persist

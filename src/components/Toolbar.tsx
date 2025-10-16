@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { useCanvas } from '@/hooks/useCanvas';
+import type { CanvasHook } from '@/types';
 import './Toolbar.css';
 
 /**
@@ -14,13 +14,14 @@ import './Toolbar.css';
  */
 interface ToolbarProps {
   className?: string;
+  canvasHook: CanvasHook;
 }
 
 /**
  * Toolbar component
  */
-export const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
-  const { tool, setActiveTool } = useCanvas();
+export const Toolbar: React.FC<ToolbarProps> = ({ className, canvasHook }) => {
+  const { tool, grid, setActiveTool, toggleGrid } = canvasHook;
 
   /**
    * Handle tool selection
@@ -51,6 +52,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
           >
             <span className="toolbar-icon">▭</span>
             Rectangle
+          </button>
+          
+          <button
+            className={`toolbar-button ${grid.isVisible ? 'active' : ''}`}
+            onClick={toggleGrid}
+            title="Toggle Grid"
+          >
+            <span className="toolbar-icon">⊞</span>
+            Grid
           </button>
         </div>
         

@@ -100,6 +100,9 @@
 - [x] Manage drawing mode state (useState)
 - [x] Style toolbar: top position, clear visual feedback
 - [x] Test: Button toggle updates tool state
+- [x] Add "Grid" toggle button
+- [x] Implement grid visibility state management
+- [x] Test: Grid button toggle updates grid visibility
 
 ### 3.3 Rectangle Drawing Tool
 - [x] Implement press/drag/release interaction
@@ -124,6 +127,16 @@
 - [x] Optimize rendering for 500+ shapes
 - [x] Test: Shapes render correctly
 - [x] Test: Performance with 500+ shapes (60 FPS)
+
+### 3.5 Canvas Grid System
+- [x] Add grid state to useCanvas hook
+- [x] Implement grid rendering logic (100px intervals)
+- [x] Create grid lines with proper styling (#e2e8f0, 0.8 opacity)
+- [x] Optimize grid rendering for performance
+- [x] Test: Grid renders correctly at all zoom levels
+- [x] Test: Grid maintains 60 FPS during pan/zoom
+- [x] Fix state management issue (shared hook instance)
+- [x] Update grid spacing to 100px for better usability
 
 ---
 

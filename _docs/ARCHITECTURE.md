@@ -11,6 +11,7 @@ graph TB
             App[App Component]
             Canvas[Canvas Component]
             Toolbar[Toolbar Component]
+            Grid[Grid Component]
             Shapes[Shape Components]
             Cursors[Cursor Components]
         end
@@ -141,7 +142,8 @@ The client application is built with React 18+ and TypeScript, following a featu
 **Component Hierarchy:**
 - `App Component` - Root component, manages global state and routing
 - `Canvas Component` - Main workspace, handles pan/zoom and user interactions
-- `Toolbar Component` - Fixed UI for tool selection (Draw Rect button)
+- `Toolbar Component` - Fixed UI for tool selection (Draw Rect button, Grid toggle)
+- `Grid Component` - Renders canvas grid overlay for visual alignment
 - `Shape Components` - Render individual shapes on canvas
 - `Cursor Components` - Render multiplayer cursors with labels
 

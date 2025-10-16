@@ -6,7 +6,8 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { CanvasViewport, DrawingTool, CanvasBounds } from '@/types';
+import type { CanvasViewport, DrawingTool, CanvasBounds, GridState } from '@/types';
+import { GRID_CONFIG } from '@/types';
 
 /**
  * Canvas configuration constants
@@ -36,6 +37,13 @@ export const useCanvas = () => {
     activeTool: 'none',
     isDrawing: false,
     currentShape: undefined
+  });
+
+  const [grid, setGrid] = useState<GridState>({
+    isVisible: false,
+    spacing: GRID_CONFIG.DEFAULT_SPACING,
+    color: GRID_CONFIG.DEFAULT_COLOR,
+    opacity: GRID_CONFIG.DEFAULT_OPACITY
   });
 
   const [isReady, setIsReady] = useState(false);
@@ -186,6 +194,24 @@ export const useCanvas = () => {
   }, []);
 
   /**
+   * Toggle grid visibility on/off
+   * 
+   * @example
+   * ```tsx
+   * const { toggleGrid } = useCanvas();
+   * 
+   * // Toggle grid visibility
+   * <button onClick={toggleGrid}>Toggle Grid</button>
+   * ```
+   */
+  const toggleGrid = useCallback(() => {
+    setGrid(prev => ({
+      ...prev,
+      isVisible: !prev.isVisible
+    }));
+  }, []);
+
+  /**
    * Start drawing a shape
    */
   const startDrawing = useCallback((startX: number, startY: number) => {
@@ -299,6 +325,7 @@ export const useCanvas = () => {
     // State
     viewport,
     tool,
+    grid,
     isReady,
     bounds: CANVAS_BOUNDS,
     
@@ -310,6 +337,7 @@ export const useCanvas = () => {
     zoom,
     resetViewport,
     setActiveTool,
+    toggleGrid,
     startDrawing,
     updateDrawing,
     finishDrawing,

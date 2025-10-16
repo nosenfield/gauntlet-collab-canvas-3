@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useCanvas } from '@/hooks/useCanvas';
 import { Canvas } from '@/components/Canvas';
 import { Toolbar } from '@/components/Toolbar';
 import './App.css';
 
 function App() {
-  const { currentUser, isLoading, error } = useAuth();
+  const { isLoading, error } = useAuth();
+  const canvasHook = useCanvas();
 
   useEffect(() => {
     console.log('CollabCanvas MVP initialized');
@@ -31,8 +33,8 @@ function App() {
 
   return (
     <div className="App">
-      <Toolbar />
-      <Canvas />
+      <Toolbar canvasHook={canvasHook} />
+      <Canvas canvasHook={canvasHook} />
     </div>
   );
 }

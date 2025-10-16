@@ -28,7 +28,8 @@ export type {
   CanvasMouseEvent,
   DrawingTool,
   CanvasHandlers,
-  ShapeDragState
+  ShapeDragState,
+  CanvasHook
 } from './CanvasTypes';
 
 // Application state types
@@ -42,3 +43,7 @@ export type {
   FirebaseResult,
   ListenerOptions
 } from './AppTypes';
+
+// Grid-related types
+export type { GridState } from './Grid';
+export { GRID_CONFIG } from './Grid';

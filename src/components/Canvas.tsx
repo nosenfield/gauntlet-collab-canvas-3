@@ -7,25 +7,28 @@
 
 import React, { useEffect, useState } from 'react';
 import { Stage, Layer, Rect, Circle, Text } from 'react-konva';
-import { useCanvas } from '@/hooks/useCanvas';
 import { useAuth } from '@/hooks/useAuth';
 import { usePresence } from '@/hooks/usePresence';
 import { useShapes } from '@/hooks/useShapes';
+import { Grid } from '@/components/Grid';
+import type { CanvasHook } from '@/types';
 
 /**
  * Canvas component props
  */
 interface CanvasProps {
   className?: string;
+  canvasHook: CanvasHook;
 }
 
 /**
  * Main Canvas component
  */
-export const Canvas: React.FC<CanvasProps> = ({ className }) => {
+export const Canvas: React.FC<CanvasProps> = ({ className, canvasHook }) => {
   const {
     viewport,
     tool,
+    grid,
     isReady,
     bounds,
     stageRef,
@@ -34,13 +37,12 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
     handleMouseMove,
     handleMouseUp,
     screenToCanvas
-  } = useCanvas();
+  } = canvasHook;
 
   const { currentUser } = useAuth();
   const { 
     activeUsers, 
     isLoading: presenceLoading, 
-    error: presenceError,
     updateCursor: updatePresenceCursor,
     joinSession,
     leaveSession
@@ -135,7 +137,7 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
   /**
    * Handle mouse up to complete drawing
    */
-  const handleCanvasMouseUp = (event: any) => {
+  const handleCanvasMouseUp = () => {
     if (!currentUser) return;
 
     if (isDrawing && tool.activeTool === 'rectangle' && drawStart && drawCurrent) {
@@ -164,7 +166,7 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
       setDrawCurrent(null);
     } else {
       // Call original handler for other interactions
-      handleMouseUp(event);
+      handleMouseUp();
     }
   };
 
@@ -202,11 +204,15 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
             y={-bounds.height / 2}
             width={bounds.width}
             height={bounds.height}
-            fill="#f8f9fa"
-            stroke="#dee2e6"
+            fill="#2d3748"
+            stroke="#4a5568"
             strokeWidth={1}
             listening={false}
           />
+          
+          {/* Grid overlay */}
+          <Grid grid={grid} />
+          
           
           {/* Render preview rectangle while drawing */}
           {isDrawing && drawStart && drawCurrent && tool.activeTool === 'rectangle' && (
@@ -235,7 +241,7 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
               stroke="#000000"
               strokeWidth={1}
               draggable={true}
-              onDragEnd={(e) => {
+              onDragEnd={() => {
                 // Handle shape drag end
                 console.log('Shape dragged:', shape.id);
               }}
