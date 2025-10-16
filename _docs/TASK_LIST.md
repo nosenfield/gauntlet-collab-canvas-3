@@ -35,18 +35,18 @@
 - [x] Test performance: Verify 60 FPS baseline
 
 ### 1.4 Canvas Navigation (Pan/Zoom)
-- [ ] Implement panning via mouse scroll
-  - [ ] Horizontal scroll support
-  - [ ] Vertical scroll support
-- [ ] Implement zooming via Cmd/Ctrl + Scroll
-  - [ ] Zoom in/out functionality
-  - [ ] Focus zoom on cursor position
-- [ ] Enforce canvas boundary constraints
-  - [ ] Calculate viewport boundaries
-  - [ ] Prevent panning beyond canvas edges
-  - [ ] Clamp zoom to keep canvas visible
-- [ ] Test edge cases: corners, max zoom, min zoom
-- [ ] Performance test: Verify 60 FPS during pan/zoom
+- [x] Implement panning via mouse scroll
+  - [x] Horizontal scroll support
+  - [x] Vertical scroll support
+- [x] Implement zooming via Cmd/Ctrl + Scroll
+  - [x] Zoom in/out functionality
+  - [x] Focus zoom on cursor position
+- [x] Enforce canvas boundary constraints
+  - [x] Calculate viewport boundaries
+  - [x] Prevent panning beyond canvas edges
+  - [x] Clamp zoom to keep canvas visible
+- [x] Test edge cases: corners, max zoom, min zoom
+- [x] Performance test: Verify 60 FPS during pan/zoom
 
 ---
 

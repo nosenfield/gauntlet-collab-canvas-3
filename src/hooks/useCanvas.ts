@@ -129,23 +129,38 @@ export const useCanvas = () => {
    * Zoom the canvas
    */
   const zoom = useCallback((scaleDelta: number, focalPoint?: { x: number; y: number }) => {
-    const newScale = viewport.scale + scaleDelta;
+    const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, viewport.scale + scaleDelta));
     
-    if (focalPoint) {
+    if (focalPoint && newScale !== viewport.scale) {
       // Zoom towards focal point
-      const focalCanvas = screenToCanvas(focalPoint.x, focalPoint.y);
-      const newFocalScreen = canvasToScreen(focalCanvas.x, focalCanvas.y);
+      const stage = stageRef.current;
+      if (!stage) return;
+      
+      const stagePos = stage.getAbsolutePosition();
+      const oldScale = stage.scaleX();
+      
+      // Calculate the point under the cursor in canvas coordinates
+      const pointTo = {
+        x: (focalPoint.x - stagePos.x) / oldScale,
+        y: (focalPoint.y - stagePos.y) / oldScale
+      };
+      
+      // Calculate new position to keep the same point under the cursor
+      const newPos = {
+        x: focalPoint.x - pointTo.x * newScale,
+        y: focalPoint.y - pointTo.y * newScale
+      };
       
       updateViewport({
         scale: newScale,
-        x: viewport.x + (focalPoint.x - newFocalScreen.x),
-        y: viewport.y + (focalPoint.y - newFocalScreen.y)
+        x: newPos.x,
+        y: newPos.y
       });
     } else {
       // Zoom towards center
       updateViewport({ scale: newScale });
     }
-  }, [viewport.scale, viewport.x, viewport.y, updateViewport, screenToCanvas, canvasToScreen]);
+  }, [viewport.scale, updateViewport]);
 
   /**
    * Reset viewport to default
@@ -216,16 +231,31 @@ export const useCanvas = () => {
   }, []);
 
   /**
-   * Handle mouse wheel for zooming
+   * Handle mouse wheel for panning and zooming
    */
   const handleWheel = useCallback((event: any) => {
     event.evt.preventDefault();
     
-    const scaleDelta = event.evt.deltaY > 0 ? -SCALE_FACTOR : SCALE_FACTOR;
-    const focalPoint = { x: event.evt.clientX, y: event.evt.clientY };
+    const { deltaX, deltaY, ctrlKey, metaKey } = event.evt;
+    const isZoom = ctrlKey || metaKey; // Cmd/Ctrl + Scroll for zoom
     
-    zoom(scaleDelta, focalPoint);
-  }, [zoom]);
+    if (isZoom) {
+      // Zoom functionality
+      const scaleDelta = deltaY > 0 ? -SCALE_FACTOR : SCALE_FACTOR;
+      const focalPoint = { x: event.evt.clientX, y: event.evt.clientY };
+      zoom(scaleDelta, focalPoint);
+    } else {
+      // Pan functionality
+      const panSpeed = 1.0; // Adjust pan speed as needed
+      const deltaPanX = -deltaX * panSpeed;
+      const deltaPanY = -deltaY * panSpeed;
+      
+      // Handle both horizontal and vertical scrolling
+      if (deltaX !== 0 || deltaY !== 0) {
+        pan(deltaPanX, deltaPanY);
+      }
+    }
+  }, [zoom, pan]);
 
   /**
    * Handle mouse down for drawing or panning
