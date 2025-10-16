@@ -3,6 +3,35 @@ import type { Vector2d } from 'konva/lib/types';
 import type { GridState } from './Grid';
 
 /**
+ * 2D point coordinates
+ */
+export interface Point {
+  x: number;
+  y: number;
+}
+
+/**
+ * Size dimensions
+ */
+export interface Size {
+  width: number;
+  height: number;
+}
+
+/**
+ * Canvas configuration constants
+ */
+export const CANVAS_WIDTH = 10000;
+export const CANVAS_HEIGHT = 10000;
+export const TOOLBAR_HEIGHT = 40;
+
+/**
+ * Zoom configuration constants
+ */
+export const MAX_ZOOM_PIXEL_SIZE = 100; // Minimum pixel size when zoomed in (prevents over-zooming)
+export const WINDOW_RESIZE_DEBOUNCE_MS = 100; // Debounce delay for window resize events
+
+/**
  * Canvas viewport state
  */
 export interface CanvasViewport {
@@ -110,6 +139,8 @@ export interface CanvasHook {
   zoom: (scaleDelta: number, focalPoint?: { x: number; y: number }) => void;
   /** Reset viewport to default position and scale */
   resetViewport: () => void;
+  /** Adjust viewport to fit window (useful for manual triggers) */
+  fitToWindow: () => void;
   /** Set the active drawing tool */
   setActiveTool: (activeTool: 'rectangle' | 'none') => void;
   /** Toggle grid visibility */

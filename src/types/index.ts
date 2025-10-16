@@ -29,8 +29,13 @@ export type {
   DrawingTool,
   CanvasHandlers,
   ShapeDragState,
-  CanvasHook
+  CanvasHook,
+  Point,
+  Size
 } from './CanvasTypes';
+
+// Canvas constants
+export { CANVAS_WIDTH, CANVAS_HEIGHT, TOOLBAR_HEIGHT, MAX_ZOOM_PIXEL_SIZE, WINDOW_RESIZE_DEBOUNCE_MS } from './CanvasTypes';
 
 // Application state types
 export type {

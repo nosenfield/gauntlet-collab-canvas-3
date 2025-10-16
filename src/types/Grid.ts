@@ -2,6 +2,8 @@
  * Canvas grid configuration and state types
  */
 
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from './CanvasTypes';
+
 /**
  * Grid state interface for canvas grid overlay
  */
@@ -30,9 +32,9 @@ export const GRID_CONFIG = {
   STROKE_WIDTH: 2,
   /** Grid rendering bounds (extends beyond canvas for pan/zoom) */
   RENDER_BOUNDS: {
-    MIN_X: -5000,
-    MAX_X: 5000,
-    MIN_Y: -5000,
-    MAX_Y: 5000
+    MIN_X: 0,
+    MAX_X: CANVAS_WIDTH,
+    MIN_Y: 0,
+    MAX_Y: CANVAS_HEIGHT
   }
 } as const;

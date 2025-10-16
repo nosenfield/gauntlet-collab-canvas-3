@@ -12,6 +12,7 @@ import { usePresence } from '@/hooks/usePresence';
 import { useShapes } from '@/hooks/useShapes';
 import { Grid } from '@/components/Grid';
 import type { CanvasHook } from '@/types';
+import { TOOLBAR_HEIGHT } from '@/types';
 
 /**
  * Canvas component props
@@ -51,7 +52,7 @@ export const Canvas: React.FC<CanvasProps> = ({ className, canvasHook }) => {
 
   const [stageSize, setStageSize] = useState({
     width: window.innerWidth,
-    height: window.innerHeight
+    height: window.innerHeight - TOOLBAR_HEIGHT
   });
 
   const [isDrawing, setIsDrawing] = useState(false);
@@ -65,7 +66,7 @@ export const Canvas: React.FC<CanvasProps> = ({ className, canvasHook }) => {
     const handleResize = () => {
       setStageSize({
         width: window.innerWidth,
-        height: window.innerHeight
+        height: window.innerHeight - TOOLBAR_HEIGHT
       });
     };
 
@@ -195,13 +196,13 @@ export const Canvas: React.FC<CanvasProps> = ({ className, canvasHook }) => {
           handleCursorMove(e);
         }}
         onMouseUp={handleCanvasMouseUp}
-        draggable={tool.activeTool === 'none'}
+        draggable={false}  // We handle dragging manually via wheel events
       >
         <Layer>
           {/* Canvas background */}
           <Rect
-            x={-bounds.width / 2}
-            y={-bounds.height / 2}
+            x={0}
+            y={0}
             width={bounds.width}
             height={bounds.height}
             fill="#2d3748"
