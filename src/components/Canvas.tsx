@@ -46,7 +46,8 @@ export const Canvas: React.FC<CanvasProps> = ({ className, canvasHook }) => {
     isLoading: presenceLoading, 
     updateCursor: updatePresenceCursor,
     joinSession,
-    leaveSession
+    leaveSession,
+    setupCleanup
   } = usePresence();
   const { shapes, addShape } = useShapes();
 
@@ -78,23 +79,25 @@ export const Canvas: React.FC<CanvasProps> = ({ className, canvasHook }) => {
    * Join session when user is authenticated
    */
   useEffect(() => {
-    if (currentUser && !presenceLoading) {
+    if (currentUser && currentUser.id && !presenceLoading) {
       joinSession(currentUser.id);
+      // Set up cleanup on page unload
+      setupCleanup(currentUser.id);
     }
 
     // Cleanup on unmount
     return () => {
-      if (currentUser) {
-        leaveSession();
+      if (currentUser && currentUser.id) {
+        leaveSession(currentUser.id);
       }
     };
-  }, [currentUser, presenceLoading, joinSession, leaveSession]);
+  }, [currentUser, presenceLoading, joinSession, leaveSession, setupCleanup]);
 
   /**
    * Handle cursor position updates
    */
   const handleCursorMove = (event: any) => {
-    if (!currentUser) return;
+    if (!currentUser || !currentUser.id) return;
 
     const canvasPos = screenToCanvas(event.evt.clientX, event.evt.clientY);
     updatePresenceCursor(currentUser.id, canvasPos);
@@ -122,7 +125,7 @@ export const Canvas: React.FC<CanvasProps> = ({ className, canvasHook }) => {
    * Handle mouse move during drawing
    */
   const handleCanvasMouseMove = (event: any) => {
-    if (!currentUser) return;
+    if (!currentUser || !currentUser.id) return;
 
     const canvasPos = screenToCanvas(event.evt.clientX, event.evt.clientY);
     updatePresenceCursor(currentUser.id, canvasPos);
@@ -250,18 +253,23 @@ export const Canvas: React.FC<CanvasProps> = ({ className, canvasHook }) => {
           ))}
           
           {/* Render multiplayer cursors */}
-          {Array.from(activeUsers.values()).map((user) => {
+          {activeUsers.map((user, index) => {
             // Don't render current user's cursor
             if (currentUser && user.id === currentUser.id) return null;
             
+            // Skip if cursor position is not available
+            if (!user.cursorPosition || typeof user.cursorPosition.x !== 'number' || typeof user.cursorPosition.y !== 'number') {
+              return null;
+            }
+            
             return (
-              <React.Fragment key={user.id}>
+              <React.Fragment key={user.id || `cursor-${index}`}>
                 {/* Cursor circle */}
                 <Circle
                   x={user.cursorPosition.x}
                   y={user.cursorPosition.y}
                   radius={8}
-                  fill={user.color}
+                  fill={user.color || '#666666'}
                   stroke="#ffffff"
                   strokeWidth={2}
                   listening={false}
@@ -270,9 +278,9 @@ export const Canvas: React.FC<CanvasProps> = ({ className, canvasHook }) => {
                 <Text
                   x={user.cursorPosition.x + 12}
                   y={user.cursorPosition.y - 8}
-                  text={user.displayName}
+                  text={user.displayName || 'Unknown'}
                   fontSize={12}
-                  fill={user.color}
+                  fill={user.color || '#666666'}
                   fontStyle="bold"
                   listening={false}
                 />

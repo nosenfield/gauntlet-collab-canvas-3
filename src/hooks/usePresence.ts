@@ -11,7 +11,9 @@ import {
   updateCursorPosition, 
   joinCanvasSession, 
   leaveCanvasSession,
-  listenToCanvasSession
+  listenToCanvasSession,
+  setupPageUnloadCleanup,
+  setupStaleUserCleanup
 } from '@/services/presenceService';
 import type { User, PresenceState, CanvasSession } from '@/types';
 
@@ -56,12 +58,19 @@ export const usePresence = () => {
   /**
    * Leave canvas session
    */
-  const leaveSession = useCallback(async (): Promise<void> => {
+  const leaveSession = useCallback(async (userId?: string): Promise<void> => {
     try {
-      await leaveCanvasSession();
+      await leaveCanvasSession(userId);
     } catch (error) {
       console.error('Failed to leave canvas session:', error);
     }
+  }, []);
+
+  /**
+   * Set up cleanup on page unload
+   */
+  const setupCleanup = useCallback((userId: string): void => {
+    setupPageUnloadCleanup(userId);
   }, []);
 
   /**
@@ -93,6 +102,13 @@ export const usePresence = () => {
     );
 
     return () => unsubscribe();
+  }, []);
+
+  /**
+   * Set up stale user cleanup
+   */
+  useEffect(() => {
+    setupStaleUserCleanup();
   }, []);
 
   /**
@@ -152,6 +168,7 @@ export const usePresence = () => {
     updateCursor,
     joinSession,
     leaveSession,
+    setupCleanup,
     getUserById,
     isUserActive
   };

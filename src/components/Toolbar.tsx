@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import type { CanvasHook } from '@/types';
+import type { CanvasHook, User } from '@/types';
 import './Toolbar.css';
 
 /**
@@ -15,12 +15,14 @@ import './Toolbar.css';
 interface ToolbarProps {
   className?: string;
   canvasHook: CanvasHook;
+  activeUsers: User[];
+  currentUser: User | null;
 }
 
 /**
  * Toolbar component
  */
-export const Toolbar: React.FC<ToolbarProps> = ({ className, canvasHook }) => {
+export const Toolbar: React.FC<ToolbarProps> = ({ className, canvasHook, activeUsers, currentUser }) => {
   const { tool, grid, setActiveTool, toggleGrid } = canvasHook;
 
   /**
@@ -62,6 +64,25 @@ export const Toolbar: React.FC<ToolbarProps> = ({ className, canvasHook }) => {
             <span className="toolbar-icon">⊞</span>
             Grid
           </button>
+        </div>
+        
+        <div className="toolbar-presence">
+          <div className="presence-label">Active Users:</div>
+          <div className="presence-users">
+            {activeUsers.map((user, index) => (
+              <div 
+                key={user.id || `user-${index}`} 
+                className={`presence-user ${currentUser && user.id === currentUser.id ? 'current-user' : ''}`}
+                title={user.displayName || 'Unknown User'}
+              >
+                <div 
+                  className="presence-avatar" 
+                  style={{ backgroundColor: user.color || '#666666' }}
+                />
+                <span className="presence-name">{user.displayName || 'Unknown'}</span>
+              </div>
+            ))}
+          </div>
         </div>
         
         <div className="toolbar-status">

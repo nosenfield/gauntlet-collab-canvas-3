@@ -102,21 +102,48 @@ export const useAuth = () => {
    * Set up authentication state listener
    */
   useEffect(() => {
-    const unsubscribe = onAuthStateChange((firebaseUser: FirebaseUser | null) => {
+    const unsubscribe = onAuthStateChange(async (firebaseUser: FirebaseUser | null) => {
+      console.log('Auth state changed:', firebaseUser ? 'User signed in' : 'User signed out');
+      
       if (firebaseUser) {
-        // User is signed in - we'll get user data from Firestore
-        setUserState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: null
-        }));
+        try {
+          console.log('Creating user document for:', firebaseUser.uid);
+          // Import the createUserDocument function directly to avoid re-signing in
+          const { createUserDocument } = await import('@/services/authService');
+          const user = await createUserDocument(firebaseUser);
+          console.log('User created successfully:', user);
+          setUserState({
+            currentUser: user,
+            isLoading: false,
+            error: null
+          });
+        } catch (error) {
+          console.error('Error creating user:', error);
+          setUserState({
+            currentUser: null,
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to create user'
+          });
+        }
       } else {
-        // User is signed out
-        setUserState({
-          currentUser: null,
-          isLoading: false,
-          error: null
-        });
+        console.log('No user detected, attempting automatic sign-in...');
+        // If no user is detected, automatically sign in anonymously
+        try {
+          const user = await signInAnonymouslyAndCreateUser();
+          console.log('Automatic sign-in successful:', user);
+          setUserState({
+            currentUser: user,
+            isLoading: false,
+            error: null
+          });
+        } catch (error) {
+          console.error('Error with automatic sign-in:', error);
+          setUserState({
+            currentUser: null,
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to sign in automatically'
+          });
+        }
       }
     });
 

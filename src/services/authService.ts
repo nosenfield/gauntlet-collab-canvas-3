@@ -14,7 +14,7 @@ import type { User as FirebaseUser } from 'firebase/auth';
 import { 
   doc, 
   setDoc, 
-  getDoc, 
+  getDoc,
   serverTimestamp
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
@@ -45,29 +45,48 @@ const generateRandomColor = (): string => {
 };
 
 /**
+ * Generate a unique tab ID for this browser tab
+ */
+const getTabId = (): string => {
+  // Use sessionStorage to persist tab ID across refreshes but not across tabs
+  let tabId = sessionStorage.getItem('collabCanvasTabId');
+  if (!tabId) {
+    tabId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    sessionStorage.setItem('collabCanvasTabId', tabId);
+  }
+  return tabId;
+};
+
+/**
  * Create user document in Firestore
  */
-const createUserDocument = async (firebaseUser: FirebaseUser): Promise<User> => {
-  const userRef = doc(db, 'users', firebaseUser.uid);
+export const createUserDocument = async (firebaseUser: FirebaseUser): Promise<User> => {
+  const tabId = getTabId();
+  const userRef = doc(db, 'users', `${firebaseUser.uid}_${tabId}`);
   
-  // Check if user document already exists
+  // Check if user document already exists for this tab
   const userDoc = await getDoc(userRef);
   if (userDoc.exists()) {
     const userData = userDoc.data() as User;
     return userData;
   }
 
-  // Create new user document
+  // Create new user document for this tab
   const userData: CreateUserData = {
     color: generateRandomColor(),
-    displayName: `user_${firebaseUser.uid.slice(-6)}`,
+    displayName: `user_${tabId.slice(-6)}`,
     cursorPosition: { x: 0, y: 0 }
   };
 
   await setDoc(userRef, {
     ...userData,
-    id: firebaseUser.uid,
+    id: `${firebaseUser.uid}_${tabId}`,
     lastActive: serverTimestamp()
+  });
+
+  console.log('Created user document:', {
+    id: `${firebaseUser.uid}_${tabId}`,
+    ...userData
   });
 
   // Set up disconnect handler to clean up user data
@@ -76,7 +95,7 @@ const createUserDocument = async (firebaseUser: FirebaseUser): Promise<User> => 
   console.log('User disconnect cleanup would be handled by Cloud Functions');
 
   return {
-    id: firebaseUser.uid,
+    id: `${firebaseUser.uid}_${tabId}`,
     ...userData,
     lastActive: new Date() as any // Will be replaced by server timestamp
   };

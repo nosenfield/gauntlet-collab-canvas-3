@@ -78,6 +78,57 @@
   font-weight: bold;
 }
 
+.toolbar-presence {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 20px;
+}
+
+.presence-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.presence-users {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.presence-user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.presence-user.current-user {
+  background: #e3f2fd;
+  border-color: #2196f3;
+}
+
+.presence-avatar {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.presence-name {
+  font-size: 11px;
+  color: #333;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .toolbar-status {
   display: flex;
   align-items: center;
@@ -113,6 +164,29 @@
   
   .toolbar-icon {
     font-size: 14px;
+  }
+  
+  .toolbar-presence {
+    margin-right: 15px;
+    gap: 8px;
+  }
+  
+  .presence-label {
+    font-size: 11px;
+  }
+  
+  .presence-user {
+    padding: 3px 6px;
+    gap: 4px;
+  }
+  
+  .presence-avatar {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .presence-name {
+    font-size: 10px;
   }
   
   .status-text {
