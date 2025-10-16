@@ -199,6 +199,7 @@ High-performance canvas rendering using Konva.js and react-konva.
 
 **Konva Stage:**
 - 10,000 x 10,000px canvas
+- Coordinate system with (0,0) at top-left corner
 - Manages viewport transformations (pan/zoom)
 - Event handling for mouse interactions
 
@@ -657,7 +658,7 @@ Firebase Services
 
 ## Glossary
 
-- **Canvas Space:** 10,000x10,000px coordinate system with (0,0) at center
+- **Canvas Space:** 10,000x10,000px coordinate system with (0,0) at top-left corner
 - **Viewport:** Visible portion of canvas rendered in browser window
 - **Lock:** Exclusive write access to a shape during manipulation
 - **Presence:** Real-time awareness of active users and their cursors
