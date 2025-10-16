@@ -5,7 +5,7 @@
  * Provides real-time updates of active users and their cursor positions.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   listenToActiveUsers, 
   updateCursorPosition, 
@@ -13,7 +13,7 @@ import {
   leaveCanvasSession,
   listenToCanvasSession
 } from '@/services/presenceService';
-import { User, PresenceState, CanvasSession } from '@/types';
+import type { User, PresenceState, CanvasSession } from '@/types';
 
 /**
  * Custom hook for presence management
@@ -26,7 +26,6 @@ export const usePresence = () => {
   });
 
   const [canvasSession, setCanvasSession] = useState<CanvasSession | null>(null);
-  const cursorUpdateRef = useRef<NodeJS.Timeout | null>(null);
 
   /**
    * Update cursor position with debouncing
@@ -57,9 +56,9 @@ export const usePresence = () => {
   /**
    * Leave canvas session
    */
-  const leaveSession = useCallback(async (userId: string): Promise<void> => {
+  const leaveSession = useCallback(async (): Promise<void> => {
     try {
-      await leaveCanvasSession(userId);
+      await leaveCanvasSession();
     } catch (error) {
       console.error('Failed to leave canvas session:', error);
     }

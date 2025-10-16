@@ -9,17 +9,14 @@ import {
   collection, 
   doc, 
   onSnapshot, 
-  setDoc, 
-  deleteDoc,
+  setDoc,
   serverTimestamp,
   query,
-  where,
   orderBy,
-  limit,
-  onDisconnect
+  limit
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { User, CanvasSession } from '@/types';
+import type { User, CanvasSession } from '@/types';
 
 /**
  * Listen to active users collection for real-time presence updates
@@ -51,7 +48,7 @@ export const listenToActiveUsers = (
 /**
  * Update user's cursor position with debouncing
  */
-let cursorUpdateTimeout: NodeJS.Timeout | null = null;
+let cursorUpdateTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export const updateCursorPosition = (
   userId: string, 
@@ -101,10 +98,9 @@ export const joinCanvasSession = async (userId: string): Promise<void> => {
     }, { merge: true });
 
     // Set up disconnect handler to remove user from session
-    onDisconnect(sessionRef).update({
-      activeUsers: [],
-      lastModified: serverTimestamp()
-    });
+    // Note: onDisconnect is not available in client SDK
+    // This would typically be handled by Cloud Functions
+    console.log('Session disconnect cleanup would be handled by Cloud Functions');
   } catch (error) {
     console.error('Error joining canvas session:', error);
   }
@@ -113,7 +109,7 @@ export const joinCanvasSession = async (userId: string): Promise<void> => {
 /**
  * Remove user from canvas session
  */
-export const leaveCanvasSession = async (userId: string): Promise<void> => {
+export const leaveCanvasSession = async (): Promise<void> => {
   try {
     const sessionRef = doc(db, 'canvasSession', 'default');
     await setDoc(sessionRef, {
@@ -156,13 +152,6 @@ export const listenToCanvasSession = (
  */
 export const cleanupStaleUsers = async (): Promise<void> => {
   try {
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const usersRef = collection(db, 'users');
-    const q = query(
-      usersRef, 
-      where('lastActive', '<', fiveMinutesAgo)
-    );
-
     // Note: This would typically be done in a Cloud Function
     // For MVP, we'll rely on client-side cleanup
     console.log('Stale user cleanup would be implemented here');

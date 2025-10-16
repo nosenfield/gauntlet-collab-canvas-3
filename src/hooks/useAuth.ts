@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { User as FirebaseUser } from 'firebase/auth';
+import type { User as FirebaseUser } from 'firebase/auth';
 import { 
   signInAnonymouslyAndCreateUser, 
   signOutUser, 
@@ -14,7 +14,7 @@ import {
   updateUserLastActive,
   updateUserCursorPosition
 } from '@/services/authService';
-import { User, UserState } from '@/types';
+import type { UserState } from '@/types';
 
 /**
  * Custom hook for authentication management

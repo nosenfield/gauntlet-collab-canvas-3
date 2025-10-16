@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { CanvasViewport, DrawingTool, CanvasBounds, CanvasMouseEvent } from '@/types';
+import type { CanvasViewport, DrawingTool, CanvasBounds } from '@/types';
 
 /**
  * Canvas configuration constants

@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { Circle, Text } from 'react-konva';
-import { User } from '@/types';
+import type { User } from '@/types';
 
 /**
  * Cursor component props

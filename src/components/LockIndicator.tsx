@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { Text, Group } from 'react-konva';
-import { Shape, User } from '@/types';
+import type { Shape, User } from '@/types';
 
 /**
  * Lock indicator component props
@@ -23,8 +23,7 @@ interface LockIndicatorProps {
  */
 export const LockIndicator: React.FC<LockIndicatorProps> = ({
   shape,
-  lockedByUser,
-  className
+  lockedByUser
 }) => {
   // Don't render if shape is not locked
   if (!shape.lockedBy) return null;

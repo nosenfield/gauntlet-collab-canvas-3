@@ -5,7 +5,7 @@
  * user interactions for drawing and navigation.
  */
 
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Stage, Layer } from 'react-konva';
 import { useCanvas } from '@/hooks/useCanvas';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,9 +36,9 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
     screenToCanvas
   } = useCanvas();
 
-  const { currentUser, updateCursor } = useAuth();
+  const { currentUser } = useAuth();
   const { updateCursor: updatePresenceCursor } = usePresence();
-  const { shapes, addShape, selectShape } = useShapes();
+  const { shapes, addShape } = useShapes();
 
   /**
    * Handle cursor position updates
@@ -105,8 +105,8 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
           <div
             style={{
               position: 'absolute',
-              left: bounds.minX,
-              top: bounds.minY,
+              left: -bounds.width / 2,
+              top: -bounds.height / 2,
               width: bounds.width,
               height: bounds.height,
               backgroundColor: '#f8f9fa',

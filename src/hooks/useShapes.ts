@@ -16,7 +16,7 @@ import {
   moveShape,
   isShapeLocked
 } from '@/services/shapeService';
-import { Shape, ShapeState, CreateShapeData, UpdateShapeData } from '@/types';
+import type { Shape, ShapeState, CreateShapeData, UpdateShapeData } from '@/types';
 
 /**
  * Custom hook for shape management

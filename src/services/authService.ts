@@ -7,20 +7,18 @@
 
 import { 
   signInAnonymously, 
-  User as FirebaseUser,
   onAuthStateChanged,
   signOut
 } from 'firebase/auth';
+import type { User as FirebaseUser } from 'firebase/auth';
 import { 
   doc, 
   setDoc, 
   getDoc, 
-  serverTimestamp,
-  onDisconnect,
-  deleteDoc
+  serverTimestamp
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { User, CreateUserData } from '@/types';
+import type { User, CreateUserData } from '@/types';
 
 /**
  * Predefined color palette for user assignment
@@ -73,7 +71,9 @@ const createUserDocument = async (firebaseUser: FirebaseUser): Promise<User> => 
   });
 
   // Set up disconnect handler to clean up user data
-  onDisconnect(userRef).delete();
+  // Note: onDisconnect is not available in client SDK
+  // This would typically be handled by Cloud Functions
+  console.log('User disconnect cleanup would be handled by Cloud Functions');
 
   return {
     id: firebaseUser.uid,

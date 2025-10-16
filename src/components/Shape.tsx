@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { Rect } from 'react-konva';
-import { Shape } from '@/types';
+import type { Shape } from '@/types';
 
 /**
  * Shape component props

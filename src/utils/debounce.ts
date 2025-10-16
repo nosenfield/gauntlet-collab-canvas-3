@@ -12,7 +12,7 @@ export const debounce = <T extends (...args: any[]) => any>(
   func: T,
   delay: number
 ): ((...args: Parameters<T>) => void) => {
-  let timeoutId: NodeJS.Timeout | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   return (...args: Parameters<T>) => {
     if (timeoutId) {
@@ -36,7 +36,7 @@ export const throttle = <T extends (...args: any[]) => any>(
   delay: number
 ): ((...args: Parameters<T>) => void) => {
   let lastCall = 0;
-  let timeoutId: NodeJS.Timeout | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   return (...args: Parameters<T>) => {
     const now = Date.now();
@@ -69,7 +69,7 @@ export const debounceImmediate = <T extends (...args: any[]) => any>(
   delay: number,
   immediate: boolean = false
 ): ((...args: Parameters<T>) => void) => {
-  let timeoutId: NodeJS.Timeout | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
   let hasExecuted = false;
 
   return (...args: Parameters<T>) => {
@@ -110,7 +110,7 @@ export const throttleAdvanced = <T extends (...args: any[]) => any>(
   } = {}
 ): ((...args: Parameters<T>) => void) => {
   const { leading = true, trailing = true } = options;
-  let timeoutId: NodeJS.Timeout | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
   let lastCall = 0;
   let lastArgs: Parameters<T> | null = null;
 
@@ -182,7 +182,7 @@ export const debouncePromise = <T extends (...args: any[]) => Promise<any>>(
   func: T,
   delay: number
 ): ((...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>) => {
-  let timeoutId: NodeJS.Timeout | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
   let resolvePromise: ((value: Awaited<ReturnType<T>>) => void) | null = null;
   let rejectPromise: ((reason?: any) => void) | null = null;
 

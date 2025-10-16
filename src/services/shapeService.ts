@@ -16,10 +16,10 @@ import {
   orderBy, 
   serverTimestamp,
   runTransaction,
-  onDisconnect
+  getDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Shape, CreateShapeData, UpdateShapeData } from '@/types';
+import type { Shape, CreateShapeData, UpdateShapeData } from '@/types';
 
 /**
  * Listen to shapes collection for real-time updates
@@ -81,7 +81,7 @@ export const updateShape = async (
 ): Promise<void> => {
   try {
     const shapeRef = doc(db, 'shapes', shapeId);
-    await updateDoc(shapeRef, updates);
+    await updateDoc(shapeRef, updates as any);
   } catch (error) {
     console.error('Error updating shape:', error);
     throw new Error('Failed to update shape');
@@ -119,10 +119,9 @@ export const lockShape = async (
       });
 
       // Set up disconnect handler to release lock
-      onDisconnect(shapeRef).update({
-        lockedBy: null,
-        lockedAt: null
-      });
+      // Note: onDisconnect is not available in client SDK
+      // This would typically be handled by Cloud Functions
+      console.log('Shape lock cleanup would be handled by Cloud Functions');
 
       return true; // Successfully locked
     });
@@ -170,9 +169,6 @@ export const unlockShape = async (
  */
 export const releaseUserLocks = async (userId: string): Promise<void> => {
   try {
-    const shapesRef = collection(db, 'shapes');
-    const q = query(shapesRef, where('lockedBy', '==', userId));
-    
     // Note: This would typically be done in a Cloud Function
     // For MVP, we'll rely on client-side cleanup
     console.log(`Would release locks for user: ${userId}`);
@@ -227,7 +223,7 @@ export const moveShape = async (
 export const isShapeLocked = async (shapeId: string): Promise<boolean> => {
   try {
     const shapeRef = doc(db, 'shapes', shapeId);
-    const shapeDoc = await shapeRef.get();
+    const shapeDoc = await getDoc(shapeRef);
     
     if (!shapeDoc.exists()) {
       return false;
