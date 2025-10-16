@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+package-lock.json
 
 # Editor directories and files
 .vscode/*
@@ -27,4 +28,5 @@ dist-ssr
 .env
 
 # Context docs, consider ignoring if these get outsized
-# context-summaries/SESSION_SUMMARY*.mdpackage-lock.json
+# context-summaries/SESSION_SUMMARY*.md
+
