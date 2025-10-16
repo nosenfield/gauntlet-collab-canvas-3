@@ -87,43 +87,43 @@
 ## Phase 3: Shape Creation (Priority: HIGH)
 
 ### 3.1 Shape Data Model
-- [ ] Create Shape TypeScript interface
-- [ ] Create Firestore `shapes` collection structure
-- [ ] Define shape properties: id, type, x, y, width, height, fill, createdBy, lockedBy
-- [ ] Set up real-time listener for shapes collection
-- [ ] Implement shape synchronization logic
+- [x] Create Shape TypeScript interface
+- [x] Create Firestore `shapes` collection structure
+- [x] Define shape properties: id, type, x, y, width, height, fill, createdBy, lockedBy
+- [x] Set up real-time listener for shapes collection
+- [x] Implement shape synchronization logic
 
 ### 3.2 Toolbar UI
-- [ ] Create Toolbar component (fixed to viewport)
-- [ ] Add "Draw Rect" toggle button
-- [ ] Implement button active/inactive states
-- [ ] Manage drawing mode state (useState)
-- [ ] Style toolbar: top position, clear visual feedback
-- [ ] Test: Button toggle updates tool state
+- [x] Create Toolbar component (fixed to viewport)
+- [x] Add "Draw Rect" toggle button
+- [x] Implement button active/inactive states
+- [x] Manage drawing mode state (useState)
+- [x] Style toolbar: top position, clear visual feedback
+- [x] Test: Button toggle updates tool state
 
 ### 3.3 Rectangle Drawing Tool
-- [ ] Implement press/drag/release interaction
-  - [ ] Capture mousedown event (establish first vertex)
-  - [ ] Track mousemove during drag (update dimensions)
-  - [ ] Capture mouseup event (complete shape)
-- [ ] Enforce canvas boundary constraints during draw
-  - [ ] Clamp rectangle to canvas edges
-  - [ ] Handle drag outside canvas bounds
-- [ ] Render in-progress rectangle (local preview)
-- [ ] Sync in-progress rectangle to Firestore (real-time)
-- [ ] Fill rectangle with user's color
-- [ ] Save completed rectangle to Firestore
-- [ ] Test: Rectangle appears for all users in real-time
-- [ ] Test: In-progress drawing visible to others
-- [ ] Test: Cannot draw outside canvas boundaries
+- [x] Implement press/drag/release interaction
+  - [x] Capture mousedown event (establish first vertex)
+  - [x] Track mousemove during drag (update dimensions)
+  - [x] Capture mouseup event (complete shape)
+- [x] Enforce canvas boundary constraints during draw
+  - [x] Clamp rectangle to canvas edges
+  - [x] Handle drag outside canvas bounds
+- [x] Render in-progress rectangle (local preview)
+- [x] Sync in-progress rectangle to Firestore (real-time)
+- [x] Fill rectangle with user's color
+- [x] Save completed rectangle to Firestore
+- [x] Test: Rectangle appears for all users in real-time
+- [x] Test: In-progress drawing visible to others
+- [x] Test: Cannot draw outside canvas boundaries
 
 ### 3.4 Shape Rendering
-- [ ] Create Rectangle shape component (Konva.Rect)
-- [ ] Render all shapes from Firestore state
-- [ ] Apply shape properties: position, dimensions, color
-- [ ] Optimize rendering for 500+ shapes
-- [ ] Test: Shapes render correctly
-- [ ] Test: Performance with 500+ shapes (60 FPS)
+- [x] Create Rectangle shape component (Konva.Rect)
+- [x] Render all shapes from Firestore state
+- [x] Apply shape properties: position, dimensions, color
+- [x] Optimize rendering for 500+ shapes
+- [x] Test: Shapes render correctly
+- [x] Test: Performance with 500+ shapes (60 FPS)
 
 ---
 

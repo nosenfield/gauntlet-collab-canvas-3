@@ -1,12 +1,13 @@
 /**
  * Toolbar Component
  * 
- * Fixed toolbar component that provides tool selection
- * and canvas controls. Positioned at the top of the viewport.
+ * Fixed toolbar at the top of the viewport with drawing tools.
+ * Provides visual feedback for active tools and manages drawing state.
  */
 
 import React from 'react';
 import { useCanvas } from '@/hooks/useCanvas';
+import './Toolbar.css';
 
 /**
  * Toolbar component props
@@ -24,36 +25,39 @@ export const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
   /**
    * Handle tool selection
    */
-  const handleToolSelect = (selectedTool: 'rectangle' | 'none') => {
-    setActiveTool(selectedTool);
+  const handleToolSelect = (toolType: 'rectangle' | 'none') => {
+    setActiveTool(toolType);
   };
 
   return (
     <div className={`toolbar ${className || ''}`}>
       <div className="toolbar-content">
-        <div className="tool-group">
-          <h3>Tools</h3>
+        <h2 className="toolbar-title">CollabCanvas</h2>
+        
+        <div className="toolbar-tools">
           <button
-            className={`tool-button ${tool.activeTool === 'rectangle' ? 'active' : ''}`}
-            onClick={() => handleToolSelect('rectangle')}
-            title="Draw Rectangle"
-          >
-            📦 Draw Rect
-          </button>
-          <button
-            className={`tool-button ${tool.activeTool === 'none' ? 'active' : ''}`}
+            className={`toolbar-button ${tool.activeTool === 'none' ? 'active' : ''}`}
             onClick={() => handleToolSelect('none')}
             title="Select Tool"
           >
-            ✋ Select
+            <span className="toolbar-icon">↖</span>
+            Select
+          </button>
+          
+          <button
+            className={`toolbar-button ${tool.activeTool === 'rectangle' ? 'active' : ''}`}
+            onClick={() => handleToolSelect('rectangle')}
+            title="Draw Rectangle"
+          >
+            <span className="toolbar-icon">▭</span>
+            Rectangle
           </button>
         </div>
         
-        <div className="tool-group">
-          <h3>Status</h3>
-          <div className="status-indicator">
-            {tool.isDrawing ? 'Drawing...' : 'Ready'}
-          </div>
+        <div className="toolbar-status">
+          <span className="status-text">
+            {tool.activeTool === 'none' ? 'Pan/Zoom Mode' : `${tool.activeTool} Tool Active`}
+          </span>
         </div>
       </div>
     </div>

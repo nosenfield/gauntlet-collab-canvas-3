@@ -52,6 +52,10 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
     height: window.innerHeight
   });
 
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
+  const [drawCurrent, setDrawCurrent] = useState<{ x: number; y: number } | null>(null);
+
   /**
    * Handle window resize
    */
@@ -94,24 +98,73 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
   };
 
   /**
-   * Handle shape creation
+   * Handle mouse down for drawing
    */
-  const handleShapeCreation = (event: any) => {
-    if (!currentUser || tool.activeTool === 'none') return;
+  const handleCanvasMouseDown = (event: any) => {
+    if (!currentUser) return;
 
     const canvasPos = screenToCanvas(event.evt.clientX, event.evt.clientY);
     
     if (tool.activeTool === 'rectangle') {
-      // Create rectangle shape
-      addShape({
-        type: 'rectangle',
-        x: canvasPos.x,
-        y: canvasPos.y,
-        width: 100,
-        height: 100,
-        fill: currentUser.color,
-        createdBy: currentUser.id
-      });
+      setIsDrawing(true);
+      setDrawStart(canvasPos);
+      setDrawCurrent(canvasPos);
+    } else {
+      // Call original handler for panning
+      handleMouseDown(event);
+    }
+  };
+
+  /**
+   * Handle mouse move during drawing
+   */
+  const handleCanvasMouseMove = (event: any) => {
+    if (!currentUser) return;
+
+    const canvasPos = screenToCanvas(event.evt.clientX, event.evt.clientY);
+    updatePresenceCursor(currentUser.id, canvasPos);
+
+    if (isDrawing && tool.activeTool === 'rectangle') {
+      setDrawCurrent(canvasPos);
+    } else {
+      // Call original handler for other interactions
+      handleMouseMove(event);
+    }
+  };
+
+  /**
+   * Handle mouse up to complete drawing
+   */
+  const handleCanvasMouseUp = (event: any) => {
+    if (!currentUser) return;
+
+    if (isDrawing && tool.activeTool === 'rectangle' && drawStart && drawCurrent) {
+      // Calculate rectangle dimensions
+      const x = Math.min(drawStart.x, drawCurrent.x);
+      const y = Math.min(drawStart.y, drawCurrent.y);
+      const width = Math.abs(drawCurrent.x - drawStart.x);
+      const height = Math.abs(drawCurrent.y - drawStart.y);
+
+      // Only create rectangle if it has meaningful dimensions
+      if (width > 5 && height > 5) {
+        addShape({
+          type: 'rectangle',
+          x,
+          y,
+          width,
+          height,
+          fill: currentUser.color,
+          createdBy: currentUser.id
+        });
+      }
+
+      // Reset drawing state
+      setIsDrawing(false);
+      setDrawStart(null);
+      setDrawCurrent(null);
+    } else {
+      // Call original handler for other interactions
+      handleMouseUp(event);
     }
   };
 
@@ -134,13 +187,12 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
         x={viewport.x}
         y={viewport.y}
         onWheel={handleWheel}
-        onMouseDown={handleMouseDown}
+        onMouseDown={handleCanvasMouseDown}
         onMouseMove={(e) => {
-          handleMouseMove(e);
+          handleCanvasMouseMove(e);
           handleCursorMove(e);
         }}
-        onMouseUp={handleMouseUp}
-        onClick={handleShapeCreation}
+        onMouseUp={handleCanvasMouseUp}
         draggable={tool.activeTool === 'none'}
       >
         <Layer>
@@ -156,6 +208,21 @@ export const Canvas: React.FC<CanvasProps> = ({ className }) => {
             listening={false}
           />
           
+          {/* Render preview rectangle while drawing */}
+          {isDrawing && drawStart && drawCurrent && tool.activeTool === 'rectangle' && (
+            <Rect
+              x={Math.min(drawStart.x, drawCurrent.x)}
+              y={Math.min(drawStart.y, drawCurrent.y)}
+              width={Math.abs(drawCurrent.x - drawStart.x)}
+              height={Math.abs(drawCurrent.y - drawStart.y)}
+              fill={currentUser?.color || '#007bff'}
+              stroke="#000000"
+              strokeWidth={1}
+              opacity={0.7}
+              listening={false}
+            />
+          )}
+
           {/* Render shapes */}
           {shapes.map((shape) => (
             <Rect

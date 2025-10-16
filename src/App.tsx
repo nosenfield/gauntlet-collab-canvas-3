@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Canvas } from '@/components/Canvas';
+import { Toolbar } from '@/components/Toolbar';
 import './App.css';
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
 
   return (
     <div className="App">
+      <Toolbar />
       <Canvas />
     </div>
   );
