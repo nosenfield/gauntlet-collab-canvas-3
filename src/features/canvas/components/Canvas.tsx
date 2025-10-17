@@ -16,9 +16,11 @@ import { usePan } from '../hooks/usePan';
 import { useZoom } from '../hooks/useZoom';
 import { useViewportConstraints } from '../hooks/useViewportConstraints';
 import { GridBackground } from './GridBackground';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { startFPSMonitoring, stopFPSMonitoring } from '@/utils/performanceMonitor';
 import type { PerformanceMetrics } from '@/utils/performanceMonitor';
+import { useCursorTracking } from '@/features/presence/hooks/useCursorTracking';
+import { RemoteCursors } from '@/features/presence/components/RemoteCursors';
 
 /**
  * Canvas Component
@@ -32,6 +34,7 @@ export function Canvas(): React.ReactElement {
   const { viewport, setPosition, setViewport, setDimensions } = useViewport();
   const [fpsMetrics, setFpsMetrics] = useState<PerformanceMetrics>({ fps: 60, frameTime: 0, timestamp: 0 });
   const [showFPS, setShowFPS] = useState(false); // Toggle with 'F' key
+  const stageRef = useRef<any>(null); // Konva Stage ref
 
   // Sync window dimensions to viewport store
   useEffect(() => {
@@ -63,6 +66,9 @@ export function Canvas(): React.ReactElement {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, []);
+
+  // Track cursor position and sync to Realtime Database
+  useCursorTracking({ stageRef, enabled: true });
 
   // Pan gesture handling via scroll/wheel
   const panHandlers = usePan({
@@ -116,6 +122,7 @@ export function Canvas(): React.ReactElement {
       }}
     >
       <Stage
+        ref={stageRef}
         width={width}
         height={height}
         x={viewport.x}
@@ -131,6 +138,7 @@ export function Canvas(): React.ReactElement {
           scale={viewport.scale}
         />
         <Layer></Layer>
+        <RemoteCursors />
       </Stage>
 
       {/* FPS Overlay - Toggle with 'F' key (development only) */}
