@@ -6,12 +6,15 @@
  * - Fills entire browser window (viewport)
  * - Responsive to window resize
  * - Supports pan navigation with scroll/wheel
+ * - Supports zoom with Cmd/Ctrl + scroll (cursor-centered)
  */
 
 import { Stage, Layer } from 'react-konva';
 import { useCanvasSize } from '../hooks/useCanvasSize';
 import { useViewport } from '../store/viewportStore';
 import { usePan } from '../hooks/usePan';
+import { useZoom } from '../hooks/useZoom';
+import { useViewportConstraints } from '../hooks/useViewportConstraints';
 import { GridBackground } from './GridBackground';
 
 /**
@@ -23,10 +26,10 @@ import { GridBackground } from './GridBackground';
  */
 export function Canvas(): React.ReactElement {
   const { width, height } = useCanvasSize();
-  const { viewport, setPosition } = useViewport();
+  const { viewport, setPosition, setViewport } = useViewport();
 
   // Pan gesture handling via scroll/wheel
-  const { handleWheel } = usePan({
+  const panHandlers = usePan({
     viewportWidth: width,
     viewportHeight: height,
     scale: viewport.scale,
@@ -34,6 +37,35 @@ export function Canvas(): React.ReactElement {
     currentY: viewport.y,
     onPan: setPosition,
   });
+
+  // Zoom gesture handling via Cmd/Ctrl + scroll
+  const zoomHandlers = useZoom({
+    viewportWidth: width,
+    viewportHeight: height,
+    currentX: viewport.x,
+    currentY: viewport.y,
+    currentScale: viewport.scale,
+    onZoom: setViewport,
+  });
+
+  // Maintain viewport constraints on window resize
+  useViewportConstraints({
+    viewportWidth: width,
+    viewportHeight: height,
+    currentX: viewport.x,
+    currentY: viewport.y,
+    currentScale: viewport.scale,
+    onUpdate: setViewport,
+  });
+
+  // Combined wheel handler - delegates to pan or zoom based on modifier keys
+  const handleWheel = (e: Parameters<typeof panHandlers.handleWheel>[0]): void => {
+    if (e.evt.ctrlKey || e.evt.metaKey) {
+      zoomHandlers.handleWheel(e);
+    } else {
+      panHandlers.handleWheel(e);
+    }
+  };
 
   return (
     <div
