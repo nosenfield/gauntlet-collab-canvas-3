@@ -6,6 +6,9 @@ import { ViewportProvider } from '@/features/canvas/store/viewportStore';
 import { Canvas } from '@/features/canvas/components/Canvas';
 import { usePresence } from '@/features/presence/hooks/usePresence';
 import { UserPresenceSidebar } from '@/features/presence/components/UserPresenceSidebar';
+import { ShapesProvider } from '@/features/shapes/store/shapesStore';
+import { ToolProvider } from '@/features/shapes/store/toolStore';
+import { ShapeToolbar } from '@/features/shapes/components/ShapeToolbar';
 import './App.css';
 
 /**
@@ -19,6 +22,7 @@ function AppContent() {
   return (
     <>
       <DebugAuthPanel />
+      <ShapeToolbar />
       <UserPresenceSidebar />
       <ViewportProvider>
         <Canvas />
@@ -29,13 +33,17 @@ function AppContent() {
 
 function App() {
   useEffect(() => {
-    console.log('CollabCanvas MVP - Stage 2: User Authentication & Presence');
+    console.log('CollabCanvas MVP - Stage 3: Display Objects (Shapes)');
   }, []);
 
   return (
     <AuthProvider>
-      <AuthModal />
-      <AppContent />
+      <ShapesProvider>
+        <ToolProvider>
+          <AuthModal />
+          <AppContent />
+        </ToolProvider>
+      </ShapesProvider>
     </AuthProvider>
   );
 }
