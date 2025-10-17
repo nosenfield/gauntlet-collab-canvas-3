@@ -37,13 +37,34 @@ interface ViewportContextType {
   resetViewport: () => void;
 }
 
-const initialViewport: ViewportState = {
-  x: 0,
-  y: 0,
-  scale: 1,
-  width: window.innerWidth,
-  height: window.innerHeight,
-};
+/**
+ * Calculate initial viewport state
+ * Centers on canvas center (5000, 5000) with 2000px showing across larger dimension
+ */
+function calculateInitialViewport(): ViewportState {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  
+  // Canvas constants
+  const CANVAS_CENTER_X = 5000;
+  const CANVAS_CENTER_Y = 5000;
+  const INITIAL_VISIBLE_SIZE = 2000; // px to show across larger dimension
+  
+  // Calculate scale to show 2000px across the larger window dimension
+  const largerDimension = Math.max(width, height);
+  const scale = largerDimension / INITIAL_VISIBLE_SIZE;
+  
+  // Calculate stage offset to center canvas (5000, 5000) at viewport center
+  // From coordinate transform: screenX = canvasX * scale + stageX
+  // To have canvas coordinate appear at viewport center:
+  // stageX = (width/2) - (canvasX * scale)
+  const x = (width / 2) - (CANVAS_CENTER_X * scale);
+  const y = (height / 2) - (CANVAS_CENTER_Y * scale);
+  
+  return { x, y, scale, width, height };
+}
+
+const initialViewport: ViewportState = calculateInitialViewport();
 
 const ViewportContext = createContext<ViewportContextType | undefined>(undefined);
 
@@ -58,7 +79,8 @@ function viewportReducer(state: ViewportState, action: ViewportAction): Viewport
     case 'SET_DIMENSIONS':
       return { ...state, width: action.width, height: action.height };
     case 'RESET':
-      return initialViewport;
+      // Recalculate viewport for current window size
+      return calculateInitialViewport();
     default:
       return state;
   }
