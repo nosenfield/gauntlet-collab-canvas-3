@@ -677,779 +677,923 @@ const throttledUpdateCursor = useCallback(
 
 ---
 
-## Stage 3: Display Objects (Shapes)
+## Stage 3: Display Objects - Universal Editing
 
-### STAGE3-1: Shape Data Model & Firestore Setup
+### STAGE3-8: Rotation Knob Implementation
 
-**Objective**: Define shape schema and Firestore integration
+**Verification**:
+- [ ] Knob responds to drag
+- [ ] 1px = 1° verified (test with ruler tool)
+- [ ] Up/left rotates counter-clockwise
+- [ ] Down/right rotates clockwise
+- [ ] All objects rotate around collection center
+- [ ] Object positions update correctly
+- [ ] Object rotation properties update
+- [ ] Knob icon spins (visual feedback)
+- [ ] Rotation is smooth (60 FPS)
+- [ ] Changes sync within 300ms
+- [ ] Collection AABB recalculates
+- [ ] Modal stays at centerpoint
+
+**Files to Create**:
+- `src/features/displayObjects/common/components/RotationKnob.tsx`
+- `src/features/displayObjects/common/hooks/useRotation.ts`
+- `src/features/displayObjects/common/utils/transformMath.ts`
+
+**Files to Modify**:
+- `src/features/displayObjects/common/components/TransformModal.tsx`
+- `src/features/displayObjects/common/services/transformService.ts`
+
+---
+
+### STAGE3-9: Scale Knob Implementation
+
+**Objective**: Implement scale knob with 1px = 0.01 delta sensitivity
 
 **Actions**:
-1. Update `src/types/firebase.ts` with Shape interface
+1. Create ScaleKnob component:
    ```typescript
-   interface Shape {
-     id: string;
-     type: 'rectangle' | 'circle' | 'line';
-     x: number;
-     y: number;
-     width?: number;
-     height?: number;
-     radius?: number;
-     points?: number[];
-     fillColor: string;
-     strokeColor: string;
-     strokeWidth: number;
-     opacity: number;
-     borderRadius?: number;
-     rotation: number;
-     zIndex: number;
-     createdBy: string;
-     createdAt: Timestamp;
-     lastModifiedBy: string;
-     lastModifiedAt: Timestamp;
-     lockedBy: string | null;
-     lockedAt: Timestamp | null;
+   // displayObjects/common/components/ScaleKnob.tsx
+   interface ScaleKnobProps {
+     onScale: (scaleDelta: number) => void;
+     visualAngle: number;
    }
    ```
 
-2. Create `src/features/shapes/services/shapeService.ts`
-   - CRUD functions for shapes
-   - createShape(shape): Promise<Shape>
-   - updateShape(shapeId, updates): Promise<Shape>
-   - deleteShape(shapeId): Promise<void>
-   - lockShape(shapeId, userId): Promise<boolean>
-   - unlockShape(shapeId): Promise<void>
-   - Use Firestore transactions for locking
+2. Implement knob interaction:
+   - onMouseDown: Start tracking
+   - onMouseMove: Calculate drag distance
+   - Determine direction (clockwise = grow, CCW = shrink)
+   - Calculate delta: totalDragDistance * 0.01 per px
 
-3. Create `src/features/shapes/store/shapesStore.ts`
-   - Context + useReducer for shapes state
-   - Actions: addShape, updateShape, deleteShape, setShapes
-   - Real-time Firestore listener for shapes collection
-   - Path: `/documents/main/shapes`
+3. Visual feedback:
+   - Rotate knob icon by visualAngle
+   - Smooth spinning animation
 
-4. Create `src/features/shapes/hooks/useShapes.ts`
-   - Custom hook to access shapes state
-   - Return: shapes, loading, error, createShape, updateShape, deleteShape
+4. Create scaling hook:
+   ```typescript
+   // displayObjects/common/hooks/useScaling.ts
+   - Track initial mouse position
+   - Calculate cumulative drag
+   - Convert to scale delta
+   - Apply to collection
+   ```
+
+5. Implement scaling logic:
+   ```typescript
+   // In transformMath.ts
+   function scaleCollection(
+     objects: DisplayObject[],
+     scaleDelta: number,
+     centerPoint: Point
+   ): DisplayObject[]
+   ```
+
+6. Apply transform:
+   - Scale object positions from center
+   - Update each object's scaleX/scaleY properties
+   - Apply constraints (0.1 to 10.0)
+   - Recalculate collection AABB
+   - Update modal position
+
+7. Implement constraints:
+   - Per-object min: 0.1 (10%)
+   - Per-object max: 10.0 (1000%)
+   - Clamp on each update
+
+8. Debounce Firestore writes (300ms)
 
 **Verification**:
-- [ ] Shape interface defined with all properties
-- [ ] shapeService functions implemented
-- [ ] Shapes store with real-time listener
-- [ ] useShapes hook provides CRUD operations
+- [ ] Knob responds to drag
+- [ ] 1px = 0.01 delta verified
+- [ ] Clockwise increases scale
+- [ ] Counter-clockwise decreases scale
+- [ ] All objects scale from collection center
+- [ ] Object positions update correctly
+- [ ] Object scale properties update
+- [ ] Constraints enforced (0.1-10.0)
+- [ ] Knob icon spins (visual feedback)
+- [ ] Scaling is smooth (60 FPS)
+- [ ] Changes sync within 300ms
+- [ ] Collection AABB recalculates
+- [ ] Modal stays at centerpoint
+
+**Files to Create**:
+- `src/features/displayObjects/common/components/ScaleKnob.tsx`
+- `src/features/displayObjects/common/hooks/useScaling.ts`
+
+**Files to Modify**:
+- `src/features/displayObjects/common/components/TransformModal.tsx`
+- `src/features/displayObjects/common/utils/transformMath.ts`
+- `src/features/displayObjects/common/services/transformService.ts`
+
+---
+
+### STAGE3-10: Transform State Management
+
+**Objective**: Centralize transform state and coordinate between transforms
+
+**Actions**:
+1. Create transform store:
+   ```typescript
+   // displayObjects/common/store/transformStore.tsx
+   interface TransformState {
+     mode: 'translate' | 'rotate' | 'scale' | null;
+     isActive: boolean;
+     initialMousePos: Point | null;
+     cumulativeDrag: { x: number; y: number };
+   }
+   ```
+
+2. Create useTransform hook:
+   - Coordinate between translation, rotation, scaling
+   - Ensure only one transform active at a time
+   - Manage transform lifecycle
+
+3. Integrate with existing hooks:
+   - useTranslation sets mode to 'translate'
+   - useRotation sets mode to 'rotate'
+   - useScaling sets mode to 'scale'
+
+4. Add cursor styling:
+   - Translate: move cursor (↔)
+   - Rotate: rotation cursor (⟳)
+   - Scale: resize cursor (⊕)
+
+5. Implement transform cleanup:
+   - Reset mode on mouse up
+   - Clear state on deselection
+
+**Verification**:
+- [ ] Only one transform active at a time
+- [ ] Transform mode tracked correctly
+- [ ] Cursor changes based on mode
+- [ ] State cleanup on completion
+- [ ] No conflicts between transforms
+
+**Files to Create**:
+- `src/features/displayObjects/common/store/transformStore.tsx`
+- `src/features/displayObjects/common/hooks/useTransform.ts`
+
+**Files to Modify**:
+- `src/features/displayObjects/common/hooks/useTranslation.ts`
+- `src/features/displayObjects/common/hooks/useRotation.ts`
+- `src/features/displayObjects/common/hooks/useScaling.ts`
+
+---
+
+### STAGE3-11: Collection Bounds Recalculation
+
+**Objective**: Ensure collection AABB recalculates during all transforms
+
+**Actions**:
+1. Create bounds recalculation service:
+   ```typescript
+   // In boundingBoxUtils.ts
+   function recalculateBoundsAfterTransform(
+     objects: DisplayObject[]
+   ): { bounds: AABB; center: Point }
+   ```
+
+2. Integrate into transform flows:
+   - After translation: recalculate
+   - After rotation: recalculate
+   - After scaling: recalculate
+
+3. Update selection store:
+   - Update collectionBounds after each transform
+   - Update collectionCenter after each transform
+
+4. Optimize calculations:
+   - Memoize when objects haven't changed
+   - Use efficient corner calculation
+   - Avoid unnecessary recalculations
+
+5. Update visual rendering:
+   - Collection AABB follows new bounds
+   - Modal follows new centerpoint
+   - Individual OBBs follow objects
+
+**Verification**:
+- [ ] Collection AABB updates during translation
+- [ ] Collection AABB updates during rotation
+- [ ] Collection AABB updates during scaling
+- [ ] Modal stays at centerpoint during transforms
+- [ ] Recalculation is performant (60 FPS)
+- [ ] No visual jitter or jumping
+
+**Files to Modify**:
+- `src/features/displayObjects/common/utils/boundingBoxUtils.ts`
+- `src/features/displayObjects/common/store/selectionStore.tsx`
+- `src/features/displayObjects/common/hooks/useTransform.ts`
+
+---
+
+### STAGE3-12: Firestore Sync & Debouncing
+
+**Objective**: Implement optimistic updates with debounced Firestore writes
+
+**Actions**:
+1. Create update batching service:
+   ```typescript
+   // displayObjects/common/services/updateService.ts
+   - batchUpdateObjects(updates: ObjectUpdate[]): Promise<void>
+   - debouncedUpdate(objectId, updates, delay): void
+   ```
+
+2. Implement optimistic updates:
+   - Update local state immediately
+   - Queue Firestore write
+   - Apply debouncing (300ms)
+
+3. Create debounce utility:
+   ```typescript
+   // utils/debounce.ts (if not exists)
+   function debounce<T>(func: T, wait: number): T
+   ```
+
+4. Integrate into transform hooks:
+   - Translation: debounce 300ms
+   - Rotation: debounce 300ms
+   - Scaling: debounce 300ms
+
+5. Handle final write on mouse up:
+   - Flush pending debounced writes
+   - Ensure final state written to Firestore
+
+6. Implement server reconciliation:
+   - Listen to Firestore changes
+   - Merge with local optimistic state
+   - Handle conflicts (last-write-wins)
+
+7. Add loading indicators (optional):
+   - Show syncing status
+   - Indicate when updates pending
+
+**Verification**:
+- [ ] Local updates apply immediately
+- [ ] Firestore writes debounced to 300ms
+- [ ] Final write occurs on mouse up
+- [ ] Changes sync to other users
+- [ ] No duplicate writes
+- [ ] Server reconciliation works
+- [ ] Conflicts handled gracefully
+- [ ] Performance not degraded
+
+**Files to Create**:
+- `src/features/displayObjects/common/services/updateService.ts`
+- `src/utils/debounce.ts` (if not exists)
+
+**Files to Modify**:
+- `src/features/displayObjects/common/hooks/useTranslation.ts`
+- `src/features/displayObjects/common/hooks/useRotation.ts`
+- `src/features/displayObjects/common/hooks/useScaling.ts`
+- `src/features/displayObjects/shapes/services/shapeService.ts`
+
+---
+
+### STAGE3-13: Performance Optimization
+
+**Objective**: Ensure 60 FPS with 100+ objects during all operations
+
+**Actions**:
+1. Implement viewport culling for display objects:
+   ```typescript
+   // In geometryUtils.ts
+   function isObjectInViewport(
+     object: DisplayObject,
+     viewport: ViewportState
+   ): boolean
+   ```
+
+2. Optimize bounding box calculations:
+   - Cache corner calculations
+   - Only recalculate on transform
+   - Use efficient algorithms
+
+3. Optimize rendering:
+   - Only render visible objects
+   - Use Konva layer caching where appropriate
+   - Disable listening on non-interactive layers
+
+4. Profile performance:
+   - Use Chrome DevTools Performance tab
+   - Identify bottlenecks
+   - Optimize hot paths
+
+5. Add performance monitoring:
+   ```typescript
+   // In performanceMonitor.ts
+   - Track FPS during transforms
+   - Log warnings if FPS < 55
+   - Monitor memory usage
+   ```
+
+6. Optimize Firestore operations:
+   - Batch writes
+   - Use transactions for atomic operations
+   - Minimize read operations
+
+7. Test with large datasets:
+   - Create 100+ objects
+   - Verify smooth performance
+   - Test all transform operations
+
+**Verification**:
+- [ ] 60 FPS with 100+ objects
+- [ ] 60 FPS during translation
+- [ ] 60 FPS during rotation
+- [ ] 60 FPS during scaling
+- [ ] 60 FPS during multi-selection
+- [ ] Viewport culling works
+- [ ] Memory usage reasonable
+- [ ] No performance degradation over time
+- [ ] Firestore operations efficient
+
+**Files to Modify**:
+- `src/features/displayObjects/common/utils/geometryUtils.ts`
+- `src/features/displayObjects/common/utils/boundingBoxUtils.ts`
+- `src/features/canvas/components/Canvas.tsx`
+- `src/utils/performanceMonitor.ts`
+
+---
+
+### STAGE3-14: Testing & Bug Fixes
+
+**Objective**: Test all Stage 3 features and fix remaining bugs
+
+**Actions**:
+1. Create comprehensive test checklist:
+   - Test all selection methods
+   - Test all transform operations
+   - Test locking mechanism
+   - Test multi-user scenarios
+   - Test edge cases
+
+2. Test selection:
+   - Single click
+   - Shift+click
+   - Marquee (various sizes)
+   - Max 100 objects
+   - Selection across users
+
+3. Test transforms:
+   - Translation (drag)
+   - Rotation (knob)
+   - Scale (knob)
+   - Canvas boundary constraints
+   - Scale constraints (0.1-10.0)
+
+4. Test locking:
+   - Lock acquisition
+   - Lock conflicts
+   - Lock release
+   - Lock timeout
+   - Lock heartbeat
+
+5. Test visual indicators:
+   - Collection AABB
+   - Individual OBBs
+   - Transform modal
+   - Knob visuals
+
+6. Test performance:
+   - 100+ objects
+   - Continuous transforms
+   - Multiple users
+
+7. Test persistence:
+   - All properties persist
+   - Disconnect/reconnect
+   - No data loss
+
+8. Fix identified bugs:
+   - Document each bug
+   - Implement fix
+   - Verify with test case
+
+9. Code cleanup:
+   - Remove console.logs (except intentional)
+   - Remove unused code
+   - Add missing comments
+   - Format consistently
+
+**Verification**:
+- [ ] All Stage 3 acceptance criteria pass
+- [ ] No critical bugs
+- [ ] Performance targets met (60 FPS)
+- [ ] Multi-user collaboration works
+- [ ] Persistence verified
+- [ ] Code is clean and documented
+- [ ] No console errors or warnings
+
+**Files to Modify**:
+- Various files as bugs are identified and fixed
+
+---
+
+## Stage 4: Text Objects & Object-Specific Editing (8 Tasks)
+
+### STAGE4-1: Text Display Object Data Model
+
+**Objective**: Define text display object type and Firestore schema
+
+**Actions**:
+1. Define TextDisplayObject interface:
+   ```typescript
+   interface TextDisplayObject extends BaseDisplayObject {
+     category: 'text';
+     content: string;
+     width: number;
+     height: number;
+     font: string;
+     fontSize: number;
+     fontWeight: number;
+     textAlign: 'left' | 'center' | 'right' | 'justify';
+     lineHeight: number;
+     color: string;
+   }
+   ```
+
+2. Create text types file:
+   ```typescript
+   // displayObjects/texts/types.ts
+   ```
+
+3. Update Firestore schema:
+   - Create `/documents/main/texts/` collection
+   - Same metadata as shapes
+   - Text-specific fields
+
+4. Create text service:
+   ```typescript
+   // displayObjects/texts/services/textService.ts
+   - createText(text): Promise<TextDisplayObject>
+   - updateText(id, updates): Promise<void>
+   - deleteText(id): Promise<void>
+   ```
+
+5. Create text store:
+   ```typescript
+   // displayObjects/texts/store/textsStore.ts
+   - Manage text objects
+   - Real-time listener for texts collection
+   ```
+
+**Verification**:
+- [ ] TextDisplayObject interface defined
+- [ ] Text types file created
+- [ ] Firestore schema documented
+- [ ] Text service implemented
+- [ ] Text store created
 - [ ] TypeScript compiles without errors
 
 **Files to Create**:
-- `src/features/shapes/services/shapeService.ts`
-- `src/features/shapes/store/shapesStore.ts`
-- `src/features/shapes/hooks/useShapes.ts`
+- `src/features/displayObjects/texts/types.ts`
+- `src/features/displayObjects/texts/services/textService.ts`
+- `src/features/displayObjects/texts/store/textsStore.tsx`
 
 **Files to Modify**:
 - `src/types/firebase.ts`
 
 ---
 
-### STAGE3-2: Shape Toolbar & Tool Selection
+### STAGE4-2: Text Object Creation
 
-**Objective**: Create UI toolbar for selecting shape creation tool
-
-**Actions**:
-1. Create `src/features/shapes/components/ShapeToolbar.tsx`
-   - Horizontal toolbar at top of screen
-   - Three buttons: Rectangle, Circle, Line
-   - Visual indication of selected tool
-   - Click to select tool
-
-2. Create `src/features/shapes/store/toolStore.ts`
-   - Context + useState for selected tool
-   - Tools: 'select' | 'rectangle' | 'circle' | 'line'
-   - Default: 'select'
-
-3. Create `src/features/shapes/hooks/useTool.ts`
-   - Custom hook to access and set current tool
-   - Return: currentTool, setTool
-
-4. Style toolbar
-   - Position: fixed top-left
-   - Background: semi-transparent dark
-   - Buttons with icons or text labels
-   - Highlight selected tool
-
-5. Integrate toolbar into `src/App.tsx`
-
-**Verification**:
-- [ ] Toolbar visible at top of screen
-- [ ] Three tool buttons: Rectangle, Circle, Line
-- [ ] Clicking button selects tool
-- [ ] Visual feedback for selected tool
-- [ ] Tool state accessible via useTool hook
-
-**Files to Create**:
-- `src/features/shapes/components/ShapeToolbar.tsx`
-- `src/features/shapes/store/toolStore.ts`
-- `src/features/shapes/hooks/useTool.ts`
-
-**Files to Modify**:
-- `src/App.tsx`
-
----
-
-### STAGE3-3: Rectangle Creation
-
-**Objective**: Implement click-drag rectangle creation
+**Objective**: Implement text tool and text object placement
 
 **Actions**:
-1. Create `src/features/shapes/hooks/useRectangleCreation.ts`
-   - Listen for mouse down on canvas (when rectangle tool selected)
-   - Track start point
-   - Listen for mouse move to track end point
-   - Calculate width/height from start/end
-   - On mouse up: create rectangle in Firestore
-   - Default properties: white fill, black stroke, 2px width, 100% opacity
+1. Add "Text" tool to toolbar
+2. Create useTextCreation hook:
+   ```typescript
+   // displayObjects/texts/hooks/useTextCreation.ts
+   - Handle click on canvas when text tool selected
+   - Create text box at click position
+   - Default: 200px × 100px
+   - Default content: "Double-click to edit"
+   ```
 
-2. Create `src/features/shapes/components/ShapeRenderer.tsx`
-   - Konva component to render all shapes
-   - Map over shapes and render based on type
-   - For rectangle: Konva.Rect with shape properties
+3. Create TextObject component:
+   ```typescript
+   // displayObjects/texts/components/TextObject.tsx
+   - Render Konva.Text
+   - Apply all text properties
+   - Handle text wrapping
+   ```
 
-3. Create `src/features/shapes/components/Rectangle.tsx`
-   - Render individual rectangle shape
-   - Props: shape data
-   - Apply fill, stroke, width, height, position, rotation, opacity, borderRadius
+4. Create TextRenderer component:
+   ```typescript
+   // displayObjects/texts/components/TextRenderer.tsx
+   - Map over texts and render TextObject
+   ```
 
-4. Integrate rectangle creation into Canvas component
-   - Use useRectangleCreation hook when tool is 'rectangle'
-   - Add ShapeRenderer layer to canvas
+5. Default properties:
+   - Font: Arial
+   - Font size: 16px
+   - Font weight: 400
+   - Color: #000000
+   - Text align: left
+   - Line height: 1.2
+   - Opacity: 1.0
 
-5. Create default shape properties constant
-   - `src/features/shapes/constants/defaultShapeProps.ts`
-
-**Implementation Note**:
-```typescript
-// Rectangle creation flow
-onMouseDown: save startPoint, set isCreating = true
-onMouseMove: if isCreating, calculate bounds and show preview
-onMouseUp: if isCreating, call createShape with final bounds
-```
+6. Integrate into Canvas:
+   - Add TextRenderer layer
+   - Wire up text tool selection
 
 **Verification**:
-- [ ] Select rectangle tool
-- [ ] Click and drag on canvas creates rectangle
-- [ ] Rectangle has correct bounds based on drag
-- [ ] Rectangle appears in Firestore
-- [ ] Rectangle renders on canvas with default properties
-- [ ] Rectangle visible to other users in real-time
-- [ ] Multiple rectangles can be created
+- [ ] Text tool in toolbar
+- [ ] Click creates text box
+- [ ] Default size: 200px × 100px
+- [ ] Default text: "Double-click to edit"
+- [ ] Text renders correctly
+- [ ] Text wraps within bounds
+- [ ] Text persists to Firestore
+- [ ] Text visible to other users
 
 **Files to Create**:
-- `src/features/shapes/hooks/useRectangleCreation.ts`
-- `src/features/shapes/components/ShapeRenderer.tsx`
-- `src/features/shapes/components/Rectangle.tsx`
-- `src/features/shapes/constants/defaultShapeProps.ts`
+- `src/features/displayObjects/texts/hooks/useTextCreation.ts`
+- `src/features/displayObjects/texts/components/TextObject.tsx`
+- `src/features/displayObjects/texts/components/TextRenderer.tsx`
 
 **Files to Modify**:
 - `src/features/canvas/components/Canvas.tsx`
+- Toolbar component (add text tool)
 
 ---
 
-### STAGE3-4: Shape Selection & Locking
+### STAGE4-3: Object-Specific Selection Mode
 
-**Objective**: Implement individual shape selection with locking mechanism
+**Objective**: Implement double-click to enter object-specific editing
 
 **Actions**:
-1. Create `src/features/shapes/store/selectionStore.ts`
-   - Context + useReducer for selection state
-   - State: selectedShapeIds: string[]
-   - Actions: selectShape, deselectShape, clearSelection, selectMultiple
+1. Update selection store:
+   ```typescript
+   interface SelectionState {
+     mode: 'display-level' | 'object-specific';
+     // ... existing fields
+   }
+   ```
 
-2. Create `src/features/shapes/hooks/useSelection.ts`
-   - Custom hook for selection operations
-   - Handle single selection (click)
-   - Handle lock acquisition before selection
-   - Log to console if shape is locked by another user
+2. Add double-click handlers:
+   - Detect double-click on any display object
+   - Switch mode to 'object-specific'
+   - Deselect all other objects
+   - Select only double-clicked object
 
-3. Update Rectangle component to handle selection
-   - Add onClick handler
-   - Check lock status before allowing selection
-   - Visual feedback for selected state (selection handles)
+3. Implement mode switching:
+   - Exit object-specific on:
+     - Click empty canvas
+     - Click different object
+     - Press Escape key
 
-4. Create `src/features/shapes/components/SelectionHandles.tsx`
-   - Konva Group with resize/rotate handles
-   - Corner handles for resize
-   - Top handle for rotation
-   - Only visible when shape is selected
+4. Update visual indicators:
+   - Same OBB highlight (for now)
+   - Future: differentiate with color
 
-5. Implement lock acquisition flow
-   - Before selection: call lockShape in shapeService
-   - If locked by another user: console.log message, abort
-   - If successful: add to selectedShapeIds
-   - On deselection: call unlockShape
-
-6. Implement automatic lock timeout (60s)
-   - Background service to check for stale locks
-   - Release locks with lastModifiedAt > 60s ago
-
-**Implementation Note**:
-```typescript
-async function handleShapeClick(shapeId: string) {
-  const shape = shapes.get(shapeId);
-  if (shape.lockedBy && shape.lockedBy !== currentUserId) {
-    console.log(`Shape ${shapeId} is locked by ${shape.lockedBy}`);
-    return;
-  }
-  
-  const locked = await shapeService.lockShape(shapeId, currentUserId);
-  if (locked) {
-    selectionStore.selectShape(shapeId);
-  }
-}
-```
+5. Add escape key handler:
+   ```typescript
+   useEffect(() => {
+     const handleKeyPress = (e: KeyboardEvent) => {
+       if (e.key === 'Escape' && mode === 'object-specific') {
+         exitObjectSpecificMode();
+       }
+     };
+     window.addEventListener('keydown', handleKeyPress);
+     return () => window.removeEventListener('keydown', handleKeyPress);
+   }, [mode]);
+   ```
 
 **Verification**:
-- [ ] Clicking shape selects it
-- [ ] Selection handles appear for selected shape
-- [ ] Shape locked to current user on selection
-- [ ] Attempting to select locked shape logs to console
-- [ ] Deselecting shape releases lock
-- [ ] Lock timeout releases after 60s inactivity
-- [ ] Selection syncs across users (locked shapes cannot be selected)
-
-**Files to Create**:
-- `src/features/shapes/store/selectionStore.ts`
-- `src/features/shapes/hooks/useSelection.ts`
-- `src/features/shapes/components/SelectionHandles.tsx`
-- `src/features/shapes/services/lockService.ts` (optional separate service)
+- [ ] Double-click enters object-specific mode
+- [ ] Other objects deselect
+- [ ] Single object selected
+- [ ] Object locks successfully
+- [ ] Escape exits mode
+- [ ] Click empty canvas exits mode
+- [ ] Click different object switches to that object
+- [ ] Mode tracked correctly in state
 
 **Files to Modify**:
-- `src/features/shapes/components/Rectangle.tsx`
-- `src/features/shapes/services/shapeService.ts`
+- `src/features/displayObjects/common/store/selectionStore.tsx`
+- `src/features/displayObjects/common/hooks/useSelection.ts`
+- `src/features/displayObjects/shapes/components/Rectangle.tsx` (add double-click)
+- `src/features/displayObjects/shapes/components/Circle.tsx`
+- `src/features/displayObjects/shapes/components/Line.tsx`
+- `src/features/displayObjects/texts/components/TextObject.tsx`
 
 ---
 
-### STAGE3-5: Shape Transformation (Drag, Resize, Rotate)
+### STAGE4-4: Shape Properties Panel
 
-**Objective**: Implement drag, resize, and rotate for selected shapes
-
-**Actions**:
-1. Create `src/features/shapes/hooks/useShapeTransform.ts`
-   - Handle drag events (move)
-   - Handle resize events (corner handles)
-   - Handle rotate events (top handle)
-   - Constrain to canvas boundaries
-   - Debounce Firestore updates (300ms)
-
-2. Update Rectangle component with transform handlers
-   - Konva draggable prop
-   - onDragMove: update local position, debounce Firestore update
-   - onDragEnd: final Firestore update
-
-3. Update SelectionHandles component
-   - Make handles draggable
-   - Corner handles: resize shape
-   - Top handle: rotate shape
-   - Update shape dimensions/rotation on drag
-
-4. Implement transform constraints
-   - Shapes cannot be dragged outside canvas (0,0 to 10000,10000)
-   - Minimum shape size: 10x10px
-   - Maintain aspect ratio for proportional resize (optional)
-
-5. Create `src/utils/debounce.ts` if not exists
-   - Utility for debouncing Firestore updates
-
-**Implementation Note**:
-```typescript
-// Debounced update pattern
-const debouncedUpdate = useMemo(
-  () => debounce((shapeId: string, updates: Partial<Shape>) => {
-    shapeService.updateShape(shapeId, updates);
-  }, 300),
-  []
-);
-
-function handleDragMove(shapeId: string, newPos: { x: number; y: number }) {
-  // Optimistic local update
-  updateLocalShape(shapeId, newPos);
-  // Debounced Firestore update
-  debouncedUpdate(shapeId, newPos);
-}
-```
-
-**Verification**:
-- [ ] Selected rectangle can be dragged
-- [ ] Drag is smooth at 60 FPS
-- [ ] Dragged position syncs to other users
-- [ ] Corner handles resize rectangle
-- [ ] Resize is smooth and updates in real-time
-- [ ] Top handle rotates rectangle
-- [ ] Rotation is smooth
-- [ ] Shapes cannot be dragged outside canvas bounds
-- [ ] Minimum size constraint enforced (10x10px)
-- [ ] Firestore updates are debounced (not on every pixel)
-
-**Files to Create**:
-- `src/features/shapes/hooks/useShapeTransform.ts`
-- `src/utils/debounce.ts` (if not exists)
-
-**Files to Modify**:
-- `src/features/shapes/components/Rectangle.tsx`
-- `src/features/shapes/components/SelectionHandles.tsx`
-
----
-
-### STAGE3-6: Shape Properties Panel
-
-**Objective**: Create UI panel for editing shape properties
+**Objective**: Create properties panel for editing shape-specific properties
 
 **Actions**:
-1. Create `src/features/shapes/components/PropertiesPanel.tsx`
-   - Panel appears when shape(s) selected
-   - Position: left side of screen or floating
-   - Inputs for: fill color, stroke color, stroke width, opacity, border radius
+1. Create ShapePropertiesPanel component:
+   ```typescript
+   // displayObjects/shapes/components/ShapePropertiesPanel.tsx
+   interface ShapePropertiesPanelProps {
+     shape: ShapeDisplayObject;
+     onUpdate: (updates: Partial<ShapeDisplayObject>) => void;
+   }
+   ```
 
-2. Create property input components
-   - `src/features/shapes/components/ColorPicker.tsx`
-     - Simple color input (HTML5 color picker)
-   - `src/features/shapes/components/NumberInput.tsx`
-     - Input for numeric values with constraints
+2. Panel layout:
+   - Position: Fixed left side
+   - Width: 280px
+   - Background: rgba(30, 30, 30, 0.95)
+   - Padding: 20px
 
-3. Wire up property changes
-   - On input change: update shape in Firestore
-   - Use debouncing for rapid changes
-   - Optimistic updates for smooth UX
+3. Property inputs:
+   - Fill Color: Color picker + hex input
+   - Stroke Color: Color picker + hex input
+   - Stroke Width: Slider (1-10px) + numeric input
+   - Opacity: Slider (0-100%) + numeric input
+   - Border Radius: Slider (0-50px) + input (rectangles only)
 
-4. Handle multi-selection
-   - If multiple shapes selected: show shared properties
-   - If properties differ: show placeholder or first value
-   - Changes apply to all selected shapes
+4. Create reusable input components:
+   ```typescript
+   // components/atoms/ColorPicker.tsx
+   // components/atoms/Slider.tsx
+   // components/atoms/NumberInput.tsx
+   ```
 
-5. Style properties panel
-   - Fixed position on left side (or floating near selection)
-   - Semi-transparent background
-   - Clear labels for each property
+5. Implement property updates:
+   - onChange handlers for each input
+   - Optimistic local update
+   - Debounce Firestore write (300ms)
+
+6. Panel visibility:
+   - Show when mode === 'object-specific' && category === 'shape'
+   - Hide otherwise
+
+7. Styling:
+   - Labels: 14px, 500 weight
+   - Inputs: 14px, 400 weight
+   - Row spacing: 16px
 
 **Verification**:
-- [ ] Properties panel appears when shape selected
-- [ ] Fill color input works and updates shape
-- [ ] Stroke color input works
-- [ ] Stroke width input works (1-10px)
-- [ ] Opacity input works (0-100%)
-- [ ] Border radius input works (rectangles only, 0-50px)
-- [ ] Property changes sync to other users in real-time
-- [ ] Panel hides when no shape selected
-- [ ] Changes are debounced for performance
+- [ ] Panel displays for shape in object-specific mode
+- [ ] Panel positioned on left side
+- [ ] Fill color picker works
+- [ ] Stroke color picker works
+- [ ] Stroke width slider works (1-10px)
+- [ ] Opacity slider works (0-100%)
+- [ ] Border radius works (rectangles, 0-50px)
+- [ ] Border radius hidden for circles/lines
+- [ ] Changes apply in real-time
+- [ ] Changes sync within 300ms
+- [ ] Panel hidden when not in object-specific mode
 
 **Files to Create**:
-- `src/features/shapes/components/PropertiesPanel.tsx`
-- `src/features/shapes/components/ColorPicker.tsx`
-- `src/features/shapes/components/NumberInput.tsx`
+- `src/features/displayObjects/shapes/components/ShapePropertiesPanel.tsx`
+- `src/components/atoms/ColorPicker.tsx`
+- `src/components/atoms/Slider.tsx`
+- `src/components/atoms/NumberInput.tsx`
 
 **Files to Modify**:
 - `src/App.tsx` (integrate panel)
 
 ---
 
-### STAGE3-7: Circle Creation
+### STAGE4-5: Text Properties Panel
 
-**Objective**: Implement click-drag circle creation
+**Objective**: Create properties panel for editing text-specific properties
 
 **Actions**:
-1. Create `src/features/shapes/hooks/useCircleCreation.ts`
-   - Similar to rectangle creation
-   - On mouse down: save center point
-   - On mouse move: calculate radius from center to cursor
-   - On mouse up: create circle in Firestore
+1. Create TextPropertiesPanel component:
+   ```typescript
+   // displayObjects/texts/components/TextPropertiesPanel.tsx
+   ```
 
-2. Create `src/features/shapes/components/Circle.tsx`
-   - Render Konva.Circle with shape properties
-   - Apply fill, stroke, radius, position, opacity
+2. Panel layout:
+   - Position: Fixed left (same as shape panel)
+   - Width: 280px
+   - Same styling as shape panel
 
-3. Update ShapeRenderer to render circles
-   - Add case for shape.type === 'circle'
+3. Property inputs:
+   - Content: Multi-line textarea
+   - Font Family: Dropdown (Arial, Helvetica, Times New Roman, Courier, Georgia)
+   - Font Size: Slider (12-72px) + input
+   - Font Weight: Slider (100-900, step 100) + dropdown labels
+   - Text Color: Color picker + hex input
+   - Text Alignment: Button group (4 buttons with icons)
+   - Line Height: Slider (0.8-3.0, step 0.1) + input
+   - Opacity: Slider (0-100%) + input
 
-4. Integrate circle creation into Canvas component
-   - Use useCircleCreation when tool is 'circle'
+4. Create text-specific components:
+   ```typescript
+   // components/atoms/TextArea.tsx
+   // components/atoms/FontDropdown.tsx
+   // components/molecules/AlignmentButtonGroup.tsx
+   ```
+
+5. Implement updates:
+   - Content: debounce 500ms
+   - Styles: debounce 300ms
+   - Optimistic updates
+
+6. Panel visibility:
+   - Show when mode === 'object-specific' && category === 'text'
+   - Hide otherwise
 
 **Verification**:
-- [ ] Select circle tool
-- [ ] Click and drag creates circle
-- [ ] Radius based on distance from center to cursor
-- [ ] Circle appears in Firestore
-- [ ] Circle renders with default properties
-- [ ] Circle visible to other users in real-time
-- [ ] Circle can be selected, dragged, resized, rotated
-- [ ] Properties panel works for circles
+- [ ] Panel displays for text in object-specific mode
+- [ ] Content textarea works
+- [ ] Font dropdown has 5 options
+- [ ] Font size slider works (12-72px)
+- [ ] Font weight slider works (100-900)
+- [ ] Text color picker works
+- [ ] Alignment buttons work (4 options)
+- [ ] Line height slider works (0.8-3.0)
+- [ ] Opacity slider works (0-100%)
+- [ ] Content changes debounced to 500ms
+- [ ] Style changes debounced to 300ms
+- [ ] Long text wraps correctly
+- [ ] Changes sync to other users
 
 **Files to Create**:
-- `src/features/shapes/hooks/useCircleCreation.ts`
-- `src/features/shapes/components/Circle.tsx`
+- `src/features/displayObjects/texts/components/TextPropertiesPanel.tsx`
+- `src/components/atoms/TextArea.tsx`
+- `src/components/atoms/FontDropdown.tsx`
+- `src/components/molecules/AlignmentButtonGroup.tsx`
 
 **Files to Modify**:
-- `src/features/shapes/components/ShapeRenderer.tsx`
-- `src/features/canvas/components/Canvas.tsx`
+- `src/App.tsx` (integrate panel)
 
 ---
 
-### STAGE3-8: Line Creation
+### STAGE4-6: Panel Switching Logic
 
-**Objective**: Implement click-drag line creation
+**Objective**: Show correct properties panel based on object type
 
 **Actions**:
-1. Create `src/features/shapes/hooks/useLineCreation.ts`
-   - On mouse down: save start point
-   - On mouse move: track end point
-   - On mouse up: create line in Firestore
-   - Store as points array: [x1, y1, x2, y2]
+1. Create panel manager component:
+   ```typescript
+   // displayObjects/common/components/PropertiesPanelManager.tsx
+   - Determine which panel to show
+   - Handle panel visibility
+   - Pass correct object data
+   ```
 
-2. Create `src/features/shapes/components/Line.tsx`
-   - Render Konva.Line with shape properties
-   - Apply stroke color, stroke width, opacity
-   - Lines do not have fill color
+2. Panel selection logic:
+   ```typescript
+   if (mode !== 'object-specific') return null;
+   
+   const selectedObject = getSelectedObject();
+   if (!selectedObject) return null;
+   
+   switch (selectedObject.category) {
+     case 'shape':
+       return <ShapePropertiesPanel shape={selectedObject} />;
+     case 'text':
+       return <TextPropertiesPanel text={selectedObject} />;
+     default:
+       return null;
+   }
+   ```
 
-3. Update ShapeRenderer to render lines
-   - Add case for shape.type === 'line'
+3. Handle panel transitions:
+   - Smooth fade in/out
+   - Maintain scroll position
+   - Clear panel state on switch
 
-4. Update PropertiesPanel for lines
-   - Hide fill color input for lines
-   - Show only stroke color, stroke width, opacity
-
-5. Integrate line creation into Canvas component
-   - Use useLineCreation when tool is 'line'
+4. Add loading states:
+   - Show loading when fetching object data
+   - Disable inputs during save
 
 **Verification**:
-- [ ] Select line tool
-- [ ] Click and drag creates line
-- [ ] Line connects start and end points
-- [ ] Line appears in Firestore
-- [ ] Line renders with stroke properties
-- [ ] Line visible to other users in real-time
-- [ ] Line can be selected, dragged, rotated
-- [ ] Properties panel shows correct inputs for lines (no fill color)
+- [ ] Correct panel shows for shape
+- [ ] Correct panel shows for text
+- [ ] Panel switches when switching objects
+- [ ] Panel hides when exiting object-specific mode
+- [ ] Transitions are smooth
+- [ ] No flashing or jitter
+- [ ] Loading states work
 
 **Files to Create**:
-- `src/features/shapes/hooks/useLineCreation.ts`
-- `src/features/shapes/components/Line.tsx`
-
-**Files to Modify**:
-- `src/features/shapes/components/ShapeRenderer.tsx`
-- `src/features/shapes/components/PropertiesPanel.tsx`
-- `src/features/canvas/components/Canvas.tsx`
-
----
-
-### STAGE3-9: Marquee Selection
-
-**Objective**: Implement drag-to-select multiple shapes
-
-**Actions**:
-1. Create `src/features/shapes/hooks/useMarqueeSelection.ts`
-   - On mouse down (with no shape under cursor): start marquee
-   - On mouse move: track marquee bounds
-   - On mouse up: select all shapes intersecting marquee
-   - Attempt to lock all intersecting shapes
-   - Skip shapes that are locked by other users
-
-2. Create `src/features/shapes/components/MarqueeBox.tsx`
-   - Konva Rect showing selection area during drag
-   - Dashed border, semi-transparent fill
-   - Only visible during marquee selection
-
-3. Update selection logic
-   - Calculate shape intersection with marquee bounds
-   - For each intersecting shape: attempt lock
-   - Add successfully locked shapes to selection
-   - Log skipped shapes (locked by others)
-
-4. Integrate marquee into Canvas component
-   - Render MarqueeBox when marquee is active
-   - Use useMarqueeSelection when tool is 'select'
-
-**Implementation Note**:
-```typescript
-function checkIntersection(
-  shapeBounds: { x, y, width, height },
-  marqueeBounds: { x, y, width, height }
-): boolean {
-  // Check if rectangles overlap
-  return !(
-    shapeBounds.x + shapeBounds.width < marqueeBounds.x ||
-    marqueeBounds.x + marqueeBounds.width < shapeBounds.x ||
-    shapeBounds.y + shapeBounds.height < marqueeBounds.y ||
-    marqueeBounds.y + marqueeBounds.height < shapeBounds.y
-  );
-}
-```
-
-**Verification**:
-- [ ] Drag on empty canvas area starts marquee selection
-- [ ] Marquee box displays during drag
-- [ ] All shapes intersecting marquee are selected
-- [ ] Locked shapes are skipped (logged to console)
-- [ ] Multi-selection works correctly
-- [ ] Selected shapes all show selection handles
-- [ ] Marquee selection works with pan/zoom transforms
-
-**Files to Create**:
-- `src/features/shapes/hooks/useMarqueeSelection.ts`
-- `src/features/shapes/components/MarqueeBox.tsx`
-- `src/features/shapes/utils/geometryUtils.ts` (intersection calculations)
-
-**Files to Modify**:
-- `src/features/canvas/components/Canvas.tsx`
-
----
-
-### STAGE3-10: Shift-Click Multi-Selection
-
-**Objective**: Implement Shift+Click to add shapes to selection
-
-**Actions**:
-1. Update `src/features/shapes/hooks/useSelection.ts`
-   - Detect Shift key modifier on click
-   - If Shift is pressed: add to selection (don't clear existing)
-   - If Shift not pressed: clear selection and select clicked shape
-
-2. Update selection logic
-   - Maintain array of selected shape IDs
-   - Shift+click locked shape: log to console, don't add
-   - Shift+click already selected shape: deselect it (toggle)
-
-3. Update multi-selection transform handling
-   - When multiple shapes selected: transform all together
-   - Drag moves all selected shapes
-   - Resize/rotate applies to all (proportionally)
-
-**Implementation Note**:
-```typescript
-function handleShapeClick(shapeId: string, event: KonvaEvent) {
-  const isShiftPressed = event.evt.shiftKey;
-  
-  if (isShiftPressed) {
-    // Add to existing selection
-    if (selectedShapeIds.includes(shapeId)) {
-      deselectShape(shapeId);
-    } else {
-      selectShape(shapeId); // includes lock attempt
-    }
-  } else {
-    // Replace selection
-    clearSelection();
-    selectShape(shapeId);
-  }
-}
-```
-
-**Verification**:
-- [ ] Click shape selects it (clears previous selection)
-- [ ] Shift+click adds shape to selection
-- [ ] Shift+click selected shape deselects it
-- [ ] Multiple selected shapes show handles
-- [ ] Dragging moves all selected shapes together
-- [ ] Property changes apply to all selected shapes
-- [ ] Shift+click locked shape logs to console
-
-**Files to Modify**:
-- `src/features/shapes/hooks/useSelection.ts`
-- `src/features/shapes/hooks/useShapeTransform.ts`
-
----
-
-### STAGE3-11: Shape Persistence & State Recovery
-
-**Objective**: Ensure shapes persist and recover correctly
-
-**Actions**:
-1. Implement shape persistence verification
-   - All shapes saved to Firestore on creation/update
-   - Shapes persist when all users disconnect
-
-2. Implement canvas state recovery
-   - On app load: fetch all shapes from Firestore
-   - Render shapes in correct z-index order
-   - Restore all shape properties
-
-3. Test disconnect scenarios
-   - All users disconnect → shapes remain in Firestore
-   - Users reconnect → shapes load correctly
-   - Network interruption → shapes recover on reconnect
-
-4. Implement error handling
-   - Handle Firestore write failures
-   - Retry failed writes with exponential backoff
-   - Show user feedback on errors
-
-5. Add loading state
-   - Show loading indicator while fetching shapes
-   - Prevent interactions until shapes loaded
-
-**Verification**:
-- [ ] Create shapes, close all tabs, reopen → shapes are present
-- [ ] All shape properties restored correctly
-- [ ] Z-index order maintained after recovery
-- [ ] Network disconnect/reconnect doesn't lose data
-- [ ] Error handling works for Firestore failures
-- [ ] Loading state displays during initial load
-
-**Files to Create**:
-- `src/features/shapes/hooks/useShapeRecovery.ts`
-- `src/components/organisms/LoadingOverlay.tsx`
-
-**Files to Modify**:
-- `src/features/shapes/store/shapesStore.ts`
-- `src/App.tsx`
-
----
-
-### STAGE3-12: Z-Index Management Modal
-
-**Objective**: Display read-only list of shapes ordered by z-index
-
-**Actions**:
-1. Create `src/features/shapes/components/ZIndexModal.tsx`
-   - Modal component (toggleable)
-   - List of shapes ordered by z-index (descending)
-   - Each item shows: shape type + ID
-   - Format: "Rectangle #abc123"
-
-2. Create `src/features/shapes/components/ZIndexItem.tsx`
-   - Single item in z-index list
-   - Display shape type icon + shortened ID
-   - Color indicator for shape's fill color
-
-3. Add toggle button for modal
-   - Button in toolbar or corner of screen
-   - Click to open/close modal
-
-4. Sort shapes by z-index
-   - Query shapes from state
-   - Sort by zIndex property (descending = top to bottom)
-   - Handle shapes with same z-index
-
-5. Style modal
-   - Semi-transparent overlay
-   - Centered or side panel
-   - Scrollable list if many shapes
-
-**Verification**:
-- [ ] Modal toggle button visible
-- [ ] Modal opens and closes
-- [ ] List displays all shapes
-- [ ] Shapes ordered by z-index (top to bottom)
-- [ ] Each item shows shape type and ID
-- [ ] List updates in real-time as shapes are added/removed
-- [ ] Modal is read-only (no reordering yet)
-
-**Files to Create**:
-- `src/features/shapes/components/ZIndexModal.tsx`
-- `src/features/shapes/components/ZIndexItem.tsx`
-- `src/features/shapes/components/ZIndexToggleButton.tsx`
+- `src/features/displayObjects/common/components/PropertiesPanelManager.tsx`
 
 **Files to Modify**:
 - `src/App.tsx`
 
 ---
 
-### STAGE3-13: Performance Optimization for Shapes
+### STAGE4-7: Text Rendering & Wrapping
 
-**Objective**: Ensure performance targets are met with 500+ shapes
+**Objective**: Ensure text renders correctly with all properties
 
 **Actions**:
-1. Implement viewport culling for shapes
-   - Only render shapes visible in current viewport
-   - Calculate visible bounds based on viewport transform
-   - Filter shapes before rendering
+1. Enhance TextObject component:
+   - Apply all typography properties
+   - Implement text wrapping
+   - Handle line height
+   - Apply alignment
 
-2. Optimize Konva rendering
-   - Enable Konva layer caching for static shapes
-   - Disable listening for non-interactive layers
-   - Use Konva perfectDrawEnabled = false for performance
+2. Text wrapping logic:
+   ```typescript
+   - Calculate available width
+   - Break text into lines
+   - Respect word boundaries
+   - Handle long words
+   ```
 
-3. Optimize Firestore queries
-   - Use Firestore indexes for queries
-   - Limit real-time listener scope if possible
-   - Batch write operations
+3. Apply transforms:
+   - Rotation
+   - Scaling
+   - Translation
+   - Opacity
 
-4. Implement shape loading strategy
-   - Load shapes in chunks if > 500 shapes
-   - Progressive rendering for large canvases
-   - Show loading indicators
+4. Test with various content:
+   - Short text
+   - Long text
+   - Multiple paragraphs
+   - Special characters
 
-5. Profile and optimize
-   - Use Chrome DevTools Performance tab
-   - Identify bottlenecks in render loop
-   - Optimize hot paths
-
-6. Add performance monitoring
-   - Track FPS during interactions
-   - Log warnings if FPS drops below 60
-   - Monitor Firestore read/write counts
+5. Optimize rendering:
+   - Cache text metrics
+   - Only recalculate on content/style change
 
 **Verification**:
-- [ ] Canvas maintains 60 FPS with 500+ shapes
-- [ ] Viewport culling reduces rendered shapes
-- [ ] Drag/transform smooth with many shapes
-- [ ] Firestore sync doesn't degrade with many shapes
-- [ ] Memory usage is reasonable (check DevTools)
-- [ ] No unnecessary re-renders (use React DevTools Profiler)
-
-**Files to Create**:
-- `src/features/shapes/utils/viewportCulling.ts`
-- `src/utils/performanceMonitor.ts` (if not exists)
+- [ ] Text renders with all properties
+- [ ] Text wraps within bounds
+- [ ] Word wrapping works correctly
+- [ ] Long words handled gracefully
+- [ ] Line height applies correctly
+- [ ] Text alignment works (all 4 options)
+- [ ] Font family applies correctly
+- [ ] Font size applies correctly
+- [ ] Font weight applies correctly
+- [ ] Text color applies correctly
+- [ ] Text transforms correctly (rotate, scale)
+- [ ] Text renders at all zoom levels
 
 **Files to Modify**:
-- `src/features/shapes/components/ShapeRenderer.tsx`
-- `src/features/canvas/components/Canvas.tsx`
+- `src/features/displayObjects/texts/components/TextObject.tsx`
 
 ---
 
-### STAGE3-14: Final Testing & Bug Fixes
+### STAGE4-8: Testing & Integration
 
-**Objective**: Test all Stage 3 features and fix remaining bugs
+**Objective**: Test all Stage 4 features and integrate with Stage 3
 
 **Actions**:
-1. Create comprehensive test checklist
-   - Test all shape types (rectangle, circle, line)
-   - Test all operations (create, select, drag, resize, rotate, delete)
-   - Test multi-selection and marquee
-   - Test property editing for all shape types
-   - Test with multiple concurrent users
-   - Test edge cases (canvas boundaries, minimum sizes, etc.)
+1. Test text objects:
+   - Creation
+   - Selection (display-level)
+   - Transforms (translate, rotate, scale)
+   - Persistence
 
-2. Test performance scenarios
-   - Create 500+ shapes and verify FPS
-   - Test with 5+ concurrent users
-   - Rapid shape creation/manipulation
-   - Large viewport pans and zooms
+2. Test object-specific editing:
+   - Double-click entry
+   - Exit methods (Escape, click away)
+   - Switching between objects
 
-3. Test persistence and recovery
-   - All users disconnect → reconnect
-   - Network interruptions
-   - Browser refresh during operations
+3. Test properties panels:
+   - Shape properties
+   - Text properties
+   - Panel switching
+   - Property updates
+   - Sync across users
 
-4. Test locking mechanism
-   - Multiple users attempting to select same shape
-   - Lock timeouts
-   - Concurrent editing attempts
+4. Test cross-type functionality:
+   - Mix shapes and text in selections
+   - Transform mixed collections
+   - Lock mixed collections
 
-5. Fix identified bugs
-   - Document each bug
-   - Create fix
-   - Verify fix with original test case
+5. Test edge cases:
+   - Empty text content
+   - Very long text
+   - Special characters
+   - Extreme property values
 
-6. Code cleanup
-   - Remove console.logs (except intentional ones)
-   - Remove unused code
-   - Add missing comments
-   - Format code consistently
+6. Test performance:
+   - Mixed object types (100+ total)
+   - Rapid property changes
+   - Multiple users editing
+
+7. Fix bugs:
+   - Document issues
+   - Implement fixes
+   - Verify fixes
+
+8. Code cleanup:
+   - Remove debug code
+   - Add comments
+   - Format code
 
 **Verification**:
-- [ ] All Stage 3 acceptance criteria pass
+- [ ] All Stage 4 acceptance criteria pass
+- [ ] Text objects work correctly
+- [ ] Object-specific editing works
+- [ ] Properties panels work
+- [ ] Cross-type functionality works
+- [ ] Edge cases handled
+- [ ] Performance acceptable
 - [ ] No critical bugs
-- [ ] Performance targets met
-- [ ] All features work with multiple users
-- [ ] Code is clean and well-documented
-- [ ] No console errors or warnings
+- [ ] Code is clean
 
 **Files to Modify**:
-- Various files as bugs are identified and fixed
+- Various files as bugs are identified
 
 ---
 

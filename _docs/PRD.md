@@ -305,250 +305,431 @@ Canvas Area:
 
 ---
 
-## Stage 3: Display Objects - Shapes
-
-### Overview
-Implement creation, manipulation, and synchronization of display objects (shapes) on the canvas.
+## Stage 3: Display Objects - Universal Editing
 
 ### Functional Requirements
 
-#### FR-3.1: Shape Types
-- **Requirement**: Support three shape types
-- **Types**:
-  1. **Rectangle**: Width, height, border radius
-  2. **Circle**: Radius
-  3. **Line**: Start point, end point, stroke width
-- **Implementation Order**: Rectangle → Circle → Line (progressive)
+#### FR-3.1: Display Object Type System
+- **Type Hierarchy**: DisplayObject → Shape → Rectangle/Circle/Line
+- **Universal Properties**: x, y, rotation, scaleX, scaleY, opacity, zIndex
+- **Shape Properties**: dimensions, fillColor, strokeColor, strokeWidth, borderRadius
 
-#### FR-3.2: Shape Creation
-- **Requirement**: Users can create shapes on the canvas
-- **Interaction**:
-  - Rectangle: Click and drag to define bounds
-  - Circle: Click center, drag to define radius
-  - Line: Click start point, drag to end point
-- **Tool Selection**: UI toolbar to select shape type
-- **Validation**: Created shapes appear for all users in real-time
+#### FR-3.2: Multi-Selection
+- **Single Click**: Select object (replace selection)
+- **Shift+Click**: Add/remove from collection
+- **Marquee**: Drag on empty canvas, select intersecting objects
+- **Limit**: 100 objects max
 
-#### FR-3.3: Shape Selection
-- **Requirement**: Users can select shapes individually or multiple via marquee
-- **Individual Selection**: Click on shape to select
-- **Multiple Selection**: 
-  - Hold Shift + click to add to selection
-  - Drag marquee box to select multiple shapes
-- **Visual Feedback**: Selected shapes show selection handles
-- **Validation**: Selection state syncs across users
+#### FR-3.3: Collection Bounding Box (AABB)
+- **Visual**: Dashed blue outline, 50% opacity
+- **Behavior**: Axis-aligned, recalculates during transforms
 
-#### FR-3.4: Shape Locking
-- **Requirement**: Selected shapes are locked to prevent concurrent editing
-- **Behavior**:
-  - User A selects shape → Shape locked to User A
-  - User B attempts to select same shape → Console log message
-  - User A deselects → Shape unlocked
-- **Lock Timeout**: 60 seconds of inactivity auto-unlocks
-- **Validation**: Locked shapes cannot be selected by other users
+#### FR-3.4: Individual Object Highlights (OBB)
+- **Visual**: Solid blue outline, 100% opacity
+- **Behavior**: Rotates with object
 
-#### FR-3.5: Shape Manipulation
-- **Requirement**: Users can transform selected shapes
-- **Operations**:
-  - **Drag**: Move shape position
-  - **Resize**: Drag corner handles to resize
-  - **Rotate**: Drag rotation handle (top-center)
-- **Constraints**: Shapes cannot be moved outside canvas bounds
-- **Validation**: Transformations sync to all users in real-time
+#### FR-3.5: Collection-Level Locking
+- **Atomic**: All objects lock or none lock
+- **Conflict**: Log error, abort selection
+- **Release**: On deselect, timeout (60s), or sign-out
+- **Heartbeat**: Every 5 seconds
 
-#### FR-3.6: Shape Properties
-- **Requirement**: Users can edit shape visual properties
-- **Editable Properties**:
-  - Fill color (hex color picker)
-  - Stroke color (hex color picker)
-  - Stroke width (1-10px)
-  - Opacity (0-100%)
-  - Border radius (rectangles only, 0-50px)
-- **UI**: Properties panel appears when shape is selected
-- **Validation**: Property changes sync in real-time
+#### FR-3.6: Transform Modal
+- **Position**: Collection centerpoint
+- **Size**: 120px × 60px
+- **Contents**: Rotation knob (left), Scale knob (right)
+- **Behavior**: Fixed at centerpoint, visible when selected
 
-#### FR-3.7: Shape Persistence
-- **Requirement**: Shapes persist across document sessions
-- **Behavior**:
-  - All users disconnect → Shapes remain in Firestore
-  - Users reconnect → Shapes load from Firestore
-  - No data loss on disconnect
-- **Validation**: Canvas state fully restored after all users disconnect/reconnect
+#### FR-3.7: Rotation Knob
+- **Sensitivity**: 1px = 1°
+- **Direction**: Up/left = CCW, down/right = CW
+- **Transform**: Rotate around collection center
+- **Update**: Optimistic local + debounce 300ms
 
-#### FR-3.8: Z-Index Management
-- **Requirement**: Display modal showing shape layer order
-- **Specifications**:
-  - Modal: Toggleable z-index panel
-  - Display: Read-only list of shapes ordered by z-index (top to bottom)
-  - Item format: Shape type + ID (e.g., "Rectangle #1234")
-- **Validation**: List accurately reflects current z-index order
+#### FR-3.8: Scale Knob
+- **Sensitivity**: 1px = 0.01 scale delta
+- **Direction**: Clockwise = grow, CCW = shrink
+- **Constraints**: 0.1 to 10.0
+- **Transform**: Scale from collection center
+
+#### FR-3.9: Translation
+- **Interaction**: Drag any object in collection
+- **Constraint**: Canvas boundaries (0,0 to 10000,10000)
+- **Update**: Optimistic + debounce 300ms
+
+#### FR-3.10: Shape Persistence
+- Objects persist across sessions with all transform properties
 
 ### Technical Requirements
 
-#### TR-3.1: Shape Data Model
+#### TR-3.1: Data Model
 ```typescript
-interface Shape {
-  id: string;              // UUID
-  type: 'rectangle' | 'circle' | 'line';
-  x: number;               // Canvas coordinates
-  y: number;               // Canvas coordinates
-  width?: number;          // Rectangle/Circle
-  height?: number;         // Rectangle
-  radius?: number;         // Circle
-  points?: number[];       // Line [x1, y1, x2, y2]
-  
-  // Visual properties
-  fillColor: string;       // Hex color
-  strokeColor: string;     // Hex color
-  strokeWidth: number;     // 1-10px
-  opacity: number;         // 0-1
-  borderRadius?: number;   // Rectangle only, 0-50px
-  
-  // Transform
-  rotation: number;        // Degrees
-  zIndex: number;          // Layer order
-  
-  // Metadata
-  createdBy: string;       // User ID
+interface BaseDisplayObject {
+  id: string;
+  category: 'shape' | 'text' | 'image';
+  x: number;
+  y: number;
+  rotation: number;
+  scaleX: number;
+  scaleY: number;
+  zIndex: number;
+  opacity: number;
+  createdBy: string;
   createdAt: Timestamp;
   lastModifiedBy: string;
   lastModifiedAt: Timestamp;
-  
-  // Locking
-  lockedBy: string | null; // User ID or null
+  lockedBy: string | null;
   lockedAt: Timestamp | null;
+}
+
+interface ShapeDisplayObject extends BaseDisplayObject {
+  category: 'shape';
+  type: 'rectangle' | 'circle' | 'line';
+  width?: number;
+  height?: number;
+  radius?: number;
+  points?: number[];
+  fillColor: string;
+  strokeColor: string;
+  strokeWidth: number;
+  borderRadius?: number;
 }
 ```
 
 #### TR-3.2: Firestore Schema
-- Collection path: `/documents/{documentId}/shapes/{shapeId}`
-- Use Firestore transactions for lock acquisition
-- Real-time listeners for shape changes
-- Batch writes for performance
+- Path: `/documents/main/shapes/{shapeId}`
+- Transactions for atomic locks
+- Batch writes for transforms
 
-#### TR-3.3: Selection State
-```typescript
-interface SelectionState {
-  selectedShapeIds: string[];
-  isMarqueeSelecting: boolean;
-  marqueeStart: { x: number; y: number } | null;
-  marqueeEnd: { x: number; y: number } | null;
-}
-```
+#### TR-3.3: Transform Math
+- Rotation: 2D rotation matrix around centerpoint
+- Scaling: Proportional from centerpoint
+- Constraints: Boundary checking, scale limits
 
-#### TR-3.4: Lock Management
-- Check lock status before allowing selection
-- Implement automatic lock timeout (60s)
-- Use Firestore server timestamp for lock times
-- Log to console when user attempts to select locked shape
-
-#### TR-3.5: Synchronization Strategy
-- **Optimistic Updates**: Update local state immediately
-- **Server Reconciliation**: Listen to Firestore changes
-- **Conflict Resolution**: Last-write-wins
-- **Debouncing**: Debounce rapid property changes (300ms)
-
-#### TR-3.6: Performance Optimization
-- Render only visible shapes (viewport culling)
-- Use Konva layer caching for static shapes
-- Throttle real-time updates during drag operations
-- Maximum 500 shapes without FPS drop
-
-### UI Components
-
-#### Shape Toolbar
-```
-┌─────────────────────────────────┐
-│ [Rectangle] [Circle] [Line]    │
-└─────────────────────────────────┘
-```
-
-#### Properties Panel (when shape selected)
-```
-┌─────────────────────────┐
-│ Properties              │
-├─────────────────────────┤
-│ Fill Color:    [●]      │
-│ Stroke Color:  [●]      │
-│ Stroke Width:  [3  ]px  │
-│ Opacity:       [100]%   │
-│ Border Radius: [0  ]px  │ (Rectangle only)
-└─────────────────────────┘
-```
-
-#### Z-Index Modal
-```
-┌─────────────────────────┐
-│ Layers                  │
-├─────────────────────────┤
-│ 1. Rectangle #abc123    │
-│ 2. Circle #def456       │
-│ 3. Line #ghi789         │
-└─────────────────────────┘
-```
-
-### Interaction Flows
-
-#### Create Rectangle
-1. User clicks Rectangle tool in toolbar
-2. User clicks on canvas (start point)
-3. User drags to define bounds
-4. User releases mouse (end point)
-5. Rectangle created with default properties
-6. Rectangle saved to Firestore
-7. All users see new rectangle in real-time
-
-#### Select and Edit Shape
-1. User clicks on shape
-2. System checks if shape is locked
-   - If locked by another user → Log to console, abort
-   - If unlocked → Acquire lock
-3. Selection handles appear
-4. User edits properties in properties panel
-5. Changes debounced and saved to Firestore
-6. All users see property changes in real-time
-7. User clicks away or selects another shape → Lock released
-
-#### Marquee Selection
-1. User clicks on empty canvas area
-2. User drags to create selection rectangle
-3. All shapes intersecting marquee are selected
-4. System attempts to acquire locks on all selected shapes
-5. Successfully locked shapes are added to selection
-6. Locked shapes are skipped (log to console)
+#### TR-3.4: Performance
+- 60 FPS with 100+ objects
+- Viewport culling
+- Debounced Firestore writes (300ms)
 
 ### Acceptance Criteria
-- [ ] Users can create rectangles by click-drag
-- [ ] Users can create circles by click-drag
-- [ ] Users can create lines by click-drag
-- [ ] Shape toolbar allows tool selection
-- [ ] Individual shape selection works
-- [ ] Shift+click adds shapes to selection
-- [ ] Marquee selection selects multiple shapes
-- [ ] Selected shapes show visual handles
-- [ ] Locked shapes cannot be selected by other users
-- [ ] Console logs when attempting to select locked shape
-- [ ] Users can drag selected shapes
-- [ ] Users can resize selected shapes via handles
-- [ ] Users can rotate selected shapes
-- [ ] Properties panel displays for selected shapes
-- [ ] Fill color can be edited
-- [ ] Stroke color can be edited
-- [ ] Stroke width can be edited (1-10px)
-- [ ] Opacity can be edited (0-100%)
-- [ ] Border radius can be edited (rectangles only, 0-50px)
-- [ ] Property changes sync in real-time
-- [ ] Shapes persist after all users disconnect
-- [ ] Z-index modal displays correct layer order
-- [ ] All shape operations maintain 60 FPS performance
-- [ ] Canvas supports 500+ shapes without degradation
+
+#### Selection
+- [ ] Single click selects object
+- [ ] Shift+click adds/removes from collection
+- [ ] Marquee selection works
+- [ ] Max 100 objects enforced
+- [ ] Selection syncs across users
+
+#### Visual Indicators
+- [ ] Collection AABB displays (dashed)
+- [ ] Individual OBBs display (solid)
+- [ ] Both visible simultaneously
+- [ ] Update smoothly during transforms
+
+#### Locking
+- [ ] Atomic lock acquisition
+- [ ] Conflicts logged and abort selection
+- [ ] Locks release on deselect
+- [ ] Auto-release after 60s
+- [ ] Heartbeat every 5s
+
+#### Transform Modal
+- [ ] Appears at collection center
+- [ ] Contains rotation and scale knobs
+- [ ] Position updates during transforms
+- [ ] Fixed size (120px × 60px)
+- [ ] Dismissed on deselection
+
+#### Rotation
+- [ ] 1px = 1° verified
+- [ ] Up/left = CCW, down/right = CW
+- [ ] Rotates around collection center
+- [ ] 60 FPS performance
+- [ ] Syncs within 300ms
+
+#### Scale
+- [ ] 1px = 0.01 delta verified
+- [ ] Clockwise grows, CCW shrinks
+- [ ] Constraints enforced (0.1-10.0)
+- [ ] Scales from collection center
+- [ ] 60 FPS performance
+
+#### Translation
+- [ ] Drag moves entire collection
+- [ ] Boundary constraints work
+- [ ] 60 FPS performance
+- [ ] Syncs within 300ms
+
+#### Persistence
+- [ ] All transforms persist across sessions
+- [ ] No data loss on disconnect
 
 ---
 
-## Stage 4: Future AI Integration (Architecture Only)
+## Stage 4: Text Objects & Object-Specific Editing
+
+### Functional Requirements
+
+#### FR-4.1: Text Display Objects
+- **Creation**: Click "Text" tool, click canvas to place
+- **Default**: 200px × 100px, "Double-click to edit"
+- **Properties**:
+  - Content (string)
+  - Font family (Arial, Helvetica, Times New Roman, Courier, Georgia)
+  - Font size (12-72px)
+  - Font weight (100-900)
+  - Text color (hex)
+  - Text alignment (left, center, right, justify)
+  - Line height (0.8-3.0)
+  - Opacity (0-100%)
+
+#### FR-4.2: Object-Specific Editing Mode
+- **Trigger**: Double-click any display object
+- **Behavior**: 
+  - Deselects all other objects
+  - Locks the single object
+  - Shows object-specific properties panel
+- **Exit**: Click empty canvas, click different object, or press Escape
+
+#### FR-4.3: Shape Properties Panel
+- **Location**: Left side, 280px wide
+- **Properties**:
+  - Fill Color (color picker + hex)
+  - Stroke Color (color picker + hex)
+  - Stroke Width (1-10px slider)
+  - Opacity (0-100% slider)
+  - Border Radius (0-50px slider, rectangles only)
+- **Update**: Optimistic + debounce 300ms
+
+#### FR-4.4: Text Properties Panel
+- **Location**: Left side, 280px wide
+- **Properties**:
+  - Content (multi-line input)
+  - Font Family (dropdown)
+  - Font Size (12-72px slider)
+  - Font Weight (100-900 slider)
+  - Text Color (color picker)
+  - Text Alignment (button group)
+  - Line Height (0.8-3.0 slider)
+  - Opacity (0-100% slider)
+- **Update**: Content debounce 500ms, styles 300ms
+
+#### FR-4.5: Visual Indicator
+- **Initial**: Same as display-level (OBB highlight)
+- **Future**: Differentiate with color/style
+
+### Technical Requirements
+
+#### TR-4.1: Text Data Model
+```typescript
+interface TextDisplayObject extends BaseDisplayObject {
+  category: 'text';
+  content: string;
+  width: number;
+  height: number;
+  font: string;
+  fontSize: number;
+  fontWeight: number;
+  textAlign: 'left' | 'center' | 'right' | 'justify';
+  lineHeight: number;
+  color: string;
+}
+```
+
+#### TR-4.2: Firestore Schema
+- Path: `/documents/main/texts/{textId}`
+- Same metadata as shapes
+
+#### TR-4.3: Selection Mode State
+```typescript
+type SelectionMode = 'display-level' | 'object-specific';
+```
+
+### Acceptance Criteria
+
+#### Text Objects
+- [ ] Text tool creates text box
+- [ ] Default text displays
+- [ ] Text wraps within bounds
+- [ ] Text renders at all zoom levels
+- [ ] Text persists across sessions
+- [ ] Text can be transformed like shapes
+
+#### Object-Specific Mode
+- [ ] Double-click enters mode
+- [ ] Other objects deselect
+- [ ] Object locks successfully
+- [ ] Properties panel displays
+- [ ] Escape exits mode
+
+#### Shape Properties Panel
+- [ ] Panel displays for shapes
+- [ ] Fill color works
+- [ ] Stroke color works
+- [ ] Stroke width works (1-10px)
+- [ ] Opacity works (0-100%)
+- [ ] Border radius works (rectangles, 0-50px)
+- [ ] Changes sync within 500ms
+
+#### Text Properties Panel
+- [ ] Panel displays for text
+- [ ] Content editable
+- [ ] Font dropdown works (5 fonts)
+- [ ] Font size works (12-72px)
+- [ ] Font weight works (100-900)
+- [ ] Text color works
+- [ ] Alignment works (4 options)
+- [ ] Line height works (0.8-3.0)
+- [ ] Opacity works (0-100%)
+- [ ] Long text wraps correctly
+
+---
+
+## Out of Scope
+
+Not in Stages 3-4:
+- Image display objects
+- Undo/redo
+- Copy/paste/duplicate
+- Delete key
+- Keyboard shortcuts
+- Snapping/guides
+- Grouping
+- Layer panel
+- Custom fonts
+- Rich text formatting
+- Effects (shadow, glow)
+- Export
+- Comments/annotations
+- Version history
+
+---
+
+## Appendix A: Firebase Schema
+
+### Firestore Collections
+
+```
+firestore/
+├── users/{userId}/
+│   ├── userId, displayName, color
+│   └── createdAt, lastActive
+│
+└── documents/main/
+    ├── shapes/{shapeId}/
+    │   ├── category: 'shape'
+    │   ├── type: 'rectangle' | 'circle' | 'line'
+    │   ├── x, y, rotation, scaleX, scaleY
+    │   ├── width?, height?, radius?, points?
+    │   ├── fillColor, strokeColor, strokeWidth
+    │   ├── opacity, borderRadius?, zIndex
+    │   └── metadata, locking
+    │
+    └── texts/{textId}/
+        ├── category: 'text'
+        ├── x, y, rotation, scaleX, scaleY
+        ├── width, height, content
+        ├── font, fontSize, fontWeight
+        ├── textAlign, lineHeight, color
+        ├── opacity, zIndex
+        └── metadata, locking
+```
+
+### Realtime Database
+
+```
+realtime-database/
+└── presence/main/{userId}/{tabId}/
+    ├── userId, displayName, color
+    ├── cursorX, cursorY
+    └── connectedAt, lastUpdate
+```
+
+---
+
+## Appendix B: Transform Mathematics
+
+### Rotation Around Point
+```typescript
+function rotatePoint(point: Point, center: Point, degrees: number): Point {
+  const rad = (degrees * Math.PI) / 180;
+  const dx = point.x - center.x;
+  const dy = point.y - center.y;
+  return {
+    x: dx * Math.cos(rad) - dy * Math.sin(rad) + center.x,
+    y: dx * Math.sin(rad) + dy * Math.cos(rad) + center.y,
+  };
+}
+```
+
+### Scaling Around Point
+```typescript
+function scalePoint(point: Point, center: Point, scaleFactor: number): Point {
+  const dx = point.x - center.x;
+  const dy = point.y - center.y;
+  return {
+    x: dx * scaleFactor + center.x,
+    y: dy * scaleFactor + center.y,
+  };
+}
+```
+
+### Collection AABB
+```typescript
+function calculateCollectionAABB(objects: DisplayObject[]): AABB {
+  const allPoints = objects.flatMap(obj => getObjectCorners(obj));
+  return {
+    minX: Math.min(...allPoints.map(p => p.x)),
+    minY: Math.min(...allPoints.map(p => p.y)),
+    maxX: Math.max(...allPoints.map(p => p.x)),
+    maxY: Math.max(...allPoints.map(p => p.y)),
+    centerX: (minX + maxX) / 2,
+    centerY: (minY + maxY) / 2,
+  };
+}
+```
+
+---
+
+## Appendix C: Visual Design
+
+### Colors
+- Collection AABB: `#4A90E2` at 50%
+- Individual OBB: `#4A90E2` at 100%
+- Transform Modal BG: `rgba(30, 30, 30, 0.9)`
+- Properties Panel BG: `rgba(30, 30, 30, 0.95)`
+
+### Typography
+- Modal Labels: 12px, 500 weight
+- Panel Title: 16px, 600 weight
+- Panel Labels: 14px, 500 weight
+
+### Spacing
+- Transform Modal: 120px × 60px, knobs 60px apart
+- Properties Panel: 280px wide, 20px padding
+
+---
+
+## Appendix D: Performance Benchmarks
+
+### Targets
+- Frame Rate: 60 FPS sustained
+- Selection: <100ms (Firestore)
+- Transforms: <300ms (debounced)
+- Properties: <500ms (debounced)
+- Lock: <200ms (transaction)
+
+### Scalability
+- Max objects: 1000+ without degradation
+- Max selected: 100 without FPS drop
+- Max users: 10+ without sync issues
+
+---
+
+## Stage 5: Future AI Integration (Architecture Only)
 
 ### Overview
-Stage 4 will add AI Canvas Agent capabilities. This stage is **NOT** implemented now, but architecture decisions should anticipate it.
+Stage 5 will add AI Canvas Agent capabilities. This stage is **NOT** implemented now, but architecture decisions should anticipate it.
 
 ### Architectural Considerations
 
@@ -691,7 +872,7 @@ Stage 4 will add AI Canvas Agent capabilities. This stage is **NOT** implemented
 
 The following are explicitly **NOT** in scope for this PRD:
 
-- AI Canvas Agent integration (Stage 4)
+- AI Canvas Agent integration (Stage 5)
 - Undo/redo functionality
 - Image upload/display
 - Text editing beyond basic text shapes
