@@ -64,7 +64,8 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
 
   // Store resize data
   const resizeDataRef = useRef<{ 
-    stage: Konva.Stage; 
+    stage: Konva.Stage;
+    parentGroup: Konva.Group;
     handleType: ResizeHandle;
     startMousePos: { x: number; y: number };
     startX: number;
@@ -82,14 +83,20 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
     const stage = e.target.getStage();
     if (!stage) return;
 
-    const pointerPos = stage.getPointerPosition();
-    if (!pointerPos) return;
+    // Get the parent Group (which is rotated)
+    const parentGroup = e.target.getParent() as Konva.Group;
+    if (!parentGroup) return;
 
-    // Store resize data with absolute starting positions
+    // Get pointer position relative to the rotated group's local coordinate system
+    const localPos = parentGroup.getRelativePointerPosition();
+    if (!localPos) return;
+
+    // Store resize data with starting positions in local (rotated) space
     resizeDataRef.current = {
       stage,
+      parentGroup,
       handleType,
-      startMousePos: pointerPos,
+      startMousePos: localPos,  // Local coordinates
       startX: shape.x,
       startY: shape.y,
       startWidth: shape.width || 0,
@@ -107,201 +114,159 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
     // Add global mouse listeners
     const handleGlobalMouseMove = () => {
       if (!resizeDataRef.current) return;
-      const { stage, handleType, startMousePos, startX, startY, startWidth, startHeight } = resizeDataRef.current;
+      const { stage, parentGroup, handleType, startMousePos, startX, startY, startWidth, startHeight } = resizeDataRef.current;
       
-      const pointerPos = stage.getPointerPosition();
-      if (!pointerPos) return;
+      // Get current pointer position in the rotated group's local coordinate system
+      const localPos = parentGroup.getRelativePointerPosition();
+      if (!localPos) return;
 
-      // Calculate delta from start position (in screen coordinates)
-      const screenDx = pointerPos.x - startMousePos.x;
-      const screenDy = pointerPos.y - startMousePos.y;
-      
-      // Convert to canvas coordinates by dividing by zoom scale
-      const dx = screenDx / viewport.scale;
-      const dy = screenDy / viewport.scale;
+      // Calculate delta in local (rotated) space
+      const dx = localPos.x - startMousePos.x;
+      const dy = localPos.y - startMousePos.y;
 
       let newWidth: number;
       let newHeight: number;
-      let newX: number | undefined;
-      let newY: number | undefined;
+      let anchorLocalX: number;
+      let anchorLocalY: number;
 
-      // Calculate new dimensions based on which handle and mouse delta
-      // Key: anchor point (opposite corner) stays fixed
-      // Allow negative dimensions to support flipping
+      // Calculate new dimensions and anchor point in LOCAL space
       switch (handleType) {
         case 'top-left':
-          // Anchor: bottom-right stays at (startX + startWidth, startY + startHeight)
           newWidth = startWidth - dx;
           newHeight = startHeight - dy;
-          // Handle flipping: adjust position when dimensions go negative
-          if (newWidth < 0) {
-            newX = startX + startWidth;  // Anchor becomes new origin
-          } else {
-            newX = startX + dx;
-          }
-          if (newHeight < 0) {
-            newY = startY + startHeight;
-          } else {
-            newY = startY + dy;
-          }
+          // Anchor is bottom-right in local space
+          anchorLocalX = startWidth / 2;
+          anchorLocalY = startHeight / 2;
           break;
 
         case 'top-right':
-          // Anchor: bottom-left stays at (startX, startY + startHeight)
           newWidth = startWidth + dx;
           newHeight = startHeight - dy;
-          // Handle horizontal flipping (same logic as bottom-right)
-          if (newWidth < 0) {
-            newX = startX + newWidth;  // Move origin left from anchor
-          } else {
-            newX = startX;  // Normal: X doesn't change
-          }
-          // Handle vertical flipping (same logic as top-left)
-          if (newHeight < 0) {
-            newY = startY + startHeight;
-          } else {
-            newY = startY + dy;
-          }
+          // Anchor is bottom-left in local space
+          anchorLocalX = -startWidth / 2;
+          anchorLocalY = startHeight / 2;
           break;
 
         case 'bottom-left':
-          // Anchor: top-right stays at (startX + startWidth, startY)
           newWidth = startWidth - dx;
           newHeight = startHeight + dy;
-          // Handle horizontal flipping (same logic as top-left)
-          if (newWidth < 0) {
-            newX = startX + startWidth;  // Anchor becomes new origin
-          } else {
-            newX = startX + dx;
-          }
-          // Handle vertical flipping (same logic as bottom-right)
-          if (newHeight < 0) {
-            newY = startY + newHeight;  // Move origin up from anchor
-          } else {
-            newY = startY;  // Normal: Y doesn't change
-          }
+          // Anchor is top-right in local space
+          anchorLocalX = startWidth / 2;
+          anchorLocalY = -startHeight / 2;
           break;
 
         case 'bottom-right':
-          // Anchor: top-left stays at (startX, startY)
           newWidth = startWidth + dx;
           newHeight = startHeight + dy;
-          // Handle horizontal flipping (dragged left past anchor)
-          if (newWidth < 0) {
-            newX = startX + newWidth;  // Move origin left from anchor
-          } else {
-            newX = startX;  // Normal: X doesn't change
-          }
-          // Handle vertical flipping (dragged up past anchor)
-          if (newHeight < 0) {
-            newY = startY + newHeight;  // Move origin up from anchor
-          } else {
-            newY = startY;  // Normal: Y doesn't change
-          }
+          // Anchor is top-left in local space
+          anchorLocalX = -startWidth / 2;
+          anchorLocalY = -startHeight / 2;
           break;
       }
 
-      // Apply resize with stage reference for optimistic updates
-      // Pass absolute values for dimensions, handle flipping in the rendering
-      handleResize(shape.id, Math.abs(newWidth), Math.abs(newHeight), newX, newY, { current: stage });
+      // Calculate anchor point in GLOBAL space
+      const rotation = shape.rotation || 0;
+      const angleRad = (rotation * Math.PI) / 180;
+      const cos = Math.cos(angleRad);
+      const sin = Math.sin(angleRad);
+      
+      const centerX = startX + startWidth / 2;
+      const centerY = startY + startHeight / 2;
+      
+      const anchorGlobalX = centerX + (anchorLocalX * cos - anchorLocalY * sin);
+      const anchorGlobalY = centerY + (anchorLocalX * sin + anchorLocalY * cos);
+
+      // Calculate new center to keep anchor fixed
+      const absWidth = Math.abs(newWidth);
+      const absHeight = Math.abs(newHeight);
+      const newAnchorLocalX = (newWidth > 0 ? anchorLocalX : -anchorLocalX) * (absWidth / startWidth);
+      const newAnchorLocalY = (newHeight > 0 ? anchorLocalY : -anchorLocalY) * (absHeight / startHeight);
+      
+      const newCenterX = anchorGlobalX - (newAnchorLocalX * cos - newAnchorLocalY * sin);
+      const newCenterY = anchorGlobalY - (newAnchorLocalX * sin + newAnchorLocalY * cos);
+      
+      // Convert center back to top-left
+      const newX = newCenterX - absWidth / 2;
+      const newY = newCenterY - absHeight / 2;
+
+      // Apply resize with new position and dimensions
+      handleResize(shape.id, absWidth, absHeight, newX, newY, { current: stage });
     };
 
     const handleGlobalMouseUp = () => {
       if (!resizeDataRef.current) return;
-      const { stage, handleType, startMousePos, startX, startY, startWidth, startHeight } = resizeDataRef.current;
+      const { stage, parentGroup, handleType, startMousePos, startX, startY, startWidth, startHeight } = resizeDataRef.current;
       
-      const pointerPos = stage.getPointerPosition();
-      if (pointerPos) {
-        // Calculate final delta (in screen coordinates)
-        const screenDx = pointerPos.x - startMousePos.x;
-        const screenDy = pointerPos.y - startMousePos.y;
-        
-        // Convert to canvas coordinates by dividing by zoom scale
-        const dx = screenDx / viewport.scale;
-        const dy = screenDy / viewport.scale;
+      // Get final pointer position in local (rotated) space
+      const localPos = parentGroup.getRelativePointerPosition();
+      if (localPos) {
+        // Calculate final delta in local (rotated) space
+        const dx = localPos.x - startMousePos.x;
+        const dy = localPos.y - startMousePos.y;
 
         let newWidth: number;
         let newHeight: number;
-        let newX: number | undefined;
-        let newY: number | undefined;
+        let anchorLocalX: number;
+        let anchorLocalY: number;
 
-        // Calculate final dimensions with proper anchor points
-        // Allow negative dimensions to support flipping
+        // Calculate final dimensions and anchor point in LOCAL space
         switch (handleType) {
           case 'top-left':
-            // Anchor: bottom-right stays fixed
             newWidth = startWidth - dx;
             newHeight = startHeight - dy;
-            // Handle flipping
-            if (newWidth < 0) {
-              newX = startX + startWidth;
-            } else {
-              newX = startX + dx;
-            }
-            if (newHeight < 0) {
-              newY = startY + startHeight;
-            } else {
-              newY = startY + dy;
-            }
+            anchorLocalX = startWidth / 2;
+            anchorLocalY = startHeight / 2;
             break;
 
           case 'top-right':
-            // Anchor: bottom-left stays fixed
             newWidth = startWidth + dx;
             newHeight = startHeight - dy;
-            // Handle horizontal flipping (same logic as bottom-right)
-            if (newWidth < 0) {
-              newX = startX + newWidth;
-            } else {
-              newX = startX;
-            }
-            // Handle vertical flipping (same logic as top-left)
-            if (newHeight < 0) {
-              newY = startY + startHeight;
-            } else {
-              newY = startY + dy;
-            }
+            anchorLocalX = -startWidth / 2;
+            anchorLocalY = startHeight / 2;
             break;
 
           case 'bottom-left':
-            // Anchor: top-right stays fixed
             newWidth = startWidth - dx;
             newHeight = startHeight + dy;
-            // Handle horizontal flipping (same logic as top-left)
-            if (newWidth < 0) {
-              newX = startX + startWidth;
-            } else {
-              newX = startX + dx;
-            }
-            // Handle vertical flipping (same logic as bottom-right)
-            if (newHeight < 0) {
-              newY = startY + newHeight;
-            } else {
-              newY = startY;
-            }
+            anchorLocalX = startWidth / 2;
+            anchorLocalY = -startHeight / 2;
             break;
 
           case 'bottom-right':
-            // Anchor: top-left stays fixed
             newWidth = startWidth + dx;
             newHeight = startHeight + dy;
-            // Handle horizontal flipping
-            if (newWidth < 0) {
-              newX = startX + newWidth;
-            } else {
-              newX = startX;
-            }
-            // Handle vertical flipping
-            if (newHeight < 0) {
-              newY = startY + newHeight;
-            } else {
-              newY = startY;
-            }
+            anchorLocalX = -startWidth / 2;
+            anchorLocalY = -startHeight / 2;
             break;
         }
 
-        // Finalize resize with absolute dimensions
-        handleResizeEnd(shape.id, Math.abs(newWidth), Math.abs(newHeight), newX, newY);
+        // Calculate anchor point in GLOBAL space
+        const rotation = shape.rotation || 0;
+        const angleRad = (rotation * Math.PI) / 180;
+        const cos = Math.cos(angleRad);
+        const sin = Math.sin(angleRad);
+        
+        const centerX = startX + startWidth / 2;
+        const centerY = startY + startHeight / 2;
+        
+        const anchorGlobalX = centerX + (anchorLocalX * cos - anchorLocalY * sin);
+        const anchorGlobalY = centerY + (anchorLocalX * sin + anchorLocalY * cos);
+
+        // Calculate new center to keep anchor fixed
+        const absWidth = Math.abs(newWidth);
+        const absHeight = Math.abs(newHeight);
+        const newAnchorLocalX = (newWidth > 0 ? anchorLocalX : -anchorLocalX) * (absWidth / startWidth);
+        const newAnchorLocalY = (newHeight > 0 ? anchorLocalY : -anchorLocalY) * (absHeight / startHeight);
+        
+        const newCenterX = anchorGlobalX - (newAnchorLocalX * cos - newAnchorLocalY * sin);
+        const newCenterY = anchorGlobalY - (newAnchorLocalX * sin + newAnchorLocalY * cos);
+        
+        // Convert center back to top-left
+        const newX = newCenterX - absWidth / 2;
+        const newY = newCenterY - absHeight / 2;
+
+        // Finalize resize with new position and dimensions
+        handleResizeEnd(shape.id, absWidth, absHeight, newX, newY);
       }
 
       dragStartRef.current = null;
