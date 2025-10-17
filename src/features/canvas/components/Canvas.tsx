@@ -25,7 +25,7 @@ import { useShapeCreation } from '@/features/displayObjects/shapes/hooks/useShap
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
 import { useTool } from '@/features/displayObjects/common/store/toolStore';
 import { useMarqueeSelection } from '@/features/displayObjects/common/hooks/useMarqueeSelection';
-import { MarqueeBox } from '@/features/displayObjects/common/components/MarqueeBox';
+import { MarqueeLayer } from './MarqueeLayer';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useBoundingBox } from '@/features/displayObjects/common/hooks/useBoundingBox';
 import { CollectionBoundingBox } from '@/features/displayObjects/common/components/CollectionBoundingBox';
@@ -227,11 +227,11 @@ export function Canvas(): React.ReactElement {
           )}
         </Layer>
         {/* Marquee Selection Layer */}
-        <Layer listening={false}>
-          {isMarqueeActive && getMarqueeBox() && (
-            <MarqueeBox {...getMarqueeBox()!} scale={viewport.scale} />
-          )}
-        </Layer>
+        <MarqueeLayer
+          isMarqueeActive={isMarqueeActive}
+          marqueeBox={getMarqueeBox()}
+          scale={viewport.scale}
+        />
         <RemoteCursors />
       </Stage>
 
