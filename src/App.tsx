@@ -4,7 +4,26 @@ import { AuthModal } from '@/features/auth/components/AuthModal';
 import { DebugAuthPanel } from '@/features/auth/components/DebugAuthPanel';
 import { ViewportProvider } from '@/features/canvas/store/viewportStore';
 import { Canvas } from '@/features/canvas/components/Canvas';
+import { usePresence } from '@/features/presence/hooks/usePresence';
 import './App.css';
+
+/**
+ * AppContent Component
+ * Contains presence logic (requires auth to be initialized)
+ */
+function AppContent() {
+  // Initialize user presence (heartbeat, cleanup, etc.)
+  usePresence();
+
+  return (
+    <>
+      <DebugAuthPanel />
+      <ViewportProvider>
+        <Canvas />
+      </ViewportProvider>
+    </>
+  );
+}
 
 function App() {
   useEffect(() => {
@@ -14,10 +33,7 @@ function App() {
   return (
     <AuthProvider>
       <AuthModal />
-      <DebugAuthPanel />
-      <ViewportProvider>
-        <Canvas />
-      </ViewportProvider>
+      <AppContent />
     </AuthProvider>
   );
 }
