@@ -249,7 +249,7 @@ After completing each task, provide:
 
 ### STAGE1-3: Pan Implementation
 
-**Objective**: Implement smooth panning with scroll/drag
+**Objective**: Implement smooth panning with scroll
 
 **Actions**:
 1. Create `src/features/canvas/hooks/usePan.ts`

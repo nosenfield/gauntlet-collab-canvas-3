@@ -73,7 +73,7 @@ Implement a high-performance canvas workspace with smooth pan and zoom capabilit
 - **Validation**: Window resize maintains viewport aspect ratio and zoom level
 
 #### FR-1.3: Pan Navigation
-- **Requirement**: User can pan the viewport using mouse scroll/drag
+- **Requirement**: User can pan the viewport using mouse scroll
 - **Implementation**: Standard scroll gestures move the viewport
 - **Constraints**: Cannot pan beyond canvas boundaries (0,0 to 10000,10000)
 - **Validation**: Smooth 60 FPS panning with no jitter

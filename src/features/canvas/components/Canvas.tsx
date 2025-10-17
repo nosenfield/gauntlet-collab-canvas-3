@@ -5,7 +5,7 @@
  * - 10,000 x 10,000 pixel drawing area (coordinate space)
  * - Fills entire browser window (viewport)
  * - Responsive to window resize
- * - Supports pan navigation with mouse drag
+ * - Supports pan navigation with scroll/wheel
  */
 
 import { Stage, Layer } from 'react-konva';
@@ -19,17 +19,19 @@ import { GridBackground } from './GridBackground';
  * Renders a Konva Stage that fills the browser window
  * 
  * The canvas provides a 10,000 x 10,000 pixel coordinate space
- * that users can pan and zoom to navigate.
+ * that users can pan (scroll) and zoom (Cmd/Ctrl + scroll) to navigate.
  */
 export function Canvas(): React.ReactElement {
   const { width, height } = useCanvasSize();
   const { viewport, setPosition } = useViewport();
 
-  // Pan gesture handling
-  const { handleMouseDown, handleMouseMove, handleMouseUp } = usePan({
+  // Pan gesture handling via scroll/wheel
+  const { handleWheel } = usePan({
     viewportWidth: width,
     viewportHeight: height,
     scale: viewport.scale,
+    currentX: viewport.x,
+    currentY: viewport.y,
     onPan: setPosition,
   });
 
@@ -51,10 +53,7 @@ export function Canvas(): React.ReactElement {
         x={viewport.x}
         y={viewport.y}
         scale={{ x: viewport.scale, y: viewport.scale }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
       >
         <GridBackground
           width={width}

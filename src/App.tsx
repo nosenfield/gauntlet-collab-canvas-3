@@ -5,7 +5,7 @@ import './App.css';
 
 function App() {
   useEffect(() => {
-    console.log('CollabCanvas MVP - Stage 1: Canvas with Pan initialized');
+    console.log('CollabCanvas MVP - Stage 1: Canvas with Pan (scroll) initialized');
   }, []);
 
   return (

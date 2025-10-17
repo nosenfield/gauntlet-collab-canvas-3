@@ -4,7 +4,7 @@
 **Status:** Completed
 
 ## What Was Built
-Implemented smooth mouse-drag panning with canvas boundary constraints. Users can now click and drag to navigate around the 10,000 x 10,000 pixel canvas. The grid automatically updates as the viewport changes, and panning is constrained to prevent moving beyond canvas edges.
+Implemented smooth scroll-based panning with canvas boundary constraints. Users can now scroll/wheel to navigate around the 10,000 x 10,000 pixel canvas. The grid automatically updates as the viewport changes, and panning is constrained to prevent moving beyond canvas edges. This frees up mouse drag for future shape manipulation interactions.
 
 ## Key Files Modified/Created
 
@@ -17,10 +17,11 @@ Implemented smooth mouse-drag panning with canvas boundary constraints. Users ca
   - useViewport hook for accessing state
 
 - `src/features/canvas/hooks/usePan.ts` - Pan gesture handling
-  - Tracks mouse down/move/up events
-  - Calculates delta movement
-  - Only pans when clicking on stage background (not shapes)
-  - Uses refs to track dragging state
+  - Handles wheel/scroll events
+  - Prevents default scroll behavior
+  - Skips events with Cmd/Ctrl (reserved for zoom)
+  - Extracts deltaX and deltaY from wheel event
+  - Applies scroll deltas to viewport position
   - Calls onPan callback with constrained position
 
 - `src/features/canvas/utils/coordinateTransform.ts` - Coordinate utilities
@@ -31,8 +32,9 @@ Implemented smooth mouse-drag panning with canvas boundary constraints. Users ca
 ### Modified
 - `src/features/canvas/components/Canvas.tsx` - Integrated pan functionality
   - Uses useViewport hook for state
-  - Uses usePan hook for gesture handling
-  - Passes mouse event handlers to Stage
+  - Uses usePan hook for scroll handling
+  - Passes wheel event handler to Stage
+  - Passes current viewport position to usePan
   - Viewport state drives Stage position and GridBackground
 
 - `src/App.tsx` - Wrapped app with ViewportProvider
@@ -61,32 +63,34 @@ Implemented smooth mouse-drag panning with canvas boundary constraints. Users ca
   - Clamps x and y to valid ranges
 - **Impact**: Users can't get lost, always within canvas bounds
 
-### 3. Pan Gesture Detection
-- **Decision**: Only pan when clicking directly on Stage (not shapes)
+### 3. Scroll-Based Pan Instead of Drag
+- **Decision**: Use scroll/wheel events for panning (not mouse drag)
 - **Rationale**:
-  - Future shape interactions shouldn't trigger pan
-  - Prevents accidental panning when selecting shapes
-  - Standard design tool behavior
-- **Implementation**: Check if `e.target === stage` in mouseDown
-- **Impact**: Predictable behavior, ready for shape interactions
+  - Frees up mouse drag for shape manipulation
+  - Natural navigation pattern (similar to Google Maps)
+  - Trackpad-friendly (two-finger scroll)
+  - Standard design tool behavior (Figma uses space+drag, but scroll is more accessible)
+- **Implementation**: Handle wheel events, prevent default, apply deltaX/deltaY
+- **Impact**: Mouse drag available for future shape interactions
 
-### 4. Mouse Event Handling
-- **Decision**: Use Konva event handlers on Stage
+### 4. Wheel Event Handling
+- **Decision**: Use Konva wheel event handler on Stage
 - **Rationale**:
   - Konva provides normalized event handling
   - Cross-browser compatibility built-in
-  - Access to stage-relative coordinates
-- **Implementation**: onMouseDown, onMouseMove, onMouseUp, onMouseLeave
-- **Impact**: Reliable event handling across browsers
+  - Access to wheel delta values
+  - Can prevent default scroll behavior
+- **Implementation**: onWheel with preventDefault()
+- **Impact**: Reliable scroll handling across browsers and devices
 
-### 5. Dragging State Management
-- **Decision**: Use useRef for isDragging and lastPosition
+### 5. Modifier Key Detection
+- **Decision**: Skip wheel events with Cmd/Ctrl pressed
 - **Rationale**:
-  - Avoid re-renders on every mouse move
-  - Refs provide mutable state without triggering renders
-  - Better performance for high-frequency events
-- **Implementation**: `isDragging.current` and `lastPosition.current`
-- **Impact**: Smooth 60 FPS panning
+  - Reserve Cmd/Ctrl + scroll for zoom (STAGE1-4)
+  - Standard design tool convention
+  - Prevents pan/zoom conflicts
+- **Implementation**: Check `e.evt.ctrlKey || e.evt.metaKey` and return early
+- **Impact**: Clean separation between pan (scroll) and zoom (Cmd+scroll)
 
 ### 6. Grid Auto-Update
 - **Decision**: Grid automatically re-culls when viewport changes
@@ -114,12 +118,13 @@ Implemented smooth mouse-drag panning with canvas boundary constraints. Users ca
 ## State of the Application
 
 ### What works now
-- ✅ Click and drag to pan canvas
+- ✅ Scroll/wheel to pan canvas
 - ✅ Smooth 60 FPS panning
 - ✅ Canvas boundaries enforced (can't pan beyond edges)
 - ✅ Grid updates automatically during pan
-- ✅ Only pans when clicking on background (not shapes)
-- ✅ Mouse leave stops panning
+- ✅ Cmd/Ctrl + scroll reserved for zoom (coming in STAGE1-4)
+- ✅ Trackpad two-finger scroll works
+- ✅ Mouse drag available for future shape interactions
 - ✅ Build succeeds without errors
 - ✅ Lint passes without warnings
 
@@ -174,21 +179,21 @@ npm run dev
 # Open http://localhost:5173
 
 # Manual Tests:
-# 1. Click and drag on canvas - should pan smoothly
+# 1. Scroll on canvas - should pan smoothly
 # 2. Grid lines should update as you pan
 # 3. Try to pan beyond edges - should stop at boundaries
-# 4. Release mouse - panning should stop
-# 5. Move mouse outside canvas while dragging - should stop panning
-# 6. Console should show: "CollabCanvas MVP - Stage 1: Canvas with Pan initialized"
+# 4. Try trackpad two-finger scroll - should pan
+# 5. Try Cmd/Ctrl + scroll - should do nothing (reserved for zoom)
+# 6. Console should show: "CollabCanvas MVP - Stage 1: Canvas with Pan (scroll) initialized"
 ```
 
 ### Manual Testing Steps
 1. Start dev server: `npm run dev`
 2. Open browser to http://localhost:5173
 3. **Test basic pan**:
-   - Click and hold on canvas
-   - Drag mouse - canvas should move
-   - Release - panning should stop
+   - Scroll vertically - canvas should pan up/down
+   - Scroll horizontally (shift+scroll or trackpad) - canvas should pan left/right
+   - Trackpad two-finger scroll - should pan smoothly
 4. **Test boundaries**:
    - Pan to left edge - should stop
    - Pan to right edge - should stop  
@@ -198,10 +203,11 @@ npm run dev
    - Pan around - grid lines should update
    - Lines should appear/disappear as you pan
    - Grid should always align with canvas coordinates
-6. **Test mouse leave**:
-   - Start dragging
-   - Move mouse outside browser window
-   - Panning should stop
+6. **Test modifier keys**:
+   - Hold Cmd/Ctrl and scroll
+   - Should NOT pan (reserved for zoom)
+   - Release Cmd/Ctrl and scroll
+   - Should pan normally
 7. **Check performance**: Panning should feel smooth (60 FPS)
 
 ## Next Steps
@@ -253,33 +259,29 @@ export function useViewport() {
 }
 ```
 
-### Pan Gesture Handling
+### Pan Gesture Handling (Scroll-based)
 ```typescript
-const isDragging = useRef(false);
-const lastPosition = useRef({ x: 0, y: 0 });
-
-const handleMouseDown = (e) => {
-  if (e.target === stage) {
-    isDragging.current = true;
-    lastPosition.current = stage.getPointerPosition();
+const handleWheel = useCallback((e: KonvaEventObject<WheelEvent>) => {
+  // Prevent default scroll behavior
+  e.evt.preventDefault();
+  
+  // Skip if Cmd/Ctrl is pressed (reserved for zoom)
+  if (e.evt.ctrlKey || e.evt.metaKey) {
+    return;
   }
-};
-
-const handleMouseMove = (e) => {
-  if (!isDragging.current) return;
   
-  const pos = stage.getPointerPosition();
-  const dx = pos.x - lastPosition.current.x;
-  const dy = pos.y - lastPosition.current.y;
+  // Get scroll deltas
+  const dx = e.evt.deltaX;
+  const dy = e.evt.deltaY;
   
-  lastPosition.current = pos;
+  // Calculate new stage position (invert for natural scroll)
+  const newX = currentX - dx;
+  const newY = currentY - dy;
   
-  const newX = stage.x() + dx;
-  const newY = stage.y() + dy;
-  
+  // Constrain to canvas boundaries
   const constrained = constrainViewport(newX, newY, width, height, scale);
   onPan(constrained.x, constrained.y);
-};
+}, [viewportWidth, viewportHeight, scale, currentX, currentY, onPan]);
 ```
 
 ### Boundary Constraint Logic
@@ -306,10 +308,12 @@ function constrainViewport(x, y, viewportWidth, viewportHeight, scale) {
 ```typescript
 const { viewport, setPosition } = useViewport();
 
-const { handleMouseDown, handleMouseMove, handleMouseUp } = usePan({
+const { handleWheel } = usePan({
   viewportWidth: width,
   viewportHeight: height,
   scale: viewport.scale,
+  currentX: viewport.x,
+  currentY: viewport.y,
   onPan: setPosition,
 });
 
@@ -317,10 +321,7 @@ const { handleMouseDown, handleMouseMove, handleMouseUp } = usePan({
   x={viewport.x}
   y={viewport.y}
   scale={{ x: viewport.scale, y: viewport.scale }}
-  onMouseDown={handleMouseDown}
-  onMouseMove={handleMouseMove}
-  onMouseUp={handleMouseUp}
-  onMouseLeave={handleMouseUp}
+  onWheel={handleWheel}
 >
   <GridBackground stageX={viewport.x} stageY={viewport.y} scale={viewport.scale} />
 </Stage>

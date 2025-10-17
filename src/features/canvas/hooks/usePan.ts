@@ -1,11 +1,13 @@
 /**
  * usePan Hook
  * 
- * Handles mouse drag events for panning the canvas.
+ * Handles scroll/wheel events for panning the canvas.
+ * Regular scroll (no modifiers) pans the canvas.
+ * Cmd/Ctrl + scroll will be used for zoom (STAGE1-4).
  * Constrains panning to canvas boundaries.
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { constrainViewport } from '../utils/coordinateTransform';
 
@@ -13,65 +15,45 @@ interface UsePanProps {
   viewportWidth: number;
   viewportHeight: number;
   scale: number;
+  currentX: number;
+  currentY: number;
   onPan: (x: number, y: number) => void;
 }
 
 interface UsePanReturn {
-  handleMouseDown: (e: KonvaEventObject<MouseEvent>) => void;
-  handleMouseMove: (e: KonvaEventObject<MouseEvent>) => void;
-  handleMouseUp: () => void;
+  handleWheel: (e: KonvaEventObject<WheelEvent>) => void;
 }
 
 /**
- * Custom hook for pan gesture handling
+ * Custom hook for pan gesture handling via scroll/wheel
  */
 export function usePan({
   viewportWidth,
   viewportHeight,
   scale,
+  currentX,
+  currentY,
   onPan,
 }: UsePanProps): UsePanReturn {
-  const isDragging = useRef(false);
-  const lastPosition = useRef({ x: 0, y: 0 });
+  const handleWheel = useCallback(
+    (e: KonvaEventObject<WheelEvent>) => {
+      // Prevent default scroll behavior
+      e.evt.preventDefault();
 
-  const handleMouseDown = useCallback((e: KonvaEventObject<MouseEvent>) => {
-    // Only pan with left mouse button
-    if (e.evt.button !== 0) return;
-
-    // Get the stage to check if we're clicking on the background
-    const stage = e.target.getStage();
-    if (!stage) return;
-
-    // Only start panning if clicking on the stage (not on a shape)
-    if (e.target === stage) {
-      isDragging.current = true;
-      const pos = stage.getPointerPosition();
-      if (pos) {
-        lastPosition.current = { x: pos.x, y: pos.y };
+      // Skip if Cmd/Ctrl is pressed (reserved for zoom in STAGE1-4)
+      if (e.evt.ctrlKey || e.evt.metaKey) {
+        return;
       }
-    }
-  }, []);
 
-  const handleMouseMove = useCallback(
-    (e: KonvaEventObject<MouseEvent>) => {
-      if (!isDragging.current) return;
-
-      const stage = e.target.getStage();
-      if (!stage) return;
-
-      const pos = stage.getPointerPosition();
-      if (!pos) return;
-
-      // Calculate delta movement
-      const dx = pos.x - lastPosition.current.x;
-      const dy = pos.y - lastPosition.current.y;
-
-      // Update last position
-      lastPosition.current = { x: pos.x, y: pos.y };
+      // Get scroll deltas
+      // deltaX: horizontal scroll, deltaY: vertical scroll
+      const dx = e.evt.deltaX;
+      const dy = e.evt.deltaY;
 
       // Calculate new stage position
-      const newX = stage.x() + dx;
-      const newY = stage.y() + dy;
+      // Invert deltas to make scroll feel natural (scroll down = pan down)
+      const newX = currentX - dx;
+      const newY = currentY - dy;
 
       // Constrain to canvas boundaries
       const constrained = constrainViewport(
@@ -85,17 +67,11 @@ export function usePan({
       // Update viewport
       onPan(constrained.x, constrained.y);
     },
-    [viewportWidth, viewportHeight, scale, onPan]
+    [viewportWidth, viewportHeight, scale, currentX, currentY, onPan]
   );
 
-  const handleMouseUp = useCallback(() => {
-    isDragging.current = false;
-  }, []);
-
   return {
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
+    handleWheel,
   };
 }
 
