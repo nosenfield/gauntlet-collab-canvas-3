@@ -8,6 +8,8 @@ import { usePresence } from '@/features/presence/hooks/usePresence';
 import { UserPresenceSidebar } from '@/features/presence/components/UserPresenceSidebar';
 import { ToolProvider } from '@/features/displayObjects/common/store/toolStore';
 import { DisplayObjectToolbar } from '@/features/displayObjects/common/components/DisplayObjectToolbar';
+import { ShapesProvider } from '@/features/displayObjects/shapes/store/shapesStore';
+import { SelectionProvider } from '@/features/displayObjects/common/store/selectionStore';
 import './App.css';
 
 /**
@@ -38,8 +40,12 @@ function App() {
   return (
     <AuthProvider>
       <ToolProvider>
-        <AuthModal />
-        <AppContent />
+        <ShapesProvider>
+          <SelectionProvider>
+            <AuthModal />
+            <AppContent />
+          </SelectionProvider>
+        </ShapesProvider>
       </ToolProvider>
     </AuthProvider>
   );

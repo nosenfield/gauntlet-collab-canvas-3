@@ -21,6 +21,10 @@ import { startFPSMonitoring, stopFPSMonitoring } from '@/utils/performanceMonito
 import type { PerformanceMetrics } from '@/utils/performanceMonitor';
 import { useCursorTracking } from '@/features/presence/hooks/useCursorTracking';
 import { RemoteCursors } from '@/features/presence/components/RemoteCursors';
+import { ShapeLayer } from '@/features/displayObjects/shapes/components/ShapeLayer';
+import { useShapeCreation } from '@/features/displayObjects/shapes/hooks/useShapeCreation';
+import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
+import { useTool } from '@/features/displayObjects/common/store/toolStore';
 
 /**
  * Canvas Component
@@ -69,6 +73,34 @@ export function Canvas(): React.ReactElement {
 
   // Track cursor position and sync to Realtime Database
   useCursorTracking({ stageRef, enabled: true });
+
+  // Shape creation handler
+  const handleShapeCreation = useShapeCreation();
+
+  // Selection state from store
+  const { getSelectedShapeId, selectShape, clearSelection } = useSelection();
+  const { isSelectMode } = useTool();
+
+  // Handle shape click (select when in select mode)
+  const handleShapeClick = (shapeId: string) => {
+    if (isSelectMode()) {
+      console.log('[Canvas] Shape clicked in select mode:', shapeId);
+      selectShape(shapeId);
+    }
+  };
+
+  // Handle stage click (clear selection or create shape)
+  const handleStageClick = (e: any) => {
+    const clickedOnEmpty = e.target === e.currentTarget;
+    
+    if (clickedOnEmpty && isSelectMode()) {
+      // Clicked on empty canvas in select mode - clear selection
+      clearSelection();
+    } else {
+      // Handle shape creation
+      handleShapeCreation(e);
+    }
+  };
 
   // Pan gesture handling via scroll/wheel
   const panHandlers = usePan({
@@ -129,6 +161,7 @@ export function Canvas(): React.ReactElement {
         y={viewport.y}
         scale={{ x: viewport.scale, y: viewport.scale }}
         onWheel={handleWheel}
+        onClick={handleStageClick}
       >
         <GridBackground
           width={width}
@@ -136,6 +169,10 @@ export function Canvas(): React.ReactElement {
           stageX={viewport.x}
           stageY={viewport.y}
           scale={viewport.scale}
+        />
+        <ShapeLayer
+          selectedShapeId={getSelectedShapeId()}
+          onShapeClick={handleShapeClick}
         />
         <Layer></Layer>
         <RemoteCursors />
