@@ -46,8 +46,6 @@ export function usePresence(): void {
       try {
         // Get or generate tab ID (persisted in sessionStorage)
         const tabId = getCurrentTabId();
-
-        console.log('📝 Creating tab presence:', tabId);
         
         // Store for cleanup
         userIdRef.current = user.userId;
