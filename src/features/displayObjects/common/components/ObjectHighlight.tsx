@@ -13,6 +13,7 @@ import type { Point } from '../types';
  */
 export interface ObjectHighlightProps {
   corners: Point[]; // 4 corner points defining the OBB [TL, TR, BR, BL]
+  scale?: number;   // Viewport scale for zoom-independent sizing
 }
 
 /**
@@ -25,12 +26,13 @@ export interface ObjectHighlightProps {
  * Visual Style:
  * - Color: #4A90E2 (blue)
  * - Opacity: 1.0 (fully opaque)
- * - Stroke: Solid
- * - Width: 2px
+ * - Stroke: Solid - zoom-independent
+ * - Width: 2px - zoom-independent
  * 
  * @param corners - Array of 4 corner points [TL, TR, BR, BL]
+ * @param scale - Viewport scale (for zoom-independent sizing)
  */
-export function ObjectHighlight({ corners }: ObjectHighlightProps) {
+export function ObjectHighlight({ corners, scale = 1 }: ObjectHighlightProps) {
   // Ensure we have exactly 4 corners
   if (corners.length !== 4) {
     console.warn('[ObjectHighlight] Expected 4 corners, got', corners.length);
@@ -46,15 +48,19 @@ export function ObjectHighlight({ corners }: ObjectHighlightProps) {
     corners[3].x, corners[3].y, // Bottom-left
   ];
   
+  // Scale stroke width inversely with zoom
+  // This keeps visual appearance constant regardless of zoom level
+  const strokeWidth = 2 / scale;
+  
   return (
     <Line
       // Points defining the rectangle
       points={points}
       closed={true}              // Close the path (connect last to first)
       
-      // Visual properties
+      // Visual properties (zoom-independent)
       stroke="#4A90E2"           // Blue stroke
-      strokeWidth={2}            // 2px stroke
+      strokeWidth={strokeWidth}  // 2px visual stroke (scaled)
       opacity={1.0}              // Fully opaque
       
       // Interaction

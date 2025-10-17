@@ -15,6 +15,7 @@ export interface MarqueeBoxProps {
   y: number;
   width: number;
   height: number;
+  scale?: number; // Viewport scale for zoom-independent sizing
 }
 
 /**
@@ -26,8 +27,13 @@ export interface MarqueeBoxProps {
  * @param y - Top-left y position (canvas coordinates)
  * @param width - Width of marquee box
  * @param height - Height of marquee box
+ * @param scale - Viewport scale (for zoom-independent sizing)
  */
-export function MarqueeBox({ x, y, width, height }: MarqueeBoxProps) {
+export function MarqueeBox({ x, y, width, height, scale = 1 }: MarqueeBoxProps) {
+  // Scale stroke width and dash pattern inversely with zoom
+  const strokeWidth = 1 / scale;
+  const dashPattern = [5 / scale, 5 / scale];
+  
   return (
     <Rect
       // Position and dimensions
@@ -36,11 +42,11 @@ export function MarqueeBox({ x, y, width, height }: MarqueeBoxProps) {
       width={width}
       height={height}
       
-      // Visual properties
+      // Visual properties (zoom-independent)
       fill="rgba(74, 144, 226, 0.1)" // Light blue with low opacity
-      stroke="#4A90E2" // Blue stroke
-      strokeWidth={1}
-      dash={[5, 5]} // Dashed line pattern
+      stroke="#4A90E2"                // Blue stroke
+      strokeWidth={strokeWidth}       // 1px visual stroke (scaled)
+      dash={dashPattern}              // Dashed line pattern (scaled)
       
       // Interaction
       listening={false} // Don't capture mouse events

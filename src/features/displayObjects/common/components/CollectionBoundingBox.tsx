@@ -13,6 +13,7 @@ import type { AxisAlignedBoundingBox } from '../types';
  */
 export interface CollectionBoundingBoxProps {
   bounds: AxisAlignedBoundingBox;
+  scale?: number; // Viewport scale for zoom-independent sizing
 }
 
 /**
@@ -25,12 +26,18 @@ export interface CollectionBoundingBoxProps {
  * Visual Style:
  * - Color: #4A90E2 (blue)
  * - Opacity: 0.5
- * - Stroke: Dashed (5px dash, 5px gap)
- * - Width: 2px
+ * - Stroke: Dashed (5px dash, 5px gap) - zoom-independent
+ * - Width: 2px - zoom-independent
  * 
  * @param bounds - The AABB to render
+ * @param scale - Viewport scale (for zoom-independent sizing)
  */
-export function CollectionBoundingBox({ bounds }: CollectionBoundingBoxProps) {
+export function CollectionBoundingBox({ bounds, scale = 1 }: CollectionBoundingBoxProps) {
+  // Scale stroke width and dash pattern inversely with zoom
+  // This keeps visual appearance constant regardless of zoom level
+  const strokeWidth = 2 / scale;
+  const dashPattern = [5 / scale, 5 / scale];
+  
   return (
     <Rect
       // Position and dimensions
@@ -39,11 +46,11 @@ export function CollectionBoundingBox({ bounds }: CollectionBoundingBoxProps) {
       width={bounds.width}
       height={bounds.height}
       
-      // Visual properties
+      // Visual properties (zoom-independent)
       fill="transparent"          // No fill
       stroke="#4A90E2"            // Blue stroke
-      strokeWidth={2}             // 2px stroke
-      dash={[5, 5]}               // Dashed pattern (5px dash, 5px gap)
+      strokeWidth={strokeWidth}   // 2px visual stroke (scaled)
+      dash={dashPattern}          // Dashed pattern (scaled)
       opacity={0.5}               // Semi-transparent
       
       // Interaction

@@ -238,18 +238,27 @@ export function Canvas(): React.ReactElement {
           {selectedShapes.map(shape => {
             const corners = objectCorners.get(shape.id);
             if (!corners) return null;
-            return <ObjectHighlight key={`highlight-${shape.id}`} corners={corners} />;
+            return (
+              <ObjectHighlight 
+                key={`highlight-${shape.id}`} 
+                corners={corners}
+                scale={viewport.scale}
+              />
+            );
           })}
           
           {/* Collection bounding box (dashed AABB) */}
           {collectionBounds && selectedShapes.length > 1 && (
-            <CollectionBoundingBox bounds={collectionBounds} />
+            <CollectionBoundingBox 
+              bounds={collectionBounds}
+              scale={viewport.scale}
+            />
           )}
         </Layer>
         {/* Marquee Selection Layer */}
         <Layer listening={false}>
           {isMarqueeActive && getMarqueeBox() && (
-            <MarqueeBox {...getMarqueeBox()!} />
+            <MarqueeBox {...getMarqueeBox()!} scale={viewport.scale} />
           )}
         </Layer>
         <RemoteCursors />
