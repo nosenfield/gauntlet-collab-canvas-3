@@ -5,10 +5,14 @@
  * - 10,000 x 10,000 pixel drawing area (coordinate space)
  * - Fills entire browser window (viewport)
  * - Responsive to window resize
+ * - Supports pan navigation with mouse drag
  */
 
 import { Stage, Layer } from 'react-konva';
 import { useCanvasSize } from '../hooks/useCanvasSize';
+import { useViewport } from '../store/viewportStore';
+import { usePan } from '../hooks/usePan';
+import { GridBackground } from './GridBackground';
 
 /**
  * Canvas Component
@@ -19,6 +23,15 @@ import { useCanvasSize } from '../hooks/useCanvasSize';
  */
 export function Canvas(): React.ReactElement {
   const { width, height } = useCanvasSize();
+  const { viewport, setPosition } = useViewport();
+
+  // Pan gesture handling
+  const { handleMouseDown, handleMouseMove, handleMouseUp } = usePan({
+    viewportWidth: width,
+    viewportHeight: height,
+    scale: viewport.scale,
+    onPan: setPosition,
+  });
 
   return (
     <div
@@ -35,15 +48,22 @@ export function Canvas(): React.ReactElement {
       <Stage
         width={width}
         height={height}
-        // Initial viewport centered on canvas
-        x={0}
-        y={0}
-        scale={{ x: 1, y: 1 }}
+        x={viewport.x}
+        y={viewport.y}
+        scale={{ x: viewport.scale, y: viewport.scale }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       >
-        {/* Main canvas layer - will contain shapes later */}
-        <Layer>
-          {/* Placeholder - shapes will be rendered here */}
-        </Layer>
+        <GridBackground
+          width={width}
+          height={height}
+          stageX={viewport.x}
+          stageY={viewport.y}
+          scale={viewport.scale}
+        />
+        <Layer></Layer>
       </Stage>
     </div>
   );
