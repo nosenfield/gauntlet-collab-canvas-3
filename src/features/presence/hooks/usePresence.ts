@@ -15,7 +15,6 @@ import {
   removePresence,
   setSessionId,
   clearSessionId,
-  hasActiveSession,
 } from '../services/presenceService';
 
 const HEARTBEAT_INTERVAL = 5000; // 5 seconds
@@ -35,14 +34,9 @@ export function usePresence(): void {
       return;
     }
 
-    // Prevent multiple initializations
+    // Prevent multiple initializations within same component lifecycle
     if (isInitializedRef.current) {
-      return;
-    }
-
-    // Check if this tab already has an active session
-    if (hasActiveSession(user.userId)) {
-      console.log('✓ Presence already active in this tab');
+      console.log('✓ Presence already initialized in this component instance');
       return;
     }
 
@@ -56,7 +50,9 @@ export function usePresence(): void {
         // Create presence in Realtime Database
         await createPresence(user);
 
-        // Mark this tab as having an active session
+        // Mark this tab as having an active session (for analytics/debugging)
+        // Note: We don't block re-initialization based on this - we rely on
+        // isInitializedRef instead, which resets on page refresh
         const sessionId = `${user.userId}-${Date.now()}`;
         setSessionId(user.userId, sessionId);
         isInitializedRef.current = true;

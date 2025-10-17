@@ -5,6 +5,7 @@ import { DebugAuthPanel } from '@/features/auth/components/DebugAuthPanel';
 import { ViewportProvider } from '@/features/canvas/store/viewportStore';
 import { Canvas } from '@/features/canvas/components/Canvas';
 import { usePresence } from '@/features/presence/hooks/usePresence';
+import { UserPresenceSidebar } from '@/features/presence/components/UserPresenceSidebar';
 import './App.css';
 
 /**
@@ -18,6 +19,7 @@ function AppContent() {
   return (
     <>
       <DebugAuthPanel />
+      <UserPresenceSidebar />
       <ViewportProvider>
         <Canvas />
       </ViewportProvider>
