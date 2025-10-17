@@ -150,15 +150,15 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
           // Anchor: bottom-left stays at (startX, startY + startHeight)
           newWidth = startWidth + dx;
           newHeight = startHeight - dy;
-          // Handle horizontal flipping (dragged left past anchor)
+          // Handle horizontal flipping (same logic as bottom-right)
           if (newWidth < 0) {
             newX = startX + newWidth;  // Move origin left from anchor
           } else {
             newX = startX;  // Normal: X doesn't change
           }
-          // Handle vertical flipping (dragged down past anchor)
+          // Handle vertical flipping (same logic as top-left)
           if (newHeight < 0) {
-            newY = startY + startHeight + newHeight;  // Move origin down from anchor
+            newY = startY + startHeight;
           } else {
             newY = startY + dy;
           }
@@ -168,13 +168,13 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
           // Anchor: top-right stays at (startX + startWidth, startY)
           newWidth = startWidth - dx;
           newHeight = startHeight + dy;
-          // Handle horizontal flipping (dragged right past anchor)
+          // Handle horizontal flipping (same logic as top-left)
           if (newWidth < 0) {
-            newX = startX + startWidth + newWidth;  // Move origin right from anchor
+            newX = startX + startWidth;  // Anchor becomes new origin
           } else {
             newX = startX + dx;
           }
-          // Handle vertical flipping (dragged up past anchor)
+          // Handle vertical flipping (same logic as bottom-right)
           if (newHeight < 0) {
             newY = startY + newHeight;  // Move origin up from anchor
           } else {
@@ -249,15 +249,15 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
             // Anchor: bottom-left stays fixed
             newWidth = startWidth + dx;
             newHeight = startHeight - dy;
-            // Handle horizontal flipping
+            // Handle horizontal flipping (same logic as bottom-right)
             if (newWidth < 0) {
               newX = startX + newWidth;
             } else {
               newX = startX;
             }
-            // Handle vertical flipping
+            // Handle vertical flipping (same logic as top-left)
             if (newHeight < 0) {
-              newY = startY + startHeight + newHeight;
+              newY = startY + startHeight;
             } else {
               newY = startY + dy;
             }
@@ -267,13 +267,13 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
             // Anchor: top-right stays fixed
             newWidth = startWidth - dx;
             newHeight = startHeight + dy;
-            // Handle horizontal flipping
+            // Handle horizontal flipping (same logic as top-left)
             if (newWidth < 0) {
-              newX = startX + startWidth + newWidth;
+              newX = startX + startWidth;
             } else {
               newX = startX + dx;
             }
-            // Handle vertical flipping
+            // Handle vertical flipping (same logic as bottom-right)
             if (newHeight < 0) {
               newY = startY + newHeight;
             } else {
