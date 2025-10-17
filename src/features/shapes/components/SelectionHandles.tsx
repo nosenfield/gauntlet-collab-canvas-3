@@ -3,6 +3,7 @@
  * 
  * Displays interactive handles around selected shapes for resize and rotate operations.
  * Handles are zoom-independent (constant visual size).
+ * Works with center-based rotation system.
  */
 
 import { useRef } from 'react';
@@ -77,6 +78,7 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
 
   /**
    * Handle resize drag move
+   * Note: Resize works best on non-rotated shapes. For rotated shapes, consider resetting rotation first.
    */
   const handleResizeDragMove = (
     handleType: ResizeHandle,
@@ -85,8 +87,9 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
     if (!dragStartRef.current) return;
 
     const node = e.target;
-    const newHandleX = node.x();
-    const newHandleY = node.y();
+    
+    // Get absolute position of handle in world coordinates
+    const handlePos = node.getAbsolutePosition();
 
     const { width: originalWidth, height: originalHeight, x: originalX, y: originalY } = dragStartRef.current;
 
@@ -96,34 +99,39 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
     let newY = originalY;
 
     // Calculate new dimensions based on which handle is being dragged
+    // For non-rotated shapes, this works perfectly
+    // For rotated shapes, dimensions will be in axis-aligned space
     switch (handleType) {
       case 'top-left':
-        newWidth = originalX + originalWidth - newHandleX;
-        newHeight = originalY + originalHeight - newHandleY;
-        newX = newHandleX;
-        newY = newHandleY;
+        newWidth = originalX + originalWidth - handlePos.x;
+        newHeight = originalY + originalHeight - handlePos.y;
+        newX = handlePos.x;
+        newY = handlePos.y;
         break;
 
       case 'top-right':
-        newWidth = newHandleX - originalX;
-        newHeight = originalY + originalHeight - newHandleY;
-        newY = newHandleY;
+        newWidth = handlePos.x - originalX;
+        newHeight = originalY + originalHeight - handlePos.y;
+        newY = handlePos.y;
         break;
 
       case 'bottom-left':
-        newWidth = originalX + originalWidth - newHandleX;
-        newHeight = newHandleY - originalY;
-        newX = newHandleX;
+        newWidth = originalX + originalWidth - handlePos.x;
+        newHeight = handlePos.y - originalY;
+        newX = handlePos.x;
         break;
 
       case 'bottom-right':
-        newWidth = newHandleX - originalX;
-        newHeight = newHandleY - originalY;
+        newWidth = handlePos.x - originalX;
+        newHeight = handlePos.y - originalY;
         break;
     }
 
-    // Apply resize
-    handleResize(shape.id, newWidth, newHeight, newX, newY);
+    // Get stage for optimistic updates
+    const stage = node.getStage();
+
+    // Apply resize with stage reference for optimistic updates
+    handleResize(shape.id, newWidth, newHeight, newX, newY, stage ? { current: stage } : undefined);
   };
 
   /**
@@ -136,8 +144,9 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
     if (!dragStartRef.current) return;
 
     const node = e.target;
-    const newHandleX = node.x();
-    const newHandleY = node.y();
+    
+    // Get absolute position of handle in world coordinates
+    const handlePos = node.getAbsolutePosition();
 
     const { width: originalWidth, height: originalHeight, x: originalX, y: originalY } = dragStartRef.current;
 
@@ -149,27 +158,27 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
     // Calculate final dimensions
     switch (handleType) {
       case 'top-left':
-        newWidth = originalX + originalWidth - newHandleX;
-        newHeight = originalY + originalHeight - newHandleY;
-        newX = newHandleX;
-        newY = newHandleY;
+        newWidth = originalX + originalWidth - handlePos.x;
+        newHeight = originalY + originalHeight - handlePos.y;
+        newX = handlePos.x;
+        newY = handlePos.y;
         break;
 
       case 'top-right':
-        newWidth = newHandleX - originalX;
-        newHeight = originalY + originalHeight - newHandleY;
-        newY = newHandleY;
+        newWidth = handlePos.x - originalX;
+        newHeight = originalY + originalHeight - handlePos.y;
+        newY = handlePos.y;
         break;
 
       case 'bottom-left':
-        newWidth = originalX + originalWidth - newHandleX;
-        newHeight = newHandleY - originalY;
-        newX = newHandleX;
+        newWidth = originalX + originalWidth - handlePos.x;
+        newHeight = handlePos.y - originalY;
+        newX = handlePos.x;
         break;
 
       case 'bottom-right':
-        newWidth = newHandleX - originalX;
-        newHeight = newHandleY - originalY;
+        newWidth = handlePos.x - originalX;
+        newHeight = handlePos.y - originalY;
         break;
     }
 
@@ -179,10 +188,27 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
     console.log('✅ Resize end:', handleType);
   };
 
+  // Store stage and center position for rotation
+  const rotationDataRef = useRef<{ stage: Konva.Stage; centerPos: { x: number; y: number } } | null>(null);
+
   /**
-   * Handle rotation drag start
+   * Handle rotation mouse down
    */
-  const handleRotateDragStart = () => {
+  const handleRotateMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    e.cancelBubble = true;
+    
+    const stage = e.target.getStage();
+    if (!stage) return;
+
+    // Get absolute position of shape center
+    const parentGroup = e.target.getParent()?.getParent() as Konva.Group;
+    if (!parentGroup) return;
+    
+    const centerPos = parentGroup.getAbsolutePosition();
+    
+    // Store rotation data
+    rotationDataRef.current = { stage, centerPos };
+    
     dragStartRef.current = {
       width: shape.width || 0,
       height: shape.height || 0,
@@ -190,70 +216,71 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
       y: shape.y,
       rotation: shape.rotation || 0,
     };
+    
+    // Add stage-level event listeners for global mouse tracking
+    const handleGlobalMouseMove = () => {
+      if (!rotationDataRef.current) return;
+      const { stage, centerPos } = rotationDataRef.current;
+      
+      const pointerPos = stage.getPointerPosition();
+      if (!pointerPos) return;
+
+      // Calculate angle from center to mouse
+      const dx = pointerPos.x - centerPos.x;
+      const dy = pointerPos.y - centerPos.y;
+      const angleRadians = Math.atan2(dy, dx);
+      const angleDegrees = (angleRadians * 180) / Math.PI + 90; // +90 to align with top
+
+      // Apply rotation with stage reference for optimistic updates
+      handleRotate(shape.id, angleDegrees, { current: stage });
+    };
+
+    const handleGlobalMouseUp = () => {
+      if (!rotationDataRef.current) return;
+      const { stage, centerPos } = rotationDataRef.current;
+      
+      const pointerPos = stage.getPointerPosition();
+      if (pointerPos) {
+        // Calculate final angle
+        const dx = pointerPos.x - centerPos.x;
+        const dy = pointerPos.y - centerPos.y;
+        const angleRadians = Math.atan2(dy, dx);
+        const angleDegrees = (angleRadians * 180) / Math.PI + 90;
+
+        // Finalize rotation
+        handleRotateEnd(shape.id, angleDegrees);
+      }
+      
+      dragStartRef.current = null;
+      
+      // Remove event listeners
+      stage.off('mousemove', handleGlobalMouseMove);
+      stage.off('mouseup', handleGlobalMouseUp);
+      
+      rotationDataRef.current = null;
+      
+      console.log('✅ Rotate end');
+    };
+
+    // Add event listeners to stage for global tracking
+    stage.on('mousemove', handleGlobalMouseMove);
+    stage.on('mouseup', handleGlobalMouseUp);
+    
     console.log('🎯 Rotate start');
   };
 
-  /**
-   * Handle rotation drag move
-   */
-  const handleRotateDragMove = (e: Konva.KonvaEventObject<DragEvent>) => {
-    if (!dragStartRef.current) return;
-
-    const node = e.target;
-    const handleX = node.x();
-    const handleY = node.y();
-
-    // Calculate center of shape
-    const centerX = shape.x + (shape.width || 0) / 2;
-    const centerY = shape.y + (shape.height || 0) / 2;
-
-    // Calculate angle from center to handle
-    const dx = handleX - centerX;
-    const dy = handleY - centerY;
-    const angleRadians = Math.atan2(dy, dx);
-    const angleDegrees = (angleRadians * 180) / Math.PI + 90; // +90 to align with top
-
-    // Apply rotation
-    handleRotate(shape.id, angleDegrees);
-  };
-
-  /**
-   * Handle rotation drag end
-   */
-  const handleRotateDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
-    if (!dragStartRef.current) return;
-
-    const node = e.target;
-    const handleX = node.x();
-    const handleY = node.y();
-
-    // Calculate final rotation
-    const centerX = shape.x + (shape.width || 0) / 2;
-    const centerY = shape.y + (shape.height || 0) / 2;
-    const dx = handleX - centerX;
-    const dy = handleY - centerY;
-    const angleRadians = Math.atan2(dy, dx);
-    const angleDegrees = (angleRadians * 180) / Math.PI + 90;
-
-    // Finalize rotation
-    handleRotateEnd(shape.id, angleDegrees);
-    dragStartRef.current = null;
-    console.log('✅ Rotate end');
-  };
-
-  // Get current shape data (may be updated during drag)
+  // Get current shape data (may be updated during transformations)
   const currentShape = shapes.find((s) => s.id === shape.id) || shape;
-  const currentX = currentShape.x;
-  const currentY = currentShape.y;
   const currentWidth = currentShape.width || 0;
   const currentHeight = currentShape.height || 0;
 
   return (
     <Group>
-      {/* Selection Box */}
+      {/* Note: Parent Group is already positioned at center and rotated */}
+      {/* Selection Box - positioned relative to center */}
       <Rect
-        x={currentX}
-        y={currentY}
+        x={-currentWidth / 2}
+        y={-currentHeight / 2}
         width={currentWidth}
         height={currentHeight}
         stroke={SELECTION_STROKE}
@@ -263,11 +290,11 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
         perfectDrawEnabled={false}
       />
 
-      {/* Corner Handles - Resize */}
+      {/* Corner Handles - positioned at corners relative to center */}
       {/* Top-Left */}
       <Circle
-        x={currentX}
-        y={currentY}
+        x={-currentWidth / 2}
+        y={-currentHeight / 2}
         radius={handleRadius}
         fill="white"
         stroke={HANDLE_COLOR}
@@ -282,8 +309,8 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
 
       {/* Top-Right */}
       <Circle
-        x={currentX + currentWidth}
-        y={currentY}
+        x={currentWidth / 2}
+        y={-currentHeight / 2}
         radius={handleRadius}
         fill="white"
         stroke={HANDLE_COLOR}
@@ -298,8 +325,8 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
 
       {/* Bottom-Left */}
       <Circle
-        x={currentX}
-        y={currentY + currentHeight}
+        x={-currentWidth / 2}
+        y={currentHeight / 2}
         radius={handleRadius}
         fill="white"
         stroke={HANDLE_COLOR}
@@ -314,8 +341,8 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
 
       {/* Bottom-Right */}
       <Circle
-        x={currentX + currentWidth}
-        y={currentY + currentHeight}
+        x={currentWidth / 2}
+        y={currentHeight / 2}
         radius={handleRadius}
         fill="white"
         stroke={HANDLE_COLOR}
@@ -328,18 +355,16 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
         perfectDrawEnabled={false}
       />
 
-      {/* Rotation Handle (top-center) */}
+      {/* Rotation Handle (top-center, above shape) */}
       <Circle
-        x={currentX + currentWidth / 2}
-        y={currentY - rotationDistance}
+        x={0}
+        y={-currentHeight / 2 - rotationDistance}
         radius={handleRadius}
         fill="white"
         stroke={HANDLE_COLOR}
         strokeWidth={handleStrokeWidth}
-        draggable={true}
-        onDragStart={handleRotateDragStart}
-        onDragMove={handleRotateDragMove}
-        onDragEnd={handleRotateDragEnd}
+        draggable={false}
+        onMouseDown={handleRotateMouseDown}
         cursor="crosshair"
         perfectDrawEnabled={false}
       />

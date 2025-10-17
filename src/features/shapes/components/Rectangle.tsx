@@ -76,9 +76,13 @@ export function Rectangle({ shape }: RectangleProps) {
 
   return (
     <Rect
-      // Position
-      x={shape.x}
-      y={shape.y}
+      // Position (center of shape)
+      x={shape.x + shape.width / 2}
+      y={shape.y + shape.height / 2}
+      
+      // Offset to rotate around center
+      offsetX={shape.width / 2}
+      offsetY={shape.height / 2}
       
       // Dimensions
       width={shape.width}

@@ -10,6 +10,7 @@ import type Konva from 'konva';
 import type { Shape } from '../../../types/firebase';
 import { useShapes } from './useShapes';
 import { debounceWithFlush } from '../../../utils/debounce';
+import { useShapesMap } from '../store/shapesStore';
 
 /**
  * Canvas boundary constraints
@@ -70,6 +71,7 @@ function normalizeRotation(rotation: number): number {
  */
 export function useShapeTransform() {
   const { updateShape } = useShapes();
+  const shapesMap = useShapesMap();
   
   // Track if we're currently transforming (to prevent redundant updates)
   const isTransformingRef = useRef<Set<string>>(new Set());
@@ -103,31 +105,38 @@ export function useShapeTransform() {
   const handleDragMove = useCallback(
     (shapeId: string, e: Konva.KonvaEventObject<DragEvent>) => {
       const node = e.target;
-      const shape = node.attrs as Shape;
+      
+      // Get shape data from store (not from node.attrs which may be stale)
+      const shape = shapesMap.get(shapeId);
+      if (!shape) return;
 
-      // Get current position
-      let x = node.x();
-      let y = node.y();
+      // Get current position (center of shape)
+      let centerX = node.x();
+      let centerY = node.y();
 
-      // Get shape dimensions
+      // Get shape dimensions from actual shape data
       const width = shape.width || 0;
       const height = shape.height || 0;
 
-      // Constrain to canvas boundaries
-      const constrained = constrainPosition(x, y, width, height);
+      // Convert center to top-left for storage
+      let topLeftX = centerX - width / 2;
+      let topLeftY = centerY - height / 2;
+
+      // Constrain to canvas boundaries (using top-left coords)
+      const constrained = constrainPosition(topLeftX, topLeftY, width, height);
       
-      // Update node position if constrained
-      if (constrained.x !== x || constrained.y !== y) {
-        node.x(constrained.x);
-        node.y(constrained.y);
-        x = constrained.x;
-        y = constrained.y;
+      // Update node position if constrained (convert back to center)
+      if (constrained.x !== topLeftX || constrained.y !== topLeftY) {
+        node.x(constrained.x + width / 2);
+        node.y(constrained.y + height / 2);
+        topLeftX = constrained.x;
+        topLeftY = constrained.y;
       }
 
-      // Debounce Firestore update
-      debouncedUpdate.debounced(shapeId, { x, y });
+      // Debounce Firestore update (store top-left position)
+      debouncedUpdate.debounced(shapeId, { x: topLeftX, y: topLeftY });
     },
-    [debouncedUpdate]
+    [debouncedUpdate, shapesMap]
   );
 
   /**
@@ -136,17 +145,31 @@ export function useShapeTransform() {
   const handleDragEnd = useCallback(
     (shapeId: string, e: Konva.KonvaEventObject<DragEvent>) => {
       const node = e.target;
-      const x = node.x();
-      const y = node.y();
+      
+      // Get shape data from store (not from node.attrs)
+      const shape = shapesMap.get(shapeId);
+      if (!shape) return;
+      
+      // Get current position (center)
+      const centerX = node.x();
+      const centerY = node.y();
+      
+      // Get shape dimensions from actual shape data
+      const width = shape.width || 0;
+      const height = shape.height || 0;
+      
+      // Convert center to top-left for storage
+      const topLeftX = centerX - width / 2;
+      const topLeftY = centerY - height / 2;
 
       // Flush any pending debounced update and send final position
       debouncedUpdate.flush();
-      updateShape(shapeId, { x, y });
+      updateShape(shapeId, { x: topLeftX, y: topLeftY });
       
       isTransformingRef.current.delete(shapeId);
-      console.log('✅ Drag end:', shapeId, { x, y });
+      console.log('✅ Drag end:', shapeId, { x: topLeftX, y: topLeftY });
     },
-    [updateShape, debouncedUpdate]
+    [updateShape, debouncedUpdate, shapesMap]
   );
 
   /**
@@ -157,6 +180,7 @@ export function useShapeTransform() {
    * @param newHeight - New height
    * @param newX - New x position (may change during resize from top/left handles)
    * @param newY - New y position (may change during resize from top/left handles)
+   * @param stageRef - Optional stage reference for optimistic updates
    */
   const handleResize = useCallback(
     (
@@ -164,7 +188,8 @@ export function useShapeTransform() {
       newWidth: number,
       newHeight: number,
       newX?: number,
-      newY?: number
+      newY?: number,
+      stageRef?: any
     ) => {
       // Constrain dimensions
       const constrained = constrainDimensions(newWidth, newHeight);
@@ -179,10 +204,34 @@ export function useShapeTransform() {
       if (newX !== undefined) updates.x = newX;
       if (newY !== undefined) updates.y = newY;
 
+      // Optimistic update: Update Konva node immediately for smooth resize
+      if (stageRef?.current) {
+        const shape = shapesMap.get(shapeId);
+        if (shape) {
+          const shapeNode = stageRef.current.findOne(`#shape-${shapeId}`);
+          if (shapeNode) {
+            // Update position (center)
+            const centerX = (updates.x ?? shape.x) + constrained.width / 2;
+            const centerY = (updates.y ?? shape.y) + constrained.height / 2;
+            shapeNode.x(centerX);
+            shapeNode.y(centerY);
+            
+            // Update child Rect dimensions
+            const rect = shapeNode.findOne('Rect');
+            if (rect) {
+              rect.width(constrained.width);
+              rect.height(constrained.height);
+              rect.x(-constrained.width / 2);
+              rect.y(-constrained.height / 2);
+            }
+          }
+        }
+      }
+
       // Debounce Firestore update
       debouncedUpdate.debounced(shapeId, updates);
     },
-    [debouncedUpdate]
+    [debouncedUpdate, shapesMap]
   );
 
   /**
@@ -223,10 +272,19 @@ export function useShapeTransform() {
    * 
    * @param shapeId - ID of shape being rotated
    * @param newRotation - New rotation in degrees
+   * @param stageRef - Optional stage reference for optimistic updates
    */
   const handleRotate = useCallback(
-    (shapeId: string, newRotation: number) => {
+    (shapeId: string, newRotation: number, stageRef?: any) => {
       const normalized = normalizeRotation(newRotation);
+
+      // Optimistic update: Update Konva node immediately for smooth rotation
+      if (stageRef?.current) {
+        const shapeNode = stageRef.current.findOne(`#shape-${shapeId}`);
+        if (shapeNode) {
+          shapeNode.rotation(normalized);
+        }
+      }
 
       // Debounce Firestore update
       debouncedUpdate.debounced(shapeId, { rotation: normalized });
