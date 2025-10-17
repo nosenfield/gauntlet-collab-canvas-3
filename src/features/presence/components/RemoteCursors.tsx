@@ -22,10 +22,11 @@ export function RemoteCursors(): React.ReactElement {
 
   return (
     <Layer listening={false}>
-      {Array.from(activeUsers.values()).map((presence) => (
-        <RemoteCursor key={presence.userId} presence={presence} />
-      ))}
+      {Array.from(activeUsers.values())
+        .filter((presence) => presence && presence.userId && presence.displayName)
+        .map((presence) => (
+          <RemoteCursor key={presence.userId} presence={presence} />
+        ))}
     </Layer>
   );
 }
-

@@ -9,7 +9,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@/features/auth/store/authStore';
-import { updateCursorPosition } from '../services/presenceService';
+import { updateCursorPosition, getCurrentTabId } from '../services/presenceService';
 import { throttle } from '@/utils/performanceMonitor';
 
 interface UseCursorTrackingProps {
@@ -34,10 +34,13 @@ export function useCursorTracking({
       return;
     }
 
+    // Get current tab ID
+    const tabId = getCurrentTabId();
+
     // Create throttled update function (50ms = 20 updates/second max)
     const throttledFn = throttle((...args: unknown[]) => {
       const [x, y] = args as [number, number];
-      updateCursorPosition(user.userId, x, y).catch((error) => {
+      updateCursorPosition(user.userId, tabId, x, y).catch((error) => {
         // Silent failure - cursor updates shouldn't break the app
         if (import.meta.env.DEV) {
           console.debug('Cursor update failed:', error);
@@ -93,4 +96,3 @@ export function useCursorTracking({
     };
   }, [user, enabled, stageRef]);
 }
-

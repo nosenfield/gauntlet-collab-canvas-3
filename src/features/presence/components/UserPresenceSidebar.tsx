@@ -24,7 +24,10 @@ export function UserPresenceSidebar(): React.ReactElement | null {
 
   // Sort users: current user first, then others alphabetically
   const sortedUsers = useMemo(() => {
-    const users = Array.from(allActiveUsers.values());
+    // Filter out incomplete presence data
+    const users = Array.from(allActiveUsers.values()).filter(
+      (u) => u && u.userId && u.displayName
+    );
     
     if (!user) return users;
 
@@ -32,7 +35,11 @@ export function UserPresenceSidebar(): React.ReactElement | null {
     const currentUserPresence = users.find((u) => u.userId === user.userId);
     const otherUsers = users
       .filter((u) => u.userId !== user.userId)
-      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+      .sort((a, b) => {
+        // Extra safety check during sort
+        if (!a.displayName || !b.displayName) return 0;
+        return a.displayName.localeCompare(b.displayName);
+      });
 
     // Current user first, then others alphabetically
     return currentUserPresence ? [currentUserPresence, ...otherUsers] : otherUsers;
@@ -70,4 +77,3 @@ export function UserPresenceSidebar(): React.ReactElement | null {
     </div>
   );
 }
-

@@ -18,8 +18,13 @@ interface RemoteCursorProps {
  * RemoteCursor Component
  * Konva group displaying cursor icon + label
  */
-export function RemoteCursor({ presence }: RemoteCursorProps): React.ReactElement {
+export function RemoteCursor({ presence }: RemoteCursorProps): React.ReactElement | null {
   const { cursorX, cursorY, color, displayName } = presence;
+
+  // Guard against incomplete presence data
+  if (!displayName || typeof cursorX !== 'number' || typeof cursorY !== 'number') {
+    return null;
+  }
 
   // Cursor SVG path (triangle/arrow shape)
   const cursorPath = 'M 0 0 L 0 16 L 4.8 12 L 8 18 L 10 17 L 6.8 11 L 12 10 Z';

@@ -49,4 +49,3 @@ export function useActiveUsers(excludeUserId?: string): Map<string, UserPresence
 export function useAllActiveUsers(): Map<string, UserPresence> {
   return useActiveUsers(undefined);
 }
-

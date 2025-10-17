@@ -2,31 +2,33 @@
  * Presence Service
  * 
  * Manages user presence in Firebase Realtime Database:
- * - Creates presence on connect
+ * - Creates tab-specific presence entries (path: /presence/{doc}/{userId}/{tabId})
+ * - Each tab sets onDisconnect() for automatic cleanup
  * - Updates presence with heartbeat (every 5s)
- * - Removes presence on disconnect
- * - Uses onDisconnect() for automatic cleanup
+ * - Aggregates tabs per user when reading presence
+ * - Stale presence cleanup via 30s timeout
  */
 
 import {
   ref,
   set,
   update,
-  onDisconnect,
   serverTimestamp,
   onValue,
   off,
+  onDisconnect,
 } from 'firebase/database';
 import { database, DOCUMENT_ID } from '@/api/firebase';
 import type { UserPresence } from '@/types/firebase';
 import type { User } from '@/types/firebase';
 
 /**
- * Create or update user presence in Realtime Database
- * Path: /presence/{documentId}/{userId}
+ * Create tab-specific presence entry
+ * Path: /presence/{documentId}/{userId}/{tabId}
+ * Each tab gets its own entry, onDisconnect() removes it automatically
  */
-export async function createPresence(user: User): Promise<void> {
-  const presenceRef = ref(database, `presence/${DOCUMENT_ID}/${user.userId}`);
+export async function createTabPresence(user: User, tabId: string): Promise<void> {
+  const tabPresenceRef = ref(database, `presence/${DOCUMENT_ID}/${user.userId}/${tabId}`);
 
   const presence: Omit<UserPresence, 'connectedAt' | 'lastUpdate'> & {
     connectedAt: ReturnType<typeof serverTimestamp>;
@@ -35,42 +37,37 @@ export async function createPresence(user: User): Promise<void> {
     userId: user.userId,
     displayName: user.displayName,
     color: user.color,
-    cursorX: 0, // Initial cursor position
+    cursorX: 0,
     cursorY: 0,
     connectedAt: serverTimestamp(),
     lastUpdate: serverTimestamp(),
   };
 
   try {
-    console.log('📝 Creating presence in Realtime Database...');
-    console.log('Path:', `presence/${DOCUMENT_ID}/${user.userId}`);
+    console.log('📝 Creating tab presence:', tabId);
     
-    // Set presence data
-    await set(presenceRef, presence);
+    // Create presence for this tab
+    await set(tabPresenceRef, presence);
 
-    // Set up automatic cleanup on disconnect
-    await onDisconnect(presenceRef).remove();
+    // Set onDisconnect to remove this tab's presence
+    await onDisconnect(tabPresenceRef).remove();
 
-    console.log('✅ Presence created:', user.displayName);
+    console.log('✅ Tab presence created with auto-cleanup');
   } catch (error) {
-    console.error('❌ Error creating presence:', error);
-    if (error instanceof Error) {
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-    }
+    console.error('❌ Error creating tab presence:', error);
     throw error;
   }
 }
 
 /**
- * Update presence heartbeat
+ * Update presence heartbeat for a specific tab
  * Should be called every 5 seconds
  */
-export async function updatePresenceHeartbeat(userId: string): Promise<void> {
-  const presenceRef = ref(database, `presence/${DOCUMENT_ID}/${userId}`);
+export async function updatePresenceHeartbeat(userId: string, tabId: string): Promise<void> {
+  const tabPresenceRef = ref(database, `presence/${DOCUMENT_ID}/${userId}/${tabId}`);
 
   try {
-    await update(presenceRef, {
+    await update(tabPresenceRef, {
       lastUpdate: serverTimestamp(),
     });
   } catch (error) {
@@ -80,18 +77,19 @@ export async function updatePresenceHeartbeat(userId: string): Promise<void> {
 }
 
 /**
- * Update cursor position in presence
+ * Update cursor position for a specific tab's presence
  * Should be throttled to ~50ms
  */
 export async function updateCursorPosition(
   userId: string,
+  tabId: string,
   x: number,
   y: number
 ): Promise<void> {
-  const presenceRef = ref(database, `presence/${DOCUMENT_ID}/${userId}`);
+  const tabPresenceRef = ref(database, `presence/${DOCUMENT_ID}/${userId}/${tabId}`);
 
   try {
-    await update(presenceRef, {
+    await update(tabPresenceRef, {
       cursorX: x,
       cursorY: y,
       lastUpdate: serverTimestamp(),
@@ -103,23 +101,27 @@ export async function updateCursorPosition(
 }
 
 /**
- * Remove user presence
- * Called on sign-out or component unmount
+ * Generate a unique tab ID
  */
-export async function removePresence(userId: string): Promise<void> {
-  const presenceRef = ref(database, `presence/${DOCUMENT_ID}/${userId}`);
+export function generateTabId(): string {
+  return `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
 
-  try {
-    await set(presenceRef, null);
-    console.log('Presence removed:', userId);
-  } catch (error) {
-    console.error('Error removing presence:', error);
-    // Don't throw - best effort cleanup
-  }
+/**
+ * Get or create the current tab's ID (stored in sessionStorage)
+ */
+export function getCurrentTabId(): string {
+  const stored = sessionStorage.getItem('canvas-current-tab-id');
+  if (stored) return stored;
+  
+  const tabId = generateTabId();
+  sessionStorage.setItem('canvas-current-tab-id', tabId);
+  return tabId;
 }
 
 /**
  * Listen to all active users in presence
+ * Aggregates all tab entries per user into a single presence
  * Returns unsubscribe function
  */
 export function onPresenceChange(
@@ -134,18 +136,34 @@ export function onPresenceChange(
       const now = Date.now();
       const TIMEOUT_MS = 30000; // 30 seconds
 
-      snapshot.forEach((childSnapshot) => {
-        const presence = childSnapshot.val() as UserPresence;
-        
-        // Filter out stale presences (no update in 30 seconds)
-        if (presence && presence.lastUpdate) {
-          const lastUpdate = typeof presence.lastUpdate === 'number' 
-            ? presence.lastUpdate 
-            : now; // Fallback if serverTimestamp hasn't resolved yet
-          
-          if (now - lastUpdate < TIMEOUT_MS) {
-            presences[presence.userId] = presence;
+      // Iterate through users
+      snapshot.forEach((userSnapshot) => {
+        const userId = userSnapshot.key;
+        if (!userId) return;
+
+        // Aggregate all tabs for this user
+        const tabData: UserPresence[] = [];
+        userSnapshot.forEach((tabSnapshot) => {
+          const presence = tabSnapshot.val() as UserPresence;
+          if (presence && presence.lastUpdate) {
+            const lastUpdate = typeof presence.lastUpdate === 'number' 
+              ? presence.lastUpdate 
+              : now;
+            
+            // Only include tabs with recent activity
+            if (now - lastUpdate < TIMEOUT_MS) {
+              tabData.push(presence);
+            }
           }
+        });
+
+        // If user has at least one active tab, add to presences
+        // Use the most recently updated tab's data
+        if (tabData.length > 0) {
+          const mostRecent = tabData.reduce((prev, current) => 
+            (current.lastUpdate > prev.lastUpdate) ? current : prev
+          );
+          presences[userId] = mostRecent;
         }
       });
 
@@ -161,29 +179,3 @@ export function onPresenceChange(
     off(presenceRef, 'value', listener);
   };
 }
-
-/**
- * Session management
- * Prevents duplicate presence documents per user across tabs
- */
-const SESSION_KEY_PREFIX = 'canvas-session-';
-
-export function getSessionId(userId: string): string | null {
-  return sessionStorage.getItem(SESSION_KEY_PREFIX + userId);
-}
-
-export function setSessionId(userId: string, sessionId: string): void {
-  sessionStorage.setItem(SESSION_KEY_PREFIX + userId, sessionId);
-}
-
-export function clearSessionId(userId: string): void {
-  sessionStorage.removeItem(SESSION_KEY_PREFIX + userId);
-}
-
-/**
- * Check if user has an active session in this tab
- */
-export function hasActiveSession(userId: string): boolean {
-  return getSessionId(userId) !== null;
-}
-

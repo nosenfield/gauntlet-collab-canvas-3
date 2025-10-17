@@ -25,9 +25,10 @@ export interface User {
 
 /**
  * User Presence (Realtime Database)
- * Stored in: /presence/main/{userId}
+ * Stored in: /presence/main/{userId}/{tabId}
  * 
  * Real-time ephemeral data for active users.
+ * Each tab creates its own presence entry. Multiple tabs per user are aggregated when reading.
  * NOTE: Uses number timestamps (Unix ms) instead of Firestore Timestamps
  * for better performance with Realtime Database.
  */
