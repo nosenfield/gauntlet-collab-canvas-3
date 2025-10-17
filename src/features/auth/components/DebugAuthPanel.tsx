@@ -16,7 +16,7 @@ import './DebugAuthPanel.css';
  */
 export function DebugAuthPanel(): React.ReactElement | null {
   const { user, signOut } = useAuth();
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true); // ON by default
 
   // Only render in development mode
   if (!import.meta.env.DEV) {

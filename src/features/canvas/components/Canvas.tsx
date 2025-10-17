@@ -33,7 +33,7 @@ export function Canvas(): React.ReactElement {
   const { width, height } = useCanvasSize();
   const { viewport, setPosition, setViewport, setDimensions } = useViewport();
   const [fpsMetrics, setFpsMetrics] = useState<PerformanceMetrics>({ fps: 60, frameTime: 0, timestamp: 0 });
-  const [showFPS, setShowFPS] = useState(false); // Toggle with 'F' key
+  const [showFPS, setShowFPS] = useState(true); // Toggle with 'F' key - ON by default
   const stageRef = useRef<any>(null); // Konva Stage ref
 
   // Sync window dimensions to viewport store
@@ -146,7 +146,7 @@ export function Canvas(): React.ReactElement {
         <div
           style={{
             position: 'fixed',
-            top: '10px',
+            bottom: '10px',
             left: '10px',
             backgroundColor: 'rgba(0, 0, 0, 0.8)',
             color: fpsMetrics.fps < 60 ? '#ff6b6b' : '#51cf66',

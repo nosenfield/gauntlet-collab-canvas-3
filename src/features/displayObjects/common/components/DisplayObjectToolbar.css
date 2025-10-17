@@ -1,0 +1,164 @@
+/**
+ * Display Object Toolbar Styles
+ * 
+ * Horizontal toolbar for tool selection
+ * Position: Fixed top-left of screen
+ */
+
+.display-object-toolbar {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1000;
+  
+  /* Prevent toolbar from interfering with canvas interactions */
+  pointer-events: auto;
+}
+
+.display-object-toolbar__container {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background-color: rgba(30, 30, 30, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+/* Tool Button Base Styles */
+.tool-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  
+  width: 64px;
+  height: 64px;
+  
+  background-color: transparent;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  
+  color: #E0E0E0;
+  cursor: pointer;
+  
+  transition: all 0.2s ease;
+  
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Tool Button Icon */
+.tool-button__icon {
+  font-size: 24px;
+  line-height: 1;
+  user-select: none;
+}
+
+/* Tool Button Label */
+.tool-button__label {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  user-select: none;
+  text-transform: capitalize;
+}
+
+/* Hover State */
+.tool-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Active/Selected State */
+.tool-button--active {
+  background-color: #4A90E2;
+  border-color: #4A90E2;
+  color: #FFFFFF;
+}
+
+.tool-button--active:hover {
+  background-color: #5A9FED;
+  border-color: #5A9FED;
+}
+
+/* Focus State (keyboard navigation) */
+.tool-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.4);
+}
+
+.tool-button:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+
+/* Active Press State */
+.tool-button:active {
+  transform: scale(0.95);
+}
+
+/* Disabled State (future use) */
+.tool-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tool-button:disabled:hover {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+/* Responsive: Stack vertically on small screens */
+@media (max-width: 768px) {
+  .display-object-toolbar {
+    top: 8px;
+    left: 8px;
+  }
+  
+  .display-object-toolbar__container {
+    flex-direction: column;
+    padding: 6px;
+    gap: 6px;
+  }
+  
+  .tool-button {
+    width: 52px;
+    height: 52px;
+  }
+  
+  .tool-button__icon {
+    font-size: 20px;
+  }
+  
+  .tool-button__label {
+    font-size: 10px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .display-object-toolbar__container {
+    background-color: rgba(0, 0, 0, 0.95);
+    border: 1px solid #FFFFFF;
+  }
+  
+  .tool-button {
+    border-width: 2px;
+  }
+  
+  .tool-button--active {
+    border-color: #FFFFFF;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .tool-button {
+    transition: none;
+  }
+  
+  .tool-button:active {
+    transform: none;
+  }
+}
+
