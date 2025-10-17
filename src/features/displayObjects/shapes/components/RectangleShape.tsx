@@ -16,6 +16,8 @@ interface RectangleShapeProps {
   isSelected?: boolean;
   onClick?: (shapeId: string, isShiftClick: boolean) => void;
   onDragEnd?: (shapeId: string, x: number, y: number) => void;
+  draggable?: boolean; // Override draggable state
+  onCollectionDragStart?: (e: any, shapeId: string) => void; // For collection dragging
 }
 
 /**
@@ -23,18 +25,27 @@ interface RectangleShapeProps {
  * 
  * Renders a rectangle with Konva.js
  * Supports selection, transformation, and styling
+ * Supports both individual and collection dragging
  */
 export function RectangleShape({ 
   shape, 
   isSelected = false,
   onClick,
   onDragEnd,
+  draggable,
+  onCollectionDragStart,
 }: RectangleShapeProps) {
   
   const handleClick = (e: KonvaEventObject<MouseEvent>) => {
     if (onClick) {
       const isShiftClick = e.evt.shiftKey;
       onClick(shape.id, isShiftClick);
+    }
+  };
+  
+  const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
+    if (onCollectionDragStart && isSelected) {
+      onCollectionDragStart(e, shape.id);
     }
   };
 
@@ -58,6 +69,9 @@ export function RectangleShape({
     };
   };
 
+  // Determine if shape should be draggable
+  const isDraggable = draggable !== undefined ? draggable : isSelected;
+  
   return (
     <Rect
       // Identity
@@ -91,11 +105,12 @@ export function RectangleShape({
       // Interaction
       onClick={handleClick}
       onTap={handleClick}
+      onMouseDown={handleMouseDown}
       
-      // Dragging (only when selected)
-      draggable={isSelected}
+      // Dragging
+      draggable={isDraggable}
       onDragEnd={handleDragEnd}
-      dragBoundFunc={dragBoundFunc}
+      dragBoundFunc={isDraggable ? dragBoundFunc : undefined}
       
       // Performance
       perfectDrawEnabled={false}
