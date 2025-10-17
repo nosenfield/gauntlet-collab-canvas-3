@@ -9,7 +9,7 @@
  * - Supports zoom with Cmd/Ctrl + scroll (cursor-centered)
  */
 
-import { Stage, Layer } from 'react-konva';
+import { Stage } from 'react-konva';
 import { useCanvasSize } from '../hooks/useCanvasSize';
 import { useViewport } from '../store/viewportStore';
 import { usePan } from '../hooks/usePan';
@@ -28,8 +28,7 @@ import { useMarqueeSelection } from '@/features/displayObjects/common/hooks/useM
 import { MarqueeLayer } from './MarqueeLayer';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useBoundingBox } from '@/features/displayObjects/common/hooks/useBoundingBox';
-import { CollectionBoundingBox } from '@/features/displayObjects/common/components/CollectionBoundingBox';
-import { ObjectHighlight } from '@/features/displayObjects/common/components/ObjectHighlight';
+import { BoundingBoxLayer } from './BoundingBoxLayer';
 
 /**
  * Canvas Component
@@ -204,28 +203,12 @@ export function Canvas(): React.ReactElement {
           onShapeClick={handleShapeClick}
         />
         {/* Bounding Box Layer - Selection highlights */}
-        <Layer listening={false}>
-          {/* Individual object highlights (solid OBB) */}
-          {selectedShapes.map(shape => {
-            const corners = objectCorners.get(shape.id);
-            if (!corners) return null;
-            return (
-              <ObjectHighlight 
-                key={`highlight-${shape.id}`} 
-                corners={corners}
-                scale={viewport.scale}
-              />
-            );
-          })}
-          
-          {/* Collection bounding box (dashed AABB) */}
-          {collectionBounds && selectedShapes.length > 1 && (
-            <CollectionBoundingBox 
-              bounds={collectionBounds}
-              scale={viewport.scale}
-            />
-          )}
-        </Layer>
+        <BoundingBoxLayer
+          selectedShapes={selectedShapes}
+          objectCorners={objectCorners}
+          collectionBounds={collectionBounds}
+          scale={viewport.scale}
+        />
         {/* Marquee Selection Layer */}
         <MarqueeLayer
           isMarqueeActive={isMarqueeActive}
