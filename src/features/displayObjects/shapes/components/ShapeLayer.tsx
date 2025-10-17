@@ -7,6 +7,8 @@
 
 import { Layer } from 'react-konva';
 import { useShapes } from '../store/shapesStore';
+import { useAuth } from '@/features/auth/store/authStore';
+import { updateShape } from '../services/shapeService';
 import { RectangleShape } from './RectangleShape';
 
 /**
@@ -25,6 +27,19 @@ interface ShapeLayerProps {
  */
 export function ShapeLayer({ selectedShapeId, onShapeClick }: ShapeLayerProps) {
   const { shapes, isLoading } = useShapes();
+  const { user } = useAuth();
+
+  // Handle drag end - update shape position in Firestore
+  const handleDragEnd = async (shapeId: string, x: number, y: number) => {
+    if (!user) return;
+    
+    try {
+      console.log('[ShapeLayer] Updating shape position:', shapeId, { x, y });
+      await updateShape(shapeId, user.userId, { x, y });
+    } catch (error) {
+      console.error('[ShapeLayer] Error updating shape position:', error);
+    }
+  };
 
   if (isLoading) {
     return <Layer />;
@@ -44,6 +59,7 @@ export function ShapeLayer({ selectedShapeId, onShapeClick }: ShapeLayerProps) {
                 shape={shape}
                 isSelected={isSelected}
                 onClick={onShapeClick}
+                onDragEnd={handleDragEnd}
               />
             );
           

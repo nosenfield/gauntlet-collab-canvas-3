@@ -5,6 +5,7 @@
  */
 
 import { Rect } from 'react-konva';
+import type { KonvaEventObject } from 'konva/lib/Node';
 import type { RectangleShape as RectangleShapeType } from '../types';
 
 /**
@@ -14,7 +15,7 @@ interface RectangleShapeProps {
   shape: RectangleShapeType;
   isSelected?: boolean;
   onClick?: (shapeId: string) => void;
-  onTransform?: (shapeId: string, updates: Partial<RectangleShapeType>) => void;
+  onDragEnd?: (shapeId: string, x: number, y: number) => void;
 }
 
 /**
@@ -27,12 +28,32 @@ export function RectangleShape({
   shape, 
   isSelected = false,
   onClick,
+  onDragEnd,
 }: RectangleShapeProps) {
   
   const handleClick = () => {
     if (onClick) {
       onClick(shape.id);
     }
+  };
+
+  const handleDragEnd = (e: KonvaEventObject<DragEvent>) => {
+    if (onDragEnd) {
+      const node = e.target;
+      onDragEnd(shape.id, node.x(), node.y());
+    }
+  };
+
+  // Constrain dragging to canvas boundaries (10,000 x 10,000px)
+  const dragBoundFunc = (pos: { x: number; y: number }) => {
+    const CANVAS_SIZE = 10000;
+    const halfWidth = shape.width / 2;
+    const halfHeight = shape.height / 2;
+    
+    return {
+      x: Math.max(halfWidth, Math.min(pos.x, CANVAS_SIZE - halfWidth)),
+      y: Math.max(halfHeight, Math.min(pos.y, CANVAS_SIZE - halfHeight)),
+    };
   };
 
   return (
@@ -69,12 +90,17 @@ export function RectangleShape({
       onClick={handleClick}
       onTap={handleClick}
       
+      // Dragging (only when selected)
+      draggable={isSelected}
+      onDragEnd={handleDragEnd}
+      dragBoundFunc={dragBoundFunc}
+      
       // Performance
       perfectDrawEnabled={false}
       listening={true}
       
       // Cursor
-      cursor="pointer"
+      cursor={isSelected ? 'move' : 'pointer'}
     />
   );
 }
