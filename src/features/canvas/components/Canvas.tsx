@@ -15,20 +15,16 @@ import { useViewport } from '../store/viewportStore';
 import { usePan } from '../hooks/usePan';
 import { useZoom } from '../hooks/useZoom';
 import { useViewportConstraints } from '../hooks/useViewportConstraints';
-import { GridBackground } from './GridBackground';
+import { CanvasLayers } from './CanvasLayers';
 import { useEffect, useRef } from 'react';
 import { FPSMonitor } from './FPSMonitor';
 import { useCursorTracking } from '@/features/presence/hooks/useCursorTracking';
-import { RemoteCursors } from '@/features/presence/components/RemoteCursors';
-import { ShapeLayer } from '@/features/displayObjects/shapes/components/ShapeLayer';
 import { useShapeCreation } from '@/features/displayObjects/shapes/hooks/useShapeCreation';
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
 import { useTool } from '@/features/displayObjects/common/store/toolStore';
 import { useMarqueeSelection } from '@/features/displayObjects/common/hooks/useMarqueeSelection';
-import { MarqueeLayer } from './MarqueeLayer';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useBoundingBox } from '@/features/displayObjects/common/hooks/useBoundingBox';
-import { BoundingBoxLayer } from './BoundingBoxLayer';
 
 /**
  * Canvas Component
@@ -191,31 +187,20 @@ export function Canvas(): React.ReactElement {
         onMouseMove={handleStageMouseMove}
         onMouseUp={handleStageMouseUp}
       >
-        <GridBackground
+        <CanvasLayers
           width={width}
           height={height}
           stageX={viewport.x}
           stageY={viewport.y}
           scale={viewport.scale}
-        />
-        <ShapeLayer
           selectedIds={selectedIds}
           onShapeClick={handleShapeClick}
-        />
-        {/* Bounding Box Layer - Selection highlights */}
-        <BoundingBoxLayer
           selectedShapes={selectedShapes}
           objectCorners={objectCorners}
           collectionBounds={collectionBounds}
-          scale={viewport.scale}
-        />
-        {/* Marquee Selection Layer */}
-        <MarqueeLayer
           isMarqueeActive={isMarqueeActive}
           marqueeBox={getMarqueeBox()}
-          scale={viewport.scale}
         />
-        <RemoteCursors />
       </Stage>
 
       {/* FPS Monitor - Development only */}
