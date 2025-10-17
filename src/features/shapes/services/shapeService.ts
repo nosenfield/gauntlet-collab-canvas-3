@@ -279,6 +279,12 @@ export async function unlockShape(
 
       const shape = shapeDoc.data() as Shape;
 
+      // Check if shape is already unlocked
+      if (!shape.lockedBy) {
+        console.log('ℹ️ Shape already unlocked:', shapeId);
+        return;
+      }
+
       // If userId provided, verify lock ownership
       if (userId && shape.lockedBy && shape.lockedBy !== userId) {
         console.warn('⚠️ Cannot unlock shape locked by another user:', shapeId);

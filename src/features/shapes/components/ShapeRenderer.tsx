@@ -3,11 +3,14 @@
  * 
  * Renders all shapes on the canvas based on their type.
  * Manages shape ordering by z-index.
+ * Displays selection handles for selected shapes.
  */
 
 import { Layer } from 'react-konva';
 import { useShapesSortedByZIndex } from '../store/shapesStore';
+import { useSelectionContext } from '../store/selectionStore';
 import { Rectangle } from './Rectangle';
+import { SelectionHandles } from './SelectionHandles';
 
 /**
  * Shape Renderer Component
@@ -20,9 +23,11 @@ import { Rectangle } from './Rectangle';
  */
 export function ShapeRenderer() {
   const shapes = useShapesSortedByZIndex();
+  const { selectedShapeIds } = useSelectionContext();
 
   return (
     <Layer>
+      {/* Render all shapes */}
       {shapes.map((shape) => {
         // Render based on shape type
         switch (shape.type) {
@@ -44,6 +49,13 @@ export function ShapeRenderer() {
             return null;
         }
       })}
+
+      {/* Render selection handles for selected shapes */}
+      {shapes
+        .filter((shape) => selectedShapeIds.has(shape.id))
+        .map((shape) => (
+          <SelectionHandles key={`handles-${shape.id}`} shape={shape} />
+        ))}
     </Layer>
   );
 }

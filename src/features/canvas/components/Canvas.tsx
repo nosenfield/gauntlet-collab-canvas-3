@@ -23,6 +23,8 @@ import { useCursorTracking } from '@/features/presence/hooks/useCursorTracking';
 import { RemoteCursors } from '@/features/presence/components/RemoteCursors';
 import { ShapeRenderer } from '@/features/shapes/components/ShapeRenderer';
 import { useRectangleCreation } from '@/features/shapes/hooks/useRectangleCreation';
+import { useSelection } from '@/features/shapes/hooks/useSelection';
+import { useTool } from '@/features/shapes/hooks/useTool';
 
 /**
  * Canvas Component
@@ -79,6 +81,23 @@ export function Canvas(): React.ReactElement {
     handleMouseMove: handleRectMouseMove,
     handleMouseUp: handleRectMouseUp,
   } = useRectangleCreation();
+
+  // Selection handling
+  const { clearSelection } = useSelection();
+  const { currentTool } = useTool();
+
+  /**
+   * Handle canvas click (clear selection when clicking empty space)
+   */
+  const handleStageClick = (e: any) => {
+    // Only clear selection when select tool is active
+    if (currentTool !== 'select') return;
+
+    // Check if clicking on the stage itself (not on a shape)
+    if (e.target === e.target.getStage()) {
+      clearSelection();
+    }
+  };
 
   // Pan gesture handling via scroll/wheel
   const panHandlers = usePan({
@@ -139,6 +158,7 @@ export function Canvas(): React.ReactElement {
         y={viewport.y}
         scale={{ x: viewport.scale, y: viewport.scale }}
         onWheel={handleWheel}
+        onClick={handleStageClick}
         onMouseDown={handleRectMouseDown}
         onMouseMove={handleRectMouseMove}
         onMouseUp={handleRectMouseUp}

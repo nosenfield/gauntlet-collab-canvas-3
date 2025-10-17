@@ -2,11 +2,14 @@
  * Rectangle Component
  * 
  * Renders an individual rectangle shape on the canvas using Konva.
- * Handles visual representation only - interaction will be added in later tasks.
+ * Handles click selection and visual feedback for selected state.
  */
 
 import { Rect } from 'react-konva';
+import type Konva from 'konva';
 import type { Shape } from '../../../types/firebase';
+import { useSelection } from '../hooks/useSelection';
+import { useTool } from '../hooks/useTool';
 
 /**
  * Rectangle Props
@@ -21,6 +24,10 @@ interface RectangleProps {
  * Renders a Konva rectangle with the shape's properties.
  */
 export function Rectangle({ shape }: RectangleProps) {
+  const { selectShape, isSelected } = useSelection();
+  const { currentTool } = useTool();
+  const selected = isSelected(shape.id);
+
   // Validate shape type
   if (shape.type !== 'rectangle') {
     console.warn('Rectangle component received non-rectangle shape:', shape.type);
@@ -32,6 +39,29 @@ export function Rectangle({ shape }: RectangleProps) {
     console.warn('Rectangle missing width or height:', shape.id);
     return null;
   }
+
+  /**
+   * Handle shape click
+   */
+  const handleClick = async (e: Konva.KonvaEventObject<MouseEvent>) => {
+    // Only handle clicks when select tool is active
+    if (currentTool !== 'select') return;
+
+    // Stop event propagation to prevent canvas click handler
+    e.cancelBubble = true;
+
+    // If clicking an already-selected shape without shift, do nothing
+    // (User likely wants to keep it selected or will start dragging)
+    if (selected && !e.evt.shiftKey) {
+      return;
+    }
+
+    // Check for shift key (multi-select)
+    const addToSelection = e.evt.shiftKey;
+
+    // Attempt to select shape
+    await selectShape(shape.id, addToSelection);
+  };
 
   return (
     <Rect
@@ -45,8 +75,8 @@ export function Rectangle({ shape }: RectangleProps) {
       
       // Visual properties
       fill={shape.fillColor}
-      stroke={shape.strokeColor}
-      strokeWidth={shape.strokeWidth}
+      stroke={selected ? '#4A9EFF' : shape.strokeColor}
+      strokeWidth={selected ? 3 : shape.strokeWidth}
       opacity={shape.opacity}
       cornerRadius={shape.borderRadius || 0}
       
@@ -57,8 +87,13 @@ export function Rectangle({ shape }: RectangleProps) {
       perfectDrawEnabled={false}
       shadowForStrokeEnabled={false}
       
-      // Interaction (disabled for now - will be added in STAGE3-4)
-      listening={false}
+      // Interaction
+      listening={true}
+      onClick={handleClick}
+      onTap={handleClick}  // For touch devices
+      
+      // Cursor
+      cursor={currentTool === 'select' ? 'pointer' : 'default'}
     />
   );
 }

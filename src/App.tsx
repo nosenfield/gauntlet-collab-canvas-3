@@ -8,6 +8,7 @@ import { usePresence } from '@/features/presence/hooks/usePresence';
 import { UserPresenceSidebar } from '@/features/presence/components/UserPresenceSidebar';
 import { ShapesProvider } from '@/features/shapes/store/shapesStore';
 import { ToolProvider } from '@/features/shapes/store/toolStore';
+import { SelectionProvider } from '@/features/shapes/store/selectionStore';
 import { ShapeToolbar } from '@/features/shapes/components/ShapeToolbar';
 import './App.css';
 
@@ -40,8 +41,10 @@ function App() {
     <AuthProvider>
       <ShapesProvider>
         <ToolProvider>
-          <AuthModal />
-          <AppContent />
+          <SelectionProvider>
+            <AuthModal />
+            <AppContent />
+          </SelectionProvider>
         </ToolProvider>
       </ShapesProvider>
     </AuthProvider>
