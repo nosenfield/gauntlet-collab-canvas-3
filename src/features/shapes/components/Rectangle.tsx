@@ -2,7 +2,7 @@
  * Rectangle Component
  * 
  * Renders an individual rectangle shape on the canvas using Konva.
- * Handles click selection and visual feedback for selected state.
+ * Handles click selection, visual feedback, and drag operations.
  * Selected stroke is zoom-independent (constant visual size).
  */
 
@@ -12,6 +12,7 @@ import type { Shape } from '../../../types/firebase';
 import { useSelection } from '../hooks/useSelection';
 import { useTool } from '../hooks/useTool';
 import { useViewport } from '../../canvas/store/viewportStore';
+import { useShapeTransform } from '../hooks/useShapeTransform';
 
 /**
  * Rectangle Props
@@ -29,10 +30,14 @@ export function Rectangle({ shape }: RectangleProps) {
   const { selectShape, isSelected } = useSelection();
   const { currentTool } = useTool();
   const { viewport } = useViewport();
+  const { handleDragStart, handleDragMove, handleDragEnd } = useShapeTransform();
   const selected = isSelected(shape.id);
   
   // Calculate zoom-independent stroke width for selection
   const selectionStrokeWidth = 3 / viewport.scale;
+  
+  // Shape is draggable only when selected and select tool is active
+  const isDraggable = selected && currentTool === 'select';
 
   // Validate shape type
   if (shape.type !== 'rectangle') {
@@ -98,8 +103,14 @@ export function Rectangle({ shape }: RectangleProps) {
       onClick={handleClick}
       onTap={handleClick}  // For touch devices
       
+      // Drag
+      draggable={isDraggable}
+      onDragStart={() => handleDragStart(shape.id)}
+      onDragMove={(e) => handleDragMove(shape.id, e)}
+      onDragEnd={(e) => handleDragEnd(shape.id, e)}
+      
       // Cursor
-      cursor={currentTool === 'select' ? 'pointer' : 'default'}
+      cursor={isDraggable ? 'move' : currentTool === 'select' ? 'pointer' : 'default'}
     />
   );
 }
