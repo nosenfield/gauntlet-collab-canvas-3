@@ -1,313 +1,804 @@
-# CollabCanvas PRD
-
-## Product Requirements Document
-**Project:** CollabCanvas MVP  
-**Version:** 1.0  
-**Last Updated:** October 15, 2025  
-**Status:** MVP Development
+# Product Requirements Document (PRD)
+# CollabCanvas - Real-Time Collaborative Design Tool
 
 ---
 
-## 1. Executive Summary
-
-CollabCanvas is a real-time collaborative canvas application that enables multiple users to simultaneously create and manipulate shapes on a shared workspace. The MVP focuses on establishing robust multiplayer infrastructure with anonymous user presence, cursor synchronization, and basic shape creation capabilities.
-
----
-
-## 2. Product Overview
-
-### 2.1 Vision
-Build the foundational infrastructure for a Figma-like collaborative design tool, prioritizing real-time synchronization and conflict-free concurrent editing.
-
-### 2.2 Target Users
-- Designers exploring collaborative workflows
-- Teams needing real-time visual collaboration
-- Developers learning multiplayer application architecture
-
-### 2.3 Success Metrics (MVP)
-- Support 5+ concurrent users without performance degradation
-- Maintain 60 FPS during all canvas interactions
-- Sync object changes across users in <100ms
-- Sync cursor positions in <50ms
-- Zero state conflicts during concurrent editing
+## Document Information
+- **Project Name**: CollabCanvas
+- **Version**: 1.0
+- **Last Updated**: 2025-01-16
+- **Target Audience**: AI Development Agent (Cursor IDE)
+- **Location**: `_docs/PRD.md`
+- **Related Documents**: 
+  - Task List: `_docs/TASK_LIST.md`
+  - Architecture Diagram: `_docs/ARCHITECTURE.md`
 
 ---
 
-## 3. Core Features (MVP Scope)
+## Executive Summary
 
-### 3.1 Canvas System
+CollabCanvas is a real-time collaborative design tool inspired by Figma. This MVP focuses on core collaborative infrastructure with a canvas workspace where multiple users can create and manipulate display objects simultaneously with real-time synchronization.
 
-**3.1.1 Canvas Workspace**
-- Fixed 10,000 x 10,000 pixel canvas
-- Canvas center positioned at coordinate (0, 0)
-- Full-screen viewport display
-- Hard boundary constraints (cannot pan beyond edges)
-
-**3.1.2 Navigation**
-- **Panning:** Mouse scroll (horizontal/vertical)
-- **Zooming:** Cmd/Ctrl + Scroll
-- Zoom focal point: User's cursor position
-- Maintain canvas boundaries during all navigation
-- Viewport cannot display area outside canvas bounds
-
-**3.1.3 Performance Requirements**
-- 60 FPS during pan/zoom operations
-- Smooth rendering with 500+ objects on canvas
-- No visible lag during concurrent user actions
-
-### 3.2 User System
-
-**3.2.1 Anonymous Authentication**
-- Automatic anonymous user creation on app load
-- No login/signup required for MVP
-- Persistent user session until browser close/refresh
-
-**3.2.2 User Identity**
-- Each user assigned a unique color (from predefined palette)
-- Display name: User ID (e.g., "user_abc123")
-- User color used for cursor and created shapes
-
-**3.2.3 Presence Awareness**
-- Real-time display of all active users' cursors
-- Cursor appearance: Colored pointer with user ID label
-- Cursor updates synced in <50ms
-- Automatic removal when user disconnects/leaves
-
-### 3.3 Shape Creation & Manipulation
-
-**3.3.1 Rectangle Tool**
-- Toggle on/off via "Draw Rect" button in top toolbar
-- Drawing interaction: Press → Drag → Release
-  - **Press:** Establish first vertex
-  - **Drag:** Size the rectangle (visible to all users in real-time)
-  - **Release:** Complete shape creation
-- Created rectangles filled with creator's user color
-- In-progress drawings visible to all users
-
-**3.3.2 Shape Persistence**
-- All completed shapes saved to Firestore
-- Shapes persist across sessions and browser refreshes
-- Shapes remain after creator disconnects
-
-**3.3.3 Shape Repositioning**
-- Drag-and-drop to move completed shapes
-- Shape movement visible to all users in real-time
-- Shapes must remain within canvas boundaries
-
-**3.3.4 Object Locking**
-- When user is drawing/dragging a shape:
-  - Object locked for that user exclusively
-  - Visual indicator: 🔒 emoji displayed on locked object
-  - Other users cannot interact with locked object
-- If user disconnects mid-drag:
-  - Operation cancelled automatically
-  - Object lock released immediately
-  - Partial/incomplete operations reverted
-
-### 3.4 User Interface
-
-**3.4.1 Toolbar**
-- Fixed position (does not move with pan/zoom)
-- Located at top of viewport
-- Contains: "Draw Rect" toggle button
-- Visual state: Active/inactive indication
-
-**3.4.2 Viewport**
-- Full browser window coverage
-- No scrollbars (panning via mouse scroll)
-- Canvas boundaries enforced visually
+### Core Value Proposition
+- Real-time multiplayer collaboration with sub-100ms sync
+- Persistent canvas state across sessions
+- Intuitive pan/zoom canvas interface
+- Multi-user presence awareness
 
 ---
 
-## 4. Technical Architecture
+## Technical Stack
 
-### 4.1 Technology Stack
-- **Frontend:** React 18+ with TypeScript
-- **Canvas Rendering:** Konva.js + react-konva
-- **Backend/Database:** Firebase Firestore
-- **Authentication:** Firebase Anonymous Auth
-- **Real-time Sync:** Firestore real-time listeners
-- **Deployment:** Firebase Hosting
-- **Build Tool:** Vite
+### Frontend
+- **Framework**: React 18+ with TypeScript (strict mode)
+- **Canvas Library**: Konva.js for 2D rendering
+- **State Management**: React Context API + useReducer
+- **Styling**: CSS Modules or Tailwind CSS
 
-### 4.2 Data Models
+### Backend
+- **Persistent Database**: Firebase Firestore (shapes, user profiles)
+- **Real-time Database**: Firebase Realtime Database (cursors, presence)
+- **Authentication**: Firebase Auth (Anonymous + Google OAuth)
+- **Hosting**: Firebase Hosting
 
-**4.2.1 User Document**
+### Development Tools
+- **IDE**: Cursor with AI assistance
+- **Build Tool**: Vite
+- **Type Checking**: TypeScript strict mode
+- **Linting**: ESLint with React + TypeScript rules
+
+---
+
+## Feature Stages
+
+Development is organized into 4 sequential stages. Each stage must be completed and verified before proceeding to the next.
+
+---
+
+## Stage 1: Basic Canvas with Pan/Zoom
+
+### Overview
+Implement a high-performance canvas workspace with smooth pan and zoom capabilities.
+
+### Functional Requirements
+
+#### FR-1.1: Canvas Drawing Area
+- **Requirement**: Canvas drawing area is 10,000 x 10,000 pixels
+- **Behavior**: This is the absolute coordinate space where objects are placed
+- **Validation**: Objects can be placed anywhere within (0,0) to (10000,10000)
+
+#### FR-1.2: Viewport
+- **Requirement**: User has a viewport that displays a portion of the drawing area
+- **Behavior**: Viewport fills entire browser window and adapts to window resize
+- **Validation**: Window resize maintains viewport aspect ratio and zoom level
+
+#### FR-1.3: Pan Navigation
+- **Requirement**: User can pan the viewport using mouse scroll/drag
+- **Implementation**: Standard scroll gestures move the viewport
+- **Constraints**: Cannot pan beyond canvas boundaries (0,0 to 10000,10000)
+- **Validation**: Smooth 60 FPS panning with no jitter
+
+#### FR-1.4: Zoom Navigation
+- **Requirement**: User can zoom using Cmd/Ctrl + Scroll
+- **Behavior**: Zoom focal point is user's cursor position
+- **Constraints**: 
+  - **Maximum Zoom In**: Viewport displays 100px across the smaller window dimension
+  - **Maximum Zoom Out**: Viewport displays 10,000px across the larger window dimension
+- **Validation**: Smooth zoom with cursor-centered focal point
+
+#### FR-1.5: Grid Background
+- **Requirement**: Drawing area has a visible grid system
+- **Specifications**:
+  - Background color: Dark gray (#2A2A2A)
+  - Primary grid lines: White with 25% opacity, spaced 100px apart
+  - Secondary grid lines: White with 50% opacity, every 5th line (500px spacing)
+- **Behavior**: Grid scales with zoom level (maintains visual density)
+- **Validation**: Grid lines remain visible and properly spaced at all zoom levels
+
+### Technical Requirements
+
+#### TR-1.1: Performance
+- Maintain 60 FPS during pan operations
+- Maintain 60 FPS during zoom operations
+- Smooth rendering with no visible tearing or stuttering
+
+#### TR-1.2: Coordinate System
+- Establish clear separation between:
+  - **Canvas coordinates**: Absolute 10,000 x 10,000 space
+  - **Screen coordinates**: Browser viewport pixels
+  - **Transform matrix**: Conversion between coordinate systems
+
+#### TR-1.3: Responsive Design
+- Canvas fills 100% of browser window
+- Adapts to window resize without losing zoom/pan state
+- Maintains aspect ratio during resize
+
+### Data Structures
+
 ```typescript
-interface User {
-  id: string;
+interface ViewportState {
+  x: number;           // Canvas x coordinate at viewport top-left
+  y: number;           // Canvas y coordinate at viewport top-left
+  scale: number;       // Current zoom scale factor
+  width: number;       // Viewport width in pixels
+  height: number;      // Viewport height in pixels
+}
+
+interface CanvasConfig {
+  width: 10000;        // Canvas width constant
+  height: 10000;       // Canvas height constant
+  gridSpacing: 100;    // Primary grid spacing
+  gridAccent: 5;       // Secondary grid every Nth line
+}
+```
+
+### Acceptance Criteria
+- [ ] Canvas displays 10,000 x 10,000 drawing area
+- [ ] Viewport fills entire browser window
+- [ ] Panning works with smooth 60 FPS performance
+- [ ] Zooming works with cursor-centered focal point
+- [ ] Zoom constraints prevent excessive zoom in/out
+- [ ] Grid displays correctly and scales with zoom
+- [ ] Grid has proper primary (25% opacity) and secondary (50% opacity) lines
+- [ ] Window resize maintains viewport state
+
+---
+
+## Stage 2: User Authentication & Presence
+
+### Overview
+Implement user authentication and real-time presence awareness showing all active users.
+
+### Functional Requirements
+
+#### FR-2.1: User Authentication
+- **Requirement**: Users can authenticate via Anonymous or Google OAuth
+- **Behavior**: 
+  - First-time users see authentication modal
+  - Users choose Anonymous or Google sign-in
+  - Authentication persists across browser sessions
+- **Validation**: User session persists across tabs/windows
+
+#### FR-2.2: User Identity
+- **Requirement**: Each user has a unique identifier and assigned color
+- **Specifications**:
+  - UUID: Generated on first authentication
+  - Color: Randomly assigned from predefined palette
+  - Display Name: Google name or "Anonymous User [UUID-prefix]"
+- **Validation**: User identity persists across sessions
+
+#### FR-2.3: User Presence Sidebar
+- **Requirement**: Always-visible sidebar showing active users
+- **Specifications**:
+  - Location: Right side of screen
+  - Width: 240px
+  - Current user: Displayed at top with highlight
+  - Other users: Listed below in alphabetical order
+  - Display: User color swatch + Display name
+- **Validation**: Sidebar updates in real-time as users join/leave
+
+#### FR-2.4: Real-Time Cursor Tracking
+- **Requirement**: Display cursor position for all active users
+- **Specifications**:
+  - Visual: Small cursor icon in user's assigned color
+  - Label: Shows user's UUID/name
+  - Update frequency: Target <50ms latency
+  - Scope: Only visible within canvas drawing area
+- **Validation**: Cursors move smoothly and track actual mouse positions
+
+#### FR-2.5: Session Management
+- **Requirement**: Track active sessions and clean up on disconnect
+- **Behavior**:
+  - User enters document → Creates presence record
+  - User closes tab/window → Removes presence after timeout (30s)
+  - User switches tabs → Maintains presence
+  - User network disconnect → Removes presence after timeout
+- **Validation**: Presence list accurately reflects active users
+
+### Technical Requirements
+
+#### TR-2.1: Firebase Authentication
+- Implement Firebase Auth with Anonymous + Google providers
+- Store user profile in Firestore `/users/{userId}` collection
+- User document schema:
+  ```typescript
+  interface User {
+    userId: string;        // Firebase Auth UID
+    displayName: string;   // Display name
+    color: string;         // Hex color code
+    createdAt: Timestamp;  // Account creation
+    lastActive: Timestamp; // Last activity
+  }
+  ```
+
+#### TR-2.2: Presence System
+- Use Firebase Realtime Database for presence (real-time updates)
+- Use Firestore for user profiles (persistent data)
+- Presence document schema in Realtime Database:
+  ```typescript
+  interface UserPresence {
+    userId: string;
+    displayName: string;
+    color: string;
+    cursorX: number;       // Canvas coordinates
+    cursorY: number;       // Canvas coordinates
+    connectedAt: number;   // Unix timestamp
+    lastUpdate: number;    // Unix timestamp
+  }
+  ```
+- Realtime Database path: `/presence/main/{userId}`
+- Firestore path for user profiles: `/users/{userId}`
+- Implement heartbeat mechanism (update every 5s)
+
+#### TR-2.3: Cursor Synchronization
+- Use Firebase Realtime Database for cursor positions
+- Throttle cursor position updates to every 50ms
+- Use Realtime Database `.update()` for cursor updates
+- Transform screen coordinates to canvas coordinates before sending
+- Transform canvas coordinates to screen coordinates for display
+- Realtime Database path: `/presence/main/{userId}/cursorX` and `/cursorY`
+
+#### TR-2.4: Session Persistence
+- Session persists across tabs using `sessionStorage`
+- One presence record per user (not per tab)
+- Use Firebase Realtime Database `onDisconnect()` for cleanup
+- Implement 30-second timeout for disconnected users
+- User profiles persist in Firestore
+
+### Data Structures
+
+```typescript
+interface AuthState {
+  user: User | null;
+  loading: boolean;
+  error: Error | null;
+}
+
+interface PresenceState {
+  currentUser: UserPresence;
+  otherUsers: Map<string, UserPresence>;
+}
+
+interface CursorPosition {
+  userId: string;
+  x: number;  // Canvas coordinates
+  y: number;  // Canvas coordinates
   color: string;
   displayName: string;
-  lastActive: timestamp;
-  cursorPosition: { x: number; y: number };
 }
 ```
 
-**4.2.2 Shape Document**
+### UI Components
+
+#### User Presence Sidebar
+```
+┌─────────────────────────┐
+│ Active Users            │
+├─────────────────────────┤
+│ ● You                   │ ← Highlighted
+│   (Your Name)           │
+├─────────────────────────┤
+│ ● Alice Johnson         │
+│ ● Bob Smith             │
+│ ● Carol White           │
+└─────────────────────────┘
+```
+
+#### Cursor Display
+```
+Canvas Area:
+  [Cursor Icon]
+  └─ "Alice"
+```
+
+### Acceptance Criteria
+- [ ] Users can sign in with Anonymous or Google authentication
+- [ ] User identity (UUID + color) is assigned and persists
+- [ ] User presence sidebar is always visible on right side
+- [ ] Current user is highlighted and shown at top of sidebar
+- [ ] Real-time cursor positions display for all active users
+- [ ] Cursors update with <50ms latency
+- [ ] User presence updates when users join/leave
+- [ ] Sessions persist across browser tabs/windows
+- [ ] Disconnected users are removed after timeout
+- [ ] No errors logged for presence system
+
+---
+
+## Stage 3: Display Objects - Shapes
+
+### Overview
+Implement creation, manipulation, and synchronization of display objects (shapes) on the canvas.
+
+### Functional Requirements
+
+#### FR-3.1: Shape Types
+- **Requirement**: Support three shape types
+- **Types**:
+  1. **Rectangle**: Width, height, border radius
+  2. **Circle**: Radius
+  3. **Line**: Start point, end point, stroke width
+- **Implementation Order**: Rectangle → Circle → Line (progressive)
+
+#### FR-3.2: Shape Creation
+- **Requirement**: Users can create shapes on the canvas
+- **Interaction**:
+  - Rectangle: Click and drag to define bounds
+  - Circle: Click center, drag to define radius
+  - Line: Click start point, drag to end point
+- **Tool Selection**: UI toolbar to select shape type
+- **Validation**: Created shapes appear for all users in real-time
+
+#### FR-3.3: Shape Selection
+- **Requirement**: Users can select shapes individually or multiple via marquee
+- **Individual Selection**: Click on shape to select
+- **Multiple Selection**: 
+  - Hold Shift + click to add to selection
+  - Drag marquee box to select multiple shapes
+- **Visual Feedback**: Selected shapes show selection handles
+- **Validation**: Selection state syncs across users
+
+#### FR-3.4: Shape Locking
+- **Requirement**: Selected shapes are locked to prevent concurrent editing
+- **Behavior**:
+  - User A selects shape → Shape locked to User A
+  - User B attempts to select same shape → Console log message
+  - User A deselects → Shape unlocked
+- **Lock Timeout**: 60 seconds of inactivity auto-unlocks
+- **Validation**: Locked shapes cannot be selected by other users
+
+#### FR-3.5: Shape Manipulation
+- **Requirement**: Users can transform selected shapes
+- **Operations**:
+  - **Drag**: Move shape position
+  - **Resize**: Drag corner handles to resize
+  - **Rotate**: Drag rotation handle (top-center)
+- **Constraints**: Shapes cannot be moved outside canvas bounds
+- **Validation**: Transformations sync to all users in real-time
+
+#### FR-3.6: Shape Properties
+- **Requirement**: Users can edit shape visual properties
+- **Editable Properties**:
+  - Fill color (hex color picker)
+  - Stroke color (hex color picker)
+  - Stroke width (1-10px)
+  - Opacity (0-100%)
+  - Border radius (rectangles only, 0-50px)
+- **UI**: Properties panel appears when shape is selected
+- **Validation**: Property changes sync in real-time
+
+#### FR-3.7: Shape Persistence
+- **Requirement**: Shapes persist across document sessions
+- **Behavior**:
+  - All users disconnect → Shapes remain in Firestore
+  - Users reconnect → Shapes load from Firestore
+  - No data loss on disconnect
+- **Validation**: Canvas state fully restored after all users disconnect/reconnect
+
+#### FR-3.8: Z-Index Management
+- **Requirement**: Display modal showing shape layer order
+- **Specifications**:
+  - Modal: Toggleable z-index panel
+  - Display: Read-only list of shapes ordered by z-index (top to bottom)
+  - Item format: Shape type + ID (e.g., "Rectangle #1234")
+- **Validation**: List accurately reflects current z-index order
+
+### Technical Requirements
+
+#### TR-3.1: Shape Data Model
 ```typescript
 interface Shape {
-  id: string;
-  type: 'rectangle';
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  fill: string;
-  createdBy: string;
-  createdAt: timestamp;
-  lockedBy?: string;
-  lockedAt?: timestamp;
+  id: string;              // UUID
+  type: 'rectangle' | 'circle' | 'line';
+  x: number;               // Canvas coordinates
+  y: number;               // Canvas coordinates
+  width?: number;          // Rectangle/Circle
+  height?: number;         // Rectangle
+  radius?: number;         // Circle
+  points?: number[];       // Line [x1, y1, x2, y2]
+  
+  // Visual properties
+  fillColor: string;       // Hex color
+  strokeColor: string;     // Hex color
+  strokeWidth: number;     // 1-10px
+  opacity: number;         // 0-1
+  borderRadius?: number;   // Rectangle only, 0-50px
+  
+  // Transform
+  rotation: number;        // Degrees
+  zIndex: number;          // Layer order
+  
+  // Metadata
+  createdBy: string;       // User ID
+  createdAt: Timestamp;
+  lastModifiedBy: string;
+  lastModifiedAt: Timestamp;
+  
+  // Locking
+  lockedBy: string | null; // User ID or null
+  lockedAt: Timestamp | null;
 }
 ```
 
-**4.2.3 Canvas Session Document**
+#### TR-3.2: Firestore Schema
+- Collection path: `/documents/{documentId}/shapes/{shapeId}`
+- Use Firestore transactions for lock acquisition
+- Real-time listeners for shape changes
+- Batch writes for performance
+
+#### TR-3.3: Selection State
 ```typescript
-interface CanvasSession {
-  id: string;
-  activeUsers: string[];
-  lastModified: timestamp;
+interface SelectionState {
+  selectedShapeIds: string[];
+  isMarqueeSelecting: boolean;
+  marqueeStart: { x: number; y: number } | null;
+  marqueeEnd: { x: number; y: number } | null;
 }
 ```
 
-### 4.3 Real-time Sync Strategy
-- Firestore real-time listeners for:
-  - Active users collection
-  - Shapes collection
-  - User cursor positions
-- Optimistic updates for local user actions
-- Server reconciliation for conflicts (last-write-wins for MVP)
-- Debounced cursor position updates (16ms / 60fps)
+#### TR-3.4: Lock Management
+- Check lock status before allowing selection
+- Implement automatic lock timeout (60s)
+- Use Firestore server timestamp for lock times
+- Log to console when user attempts to select locked shape
+
+#### TR-3.5: Synchronization Strategy
+- **Optimistic Updates**: Update local state immediately
+- **Server Reconciliation**: Listen to Firestore changes
+- **Conflict Resolution**: Last-write-wins
+- **Debouncing**: Debounce rapid property changes (300ms)
+
+#### TR-3.6: Performance Optimization
+- Render only visible shapes (viewport culling)
+- Use Konva layer caching for static shapes
+- Throttle real-time updates during drag operations
+- Maximum 500 shapes without FPS drop
+
+### UI Components
+
+#### Shape Toolbar
+```
+┌─────────────────────────────────┐
+│ [Rectangle] [Circle] [Line]    │
+└─────────────────────────────────┘
+```
+
+#### Properties Panel (when shape selected)
+```
+┌─────────────────────────┐
+│ Properties              │
+├─────────────────────────┤
+│ Fill Color:    [●]      │
+│ Stroke Color:  [●]      │
+│ Stroke Width:  [3  ]px  │
+│ Opacity:       [100]%   │
+│ Border Radius: [0  ]px  │ (Rectangle only)
+└─────────────────────────┘
+```
+
+#### Z-Index Modal
+```
+┌─────────────────────────┐
+│ Layers                  │
+├─────────────────────────┤
+│ 1. Rectangle #abc123    │
+│ 2. Circle #def456       │
+│ 3. Line #ghi789         │
+└─────────────────────────┘
+```
+
+### Interaction Flows
+
+#### Create Rectangle
+1. User clicks Rectangle tool in toolbar
+2. User clicks on canvas (start point)
+3. User drags to define bounds
+4. User releases mouse (end point)
+5. Rectangle created with default properties
+6. Rectangle saved to Firestore
+7. All users see new rectangle in real-time
+
+#### Select and Edit Shape
+1. User clicks on shape
+2. System checks if shape is locked
+   - If locked by another user → Log to console, abort
+   - If unlocked → Acquire lock
+3. Selection handles appear
+4. User edits properties in properties panel
+5. Changes debounced and saved to Firestore
+6. All users see property changes in real-time
+7. User clicks away or selects another shape → Lock released
+
+#### Marquee Selection
+1. User clicks on empty canvas area
+2. User drags to create selection rectangle
+3. All shapes intersecting marquee are selected
+4. System attempts to acquire locks on all selected shapes
+5. Successfully locked shapes are added to selection
+6. Locked shapes are skipped (log to console)
+
+### Acceptance Criteria
+- [ ] Users can create rectangles by click-drag
+- [ ] Users can create circles by click-drag
+- [ ] Users can create lines by click-drag
+- [ ] Shape toolbar allows tool selection
+- [ ] Individual shape selection works
+- [ ] Shift+click adds shapes to selection
+- [ ] Marquee selection selects multiple shapes
+- [ ] Selected shapes show visual handles
+- [ ] Locked shapes cannot be selected by other users
+- [ ] Console logs when attempting to select locked shape
+- [ ] Users can drag selected shapes
+- [ ] Users can resize selected shapes via handles
+- [ ] Users can rotate selected shapes
+- [ ] Properties panel displays for selected shapes
+- [ ] Fill color can be edited
+- [ ] Stroke color can be edited
+- [ ] Stroke width can be edited (1-10px)
+- [ ] Opacity can be edited (0-100%)
+- [ ] Border radius can be edited (rectangles only, 0-50px)
+- [ ] Property changes sync in real-time
+- [ ] Shapes persist after all users disconnect
+- [ ] Z-index modal displays correct layer order
+- [ ] All shape operations maintain 60 FPS performance
+- [ ] Canvas supports 500+ shapes without degradation
 
 ---
 
-## 5. Feature Constraints & Exclusions (MVP)
+## Stage 4: Future AI Integration (Architecture Only)
 
-### 5.1 Explicitly Out of Scope
-- ❌ User accounts / email authentication
-- ❌ Editable user display names
-- ❌ Multiple shape types (only rectangles in MVP)
-- ❌ Shape colors/styling customization
-- ❌ Shape selection UI (multi-select, bounding boxes)
-- ❌ Delete/undo/redo operations
-- ❌ Copy/paste/duplicate
-- ❌ Layer management / z-index control
-- ❌ Shape transformations (resize, rotate)
-- ❌ Text layers
-- ❌ AI agent integration
-- ❌ Export/save functionality
-- ❌ Keyboard shortcuts (beyond Cmd+Scroll for zoom)
+### Overview
+Stage 4 will add AI Canvas Agent capabilities. This stage is **NOT** implemented now, but architecture decisions should anticipate it.
 
-### 5.2 Known Limitations
-- Anonymous users lose identity on browser refresh
-- No conflict resolution beyond last-write-wins
-- Single canvas per deployment (no multi-canvas support)
-- No history/version control
+### Architectural Considerations
 
----
+#### API Design for AI Commands
+- Expose canvas operations as imperative functions
+- Functions should be stateless and idempotent
+- Example function signatures:
+  ```typescript
+  createShape(type, properties): Promise<Shape>
+  updateShape(shapeId, properties): Promise<Shape>
+  deleteShape(shapeId): Promise<void>
+  getCanvasState(): Promise<CanvasState>
+  ```
 
-## 6. User Experience Requirements
-
-### 6.1 Performance
-- Initial page load: <2 seconds
-- Time to first meaningful paint: <1 second
-- Canvas interaction response: <16ms (60 FPS)
-- Network sync latency: <100ms
-
-### 6.2 Reliability
-- Graceful handling of network disconnections
-- Automatic reconnection without data loss
-- Stale lock cleanup on user disconnect
-
-### 6.3 Usability
-- Zero-learning-curve for basic canvas navigation
-- Clear visual feedback for all user actions
-- Obvious presence indicators for collaborators
-
----
-
-## 7. Testing Requirements
-
-### 7.1 MVP Acceptance Criteria
-- [ ] Canvas renders at 10,000 x 10,000 pixels
-- [ ] Pan/zoom maintains 60 FPS
-- [ ] Canvas boundaries enforced (cannot pan outside)
-- [ ] Zoom focuses on cursor position
-- [ ] Anonymous users created automatically
-- [ ] Each user assigned unique color
-- [ ] User cursors visible to all users in <50ms
-- [ ] User presence updates on connect/disconnect
-- [ ] "Draw Rect" button toggles tool state
-- [ ] Rectangles drawn via press/drag/release
-- [ ] In-progress drawings visible to all users
-- [ ] Completed shapes saved and persist
-- [ ] Shapes filled with creator's color
-- [ ] Shapes can be repositioned via drag-drop
-- [ ] Shapes stay within canvas boundaries
-- [ ] 🔒 indicator appears on locked objects
-- [ ] Lock released on user disconnect
-- [ ] 2+ users can edit simultaneously without conflicts
-- [ ] App remains stable with 500+ shapes
-- [ ] 5+ concurrent users supported without degradation
-
-### 7.2 Test Scenarios
-1. **Multi-user concurrent editing:** 3 users creating and moving shapes simultaneously
-2. **Network disconnect:** User disconnects mid-drag, shape operation cancelled
-3. **Performance stress:** 500 shapes on canvas, multiple users panning/zooming
-4. **Boundary enforcement:** Attempt to create/move shapes outside canvas bounds
-5. **Session persistence:** Create shapes, refresh browser, verify shapes remain
-
----
-
-## 8. Deployment Requirements
-
-### 8.1 Hosting
-- Deploy to Firebase Hosting
-- Public URL accessible
-- Support 5+ concurrent connections
-
-### 8.2 Environment
-- Production Firebase project (not local emulator)
-- Anonymous auth enabled
-- Firestore in production mode with security rules
-
-### 8.3 Security Rules (Firestore)
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
+#### Command Pattern
+- Consider implementing Command pattern for all operations
+- Commands should be serializable
+- Enables undo/redo and AI command execution
+- Example:
+  ```typescript
+  interface Command {
+    execute(): Promise<void>;
+    undo(): Promise<void>;
+    serialize(): CommandData;
   }
-}
+  ```
+
+#### State Management
+- Ensure global state is accessible for AI context
+- AI needs to query current canvas state before operations
+- Implement getters for:
+  - All shapes with properties
+  - Current selections
+  - Viewport state
+  - User presence
+
+#### Event Logging
+- Log all canvas operations for debugging AI behavior
+- Include: command type, parameters, timestamp, user
+- Useful for training and improving AI prompts
+
+### No Implementation Required
+- **Do not implement AI features in this PRD**
+- Focus only on making architecture decisions that don't preclude AI integration later
+- Keep code modular and functions well-documented
+
+---
+
+## Non-Functional Requirements
+
+### Performance
+- **Frame Rate**: Maintain 60 FPS during all interactions
+- **Sync Latency**: 
+  - Object changes: <100ms
+  - Cursor positions: <50ms
+- **Scalability**:
+  - Support 500+ shapes without performance degradation
+  - Support 5+ concurrent users without sync issues
+- **Load Time**: Initial app load <3 seconds
+
+### Security
+- **Firebase Rules**: Open test environment during development
+- **Authentication**: Secure token management
+- **Data Validation**: Validate all inputs on client and server
+
+### Reliability
+- **Uptime**: Target 99% uptime during testing
+- **Data Persistence**: Zero data loss on disconnect
+- **Error Handling**: Graceful degradation on network issues
+- **Recovery**: Auto-reconnect on network restoration
+
+### Code Quality
+- **TypeScript**: Strict mode enabled
+- **Linting**: ESLint with React + TypeScript rules
+- **Testing**: Manual testing for all features
+- **Documentation**: Inline comments for complex logic
+
+### Browser Support
+- **Primary**: Chrome 100+
+- **Secondary**: Firefox 100+, Safari 15+, Edge 100+
+- **Mobile**: Not required for MVP
+
+---
+
+## Development Constraints
+
+### Must Use
+- React 18+ with TypeScript (strict)
+- Konva.js for canvas rendering
+- Firebase (Firestore + Auth + Hosting)
+- Vite as build tool
+
+### Must Not
+- No additional state management libraries (Redux, Zustand) unless absolutely necessary
+- No CSS frameworks beyond Tailwind or CSS Modules
+- No backend server beyond Firebase
+- No AI features in initial implementation
+
+### Assumed
+- Firebase project is pre-configured
+- Development environment has Node.js 18+
+- Developer has Firebase CLI access
+- Open Firebase security rules during development
+
+---
+
+## Success Metrics
+
+### Stage 1 Success
+- Canvas renders at 60 FPS
+- Pan and zoom work smoothly
+- Grid displays correctly at all zoom levels
+- Viewport fills browser window
+
+### Stage 2 Success
+- Authentication works for Anonymous + Google
+- User presence sidebar shows all active users
+- Real-time cursors track with <50ms latency
+- Sessions persist across tabs
+- Disconnected users are removed properly
+
+### Stage 3 Success
+- All three shape types can be created
+- Selection and locking work correctly
+- Shape transformations sync in real-time
+- Properties panel allows editing all attributes
+- Shapes persist across sessions
+- Z-index modal displays correct order
+- Performance targets met (60 FPS, 500+ shapes)
+
+### Overall Success
+- All acceptance criteria met for Stages 1-3
+- No critical bugs or errors
+- App is deployable to Firebase Hosting
+- Code is maintainable and well-documented
+
+---
+
+## Out of Scope
+
+The following are explicitly **NOT** in scope for this PRD:
+
+- AI Canvas Agent integration (Stage 4)
+- Undo/redo functionality
+- Image upload/display
+- Text editing beyond basic text shapes
+- Component/symbol system
+- Export to PNG/SVG
+- Advanced layer grouping
+- Vector path editing
+- Collaboration features beyond presence (comments, annotations)
+- Multiple document support
+- Mobile optimization
+- Accessibility (WCAG compliance)
+- Internationalization
+- Analytics/telemetry
+
+These may be added in future iterations but are not required for MVP.
+
+---
+
+## Appendix A: Color Palette for User Colors
+
+Predefined colors for user assignment (hex codes):
+
+1. `#FF6B6B` - Red
+2. `#4ECDC4` - Teal
+3. `#45B7D1` - Blue
+4. `#FFA07A` - Orange
+5. `#98D8C8` - Mint
+6. `#FFE66D` - Yellow
+7. `#A8E6CF` - Green
+8. `#C7CEEA` - Lavender
+9. `#FF8B94` - Pink
+10. `#B4A7D6` - Purple
+
+Assign colors sequentially and cycle if more than 10 users.
+
+---
+
+## Appendix B: Firebase Data Structure
+
+### Firestore Collections (Persistent Data)
+
+```
+/users
+  /{userId}
+    - userId: string
+    - displayName: string
+    - color: string
+    - createdAt: Timestamp
+    - lastActive: Timestamp
+
+/documents
+  /{documentId}
+    - name: string
+    - createdAt: Timestamp
+    - lastModified: Timestamp
+    
+    /shapes
+      /{shapeId}
+        - (Shape interface fields)
 ```
 
+### Realtime Database Structure (Real-time Sync)
+
+```
+/presence
+  /main
+    /{userId}
+      - userId: string
+      - displayName: string
+      - color: string
+      - cursorX: number
+      - cursorY: number
+      - connectedAt: number (Unix timestamp)
+      - lastUpdate: number (Unix timestamp)
+```
+
+### Data Storage Strategy
+
+**Firestore** (Persistent, queryable data):
+- User profiles
+- Shape objects
+- Document metadata
+
+**Realtime Database** (High-frequency, ephemeral data):
+- User presence
+- Cursor positions
+- Connection status
+
 ---
 
-## 9. Future Considerations (Post-MVP)
+## Appendix C: Keyboard Shortcuts
 
-While explicitly out of scope for MVP, architectural decisions should consider:
-- AI agent canvas manipulation (function calling API)
-- Additional shape types (circles, lines, text)
-- Shape styling and customization
-- Advanced selection and transformation tools
-- User accounts and permissions
-- Canvas history and version control
-- Export capabilities
-
----
-
-## 10. Open Questions
-
-1. Color palette for user assignment - how many colors needed? **Answer: Random color generation**
-2. Maximum concurrent user limit for MVP testing? **Answer: 5+ users**
-3. Firestore quota limits - will free tier support MVP testing? **Answer: Yes**
-4. Cursor update frequency - balance between smoothness and bandwidth? **Answer: ≤50ms**
+Stage 1-3 does not require keyboard shortcuts, but consider these for future:
+- `Delete`: Delete selected shapes
+- `Cmd/Ctrl + D`: Duplicate selected shapes
+- `Cmd/Ctrl + Z`: Undo (future)
+- `Cmd/Ctrl + Shift + Z`: Redo (future)
+- `Arrow Keys`: Nudge selected shapes
+- `Cmd/Ctrl + A`: Select all
 
 ---
 
-**Approval Required Before Development:**
-- [ ] Product Owner approval
-- [ ] Technical architecture review
-- [ ] Firebase project setup complete
-- [ ] Success metrics defined and measurable
+## Document End
+
+This PRD defines all requirements for Stages 1-3 of CollabCanvas. 
+
+**Next Steps:**
+1. Review the Task List (`_docs/TASK_LIST.md`) for implementation order
+2. Consult the Architecture Diagram (`_docs/ARCHITECTURE.md`) for system design
+3. Begin with SETUP-1 in the Task List

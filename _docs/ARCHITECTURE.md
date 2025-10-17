@@ -1,668 +1,1713 @@
-# CollabCanvas Architecture
+## Firestore Database Schema
 
-## System Architecture Diagram
+### Firestore Collections (Persistent Data)
 
-```mermaid
-graph TB
-    subgraph "Client Layer"
-        Browser[Browser Window]
-        
-        subgraph "React Application"
-            App[App Component]
-            Canvas[Canvas Component]
-            Toolbar[Toolbar Component]
-            Shapes[Shape Components]
-            Cursors[Cursor Components]
-        end
-        
-        subgraph "State Management"
-            UserState[User State]
-            ShapeState[Shape State]
-            CanvasState[Canvas State]
-            PresenceState[Presence State]
-        end
-        
-        subgraph "Custom Hooks"
-            useAuth[useAuth Hook]
-            usePresence[usePresence Hook]
-            useShapes[useShapes Hook]
-            useCanvas[useCanvas Hook]
-        end
-        
-        subgraph "Services Layer"
-            FirebaseService[Firebase Service]
-            AuthService[Auth Service]
-            PresenceService[Presence Service]
-            ShapeService[Shape Service]
-        end
-    end
-    
-    subgraph "Rendering Layer"
-        Konva[Konva.js Stage]
-        KonvaLayer[Konva Layer]
-        KonvaShapes[Konva Shapes]
-        KonvaCursors[Konva Cursors]
-    end
-    
-    subgraph "Firebase Backend"
-        FirebaseAuth[Firebase Auth<br/>Anonymous Users]
-        Firestore[Cloud Firestore]
-        
-        subgraph "Collections"
-            UsersCol[(users)]
-            ShapesCol[(shapes)]
-            SessionCol[(canvasSession)]
-        end
-    end
-    
-    subgraph "Data Models"
-        UserModel[User Model<br/>id, color, displayName,<br/>lastActive, cursorPosition]
-        ShapeModel[Shape Model<br/>id, type, x, y,<br/>width, height, fill,<br/>createdBy, lockedBy]
-        SessionModel[Session Model<br/>id, activeUsers,<br/>lastModified]
-    end
+```
+firestore/
+├── users/                           # User profiles
+│   └── {userId}/                    # Document per user
+│       ├── userId: string
+│       ├── displayName: string
+│       ├── color: string
+│       ├── createdAt: Timestamp
+│       └── lastActive: Timestamp
+│
+└── documents/                       # Canvas documents
+    └── main/                        # Single document for MVP
+        ├── name: "Shared Canvas"
+        ├── createdAt: Timestamp
+        ├── lastModified: Timestamp
+        │
+        └── shapes/                  # Shape objects subcollection
+            └── {shapeId}/           # Document per shape
+                ├── id: string
+                ├── type: 'rectangle' | 'circle' | 'line'
+                ├── x: number
+                ├── y: number
+                ├── width: number (optional)
+                ├── height: number (optional)
+                ├── radius: number (optional)
+                ├── points: number[] (optional)
+                ├── fillColor: string
+                ├── strokeColor: string
+                ├── strokeWidth: number
+                ├── opacity: number
+                ├── borderRadius: number (optional)
+                ├── rotation: number
+                ├── zIndex: number
+                ├── createdBy: string
+                ├── createdAt: Timestamp
+                ├── lastModifiedBy: string
+                ├── lastModifiedAt: Timestamp
+                ├── lockedBy: string | null
+                └── lockedAt: Timestamp | null
+```
 
-    %% Client Flow
-    Browser --> App
-    App --> Canvas
-    App --> Toolbar
-    Canvas --> Shapes
-    Canvas --> Cursors
-    
-    %% State Management Flow
-    App --> UserState
-    App --> ShapeState
-    App --> CanvasState
-    App --> PresenceState
-    
-    %% Hooks Integration
-    Canvas --> useCanvas
-    Shapes --> useShapes
-    Cursors --> usePresence
-    App --> useAuth
-    
-    useAuth --> AuthService
-    usePresence --> PresenceService
-    useShapes --> ShapeService
-    useCanvas --> CanvasState
-    
-    %% Service Layer to Firebase
-    AuthService --> FirebaseService
-    PresenceService --> FirebaseService
-    ShapeService --> FirebaseService
-    
-    FirebaseService --> FirebaseAuth
-    FirebaseService --> Firestore
-    
-    %% Firestore Collections
-    Firestore --> UsersCol
-    Firestore --> ShapesCol
-    Firestore --> SessionCol
-    
-    %% Data Models
-    UsersCol -.->|schema| UserModel
-    ShapesCol -.->|schema| ShapeModel
-    SessionCol -.->|schema| SessionModel
-    
-    %% Rendering Flow
-    Canvas --> Konva
-    Konva --> KonvaLayer
-    KonvaLayer --> KonvaShapes
-    KonvaLayer --> KonvaCursors
-    
-    Shapes -.->|renders to| KonvaShapes
-    Cursors -.->|renders to| KonvaCursors
-    
-    %% Real-time Sync (bidirectional)
-    UsersCol <-.->|real-time listener| PresenceService
-    ShapesCol <-.->|real-time listener| ShapeService
-    SessionCol <-.->|real-time listener| PresenceService
-    
-    %% User Interactions
-    Browser -.->|mouse/keyboard| Canvas
-    Toolbar -.->|tool selection| CanvasState
+### Realtime Database Structure (Real-time Sync)
 
-    style Browser fill:#e1f5ff
-    style FirebaseAuth fill:#ffd700
-    style Firestore fill:#ffd700
-    style Konva fill:#b3e5b3
-    style UsersCol fill:#ffe6cc
-    style ShapesCol fill:#ffe6cc
-    style SessionCol fill:#ffe6cc
+```
+realtime-database/
+└── presence/
+    └── main/                        # Document ID
+        └── {userId}/                # User presence
+            ├── userId: string
+            ├── displayName: string
+            ├── color: string
+            ├── cursorX: number      # Canvas coordinates
+            ├── cursorY: number      # Canvas coordinates
+            ├── connectedAt: number  # Unix timestamp (ms)
+            └── lastUpdate: number   # Unix timestamp (ms)
+```
+
+### Data Storage Strategy
+
+**Firestore** (Persistent, queryable data):
+- ✅ User profiles
+- ✅ Shape objects (all properties)
+- ✅ Document metadata
+- ✅ Shape locks (part of shape document)
+- **Why**: Need complex queries, indexing, transactions
+- **Update frequency**: Low (on create, modify, delete)
+
+**Realtime Database** (High-frequency, ephemeral data):
+- ✅ User presence (who's online)
+- ✅ Cursor positions (x, y coordinates)
+- ✅ Connection status (heartbeat)
+- **Why**: Ultra-low latency (<50ms), high-frequency updates
+- **Update frequency**: Very high (every 50ms for cursors, every 5s for heartbeat)
+
+### Database Selection Decision Tree
+
+```
+Is this data ephemeral (OK to lose on disconnect)?
+├─ YES → Does it update more than once per second?
+│         ├─ YES → Use Realtime Database
+│         │        (cursors, presence heartbeat)
+│         └─ NO → Use Firestore
+│                 (could use either, prefer Firestore for structure)
+└─ NO → Must persist permanently?
+          └─ YES → Use Firestore
+                   (shapes, user profiles, locks)
+```
+                # Architecture Diagram - CollabCanvas
+# System Design & Technical Architecture
+
+---
+
+## Document Information
+- **Project**: CollabCanvas
+- **Target Audience**: AI Development Agent (Cursor IDE)
+- **Purpose**: High-level system architecture and component relationships
+- **Location**: `_docs/ARCHITECTURE.md`
+- **Related Documents**: 
+  - PRD: `_docs/PRD.md`
+  - Task List: `_docs/TASK_LIST.md`
+
+---
+
+## System Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         BROWSER CLIENT                          │
+│                                                                 │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │                      React Application                     │ │
+│  │                                                            │ │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │ │
+│  │  │   Canvas     │  │     Auth     │  │   Presence   │   │ │
+│  │  │   Feature    │  │   Feature    │  │   Feature    │   │ │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘   │ │
+│  │                                                            │ │
+│  │  ┌──────────────┐  ┌──────────────┐                      │ │
+│  │  │   Shapes     │  │     UI       │                      │ │
+│  │  │   Feature    │  │  Components  │                      │ │
+│  │  └──────────────┘  └──────────────┘                      │ │
+│  │                                                            │ │
+│  │  ┌───────────────────────────────────────────────────┐   │ │
+│  │  │              Konva.js Canvas Layer                │   │ │
+│  │  │  (Rendering: Grid, Shapes, Cursors, Handles)     │   │ │
+│  │  └───────────────────────────────────────────────────┘   │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                                                                 │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │                  Firebase Client SDK                       │ │
+│  │   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │ │
+│  │   │   Firestore  │  │   Realtime   │  │     Auth     │  │ │
+│  │   │   Client     │  │   Database   │  │    Client    │  │ │
+│  │   │              │  │   Client     │  │              │  │ │
+│  │   └──────────────┘  └──────────────┘  └──────────────┘  │ │
+│  └────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+                              ↕ HTTPS
+┌─────────────────────────────────────────────────────────────────┐
+│                      FIREBASE BACKEND                           │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        │
+│  │  Firestore   │  │   Realtime   │  │   Firebase   │        │
+│  │   Database   │  │   Database   │  │     Auth     │        │
+│  │              │  │              │  │              │        │
+│  │  Persistent  │  │  Real-time   │  │  User Mgmt   │        │
+│  │  Shapes &    │  │  Presence &  │  │  OAuth       │        │
+│  │  Profiles    │  │  Cursors     │  │              │        │
+│  └──────────────┘  └──────────────┘  └──────────────┘        │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Architecture Overview
+## Feature Module Architecture
 
-### **Layer 1: Client Application (React + TypeScript)**
+### Feature-Based Organization
 
-The client application is built with React 18+ and TypeScript, following a feature-based architecture.
-
-**Component Hierarchy:**
-- `App Component` - Root component, manages global state and routing
-- `Canvas Component` - Main workspace, handles pan/zoom and user interactions
-- `Toolbar Component` - Fixed UI for tool selection (Draw Rect button)
-- `Shape Components` - Render individual shapes on canvas
-- `Cursor Components` - Render multiplayer cursors with labels
-
-**State Management:**
-- `UserState` - Current user data (id, color, auth status)
-- `ShapeState` - All shapes on canvas (synced from Firestore)
-- `CanvasState` - Canvas view state (zoom level, pan position, active tool)
-- `PresenceState` - Active users and their cursor positions
-
-**Custom Hooks:**
-- `useAuth` - Anonymous authentication, user creation
-- `usePresence` - Track and sync user presence/cursors
-- `useShapes` - CRUD operations for shapes, real-time sync
-- `useCanvas` - Canvas navigation, boundary enforcement
-
----
-
-### **Layer 2: Services Layer**
-
-Abstraction layer for Firebase operations, following single responsibility principle.
-
-**FirebaseService:**
-- Initialize Firebase app
-- Export Firestore and Auth instances
-- Centralized configuration
-
-**AuthService:**
-- Anonymous user sign-in
-- Generate random user color
-- Create user document in Firestore
-- Handle auth state changes
-
-**PresenceService:**
-- Track user online/offline status
-- Sync cursor position (debounced ≤50ms)
-- Update `lastActive` timestamp (heartbeat)
-- Clean up on disconnect (onDisconnect handlers)
-- Listen to active users collection
-
-**ShapeService:**
-- Create shapes (write to Firestore)
-- Update shapes (position, lock status)
-- Delete shapes (future feature)
-- Real-time listener for shapes collection
-- Lock/unlock shapes (atomic operations)
-- Handle lock cleanup on disconnect
+```
+src/
+├── features/
+│   ├── canvas/          # Canvas viewport management
+│   │   ├── components/  # Canvas, GridBackground
+│   │   ├── hooks/       # useCanvasSize, usePan, useZoom
+│   │   ├── store/       # viewportStore (Context + useReducer)
+│   │   └── utils/       # coordinateTransform, gridUtils
+│   │
+│   ├── auth/            # User authentication
+│   │   ├── components/  # AuthModal
+│   │   ├── hooks/       # useAuth
+│   │   ├── services/    # authService (Firebase Auth)
+│   │   └── store/       # authStore (Context + useReducer)
+│   │
+│   ├── presence/        # Real-time user presence
+│   │   ├── components/  # UserPresenceSidebar, RemoteCursors
+│   │   ├── hooks/       # usePresence, useActiveUsers, useCursorTracking
+│   │   ├── services/    # presenceService (Firestore)
+│   │   └── store/       # presenceStore (Context + useReducer)
+│   │
+│   └── shapes/          # Display objects (shapes)
+│       ├── components/  # ShapeRenderer, Rectangle, Circle, Line
+│       ├── hooks/       # useShapes, useSelection, useShapeTransform
+│       ├── services/    # shapeService (Firestore CRUD)
+│       ├── store/       # shapesStore, selectionStore, toolStore
+│       └── utils/       # geometryUtils, viewportCulling
+│
+├── components/          # Shared UI components
+│   ├── atoms/           # Button, Input, ColorPicker
+│   ├── molecules/       # Toolbar, Panel
+│   └── organisms/       # Modal, LoadingOverlay
+│
+├── api/                 # Firebase configuration
+│   ├── firebase.ts      # Firebase initialization
+│   └── firebaseConfig.ts # Firebase config (gitignored)
+│
+├── types/               # TypeScript types
+│   ├── firebase.ts      # User, UserPresence, Shape
+│   └── canvas.ts        # ViewportState, CanvasConfig
+│
+├── utils/               # Utility functions
+│   ├── debounce.ts
+│   ├── throttle.ts
+│   └── performanceMonitor.ts
+│
+└── App.tsx              # Root component with providers
+```
 
 ---
 
-### **Layer 3: Rendering Layer (Konva.js)**
+## Data Flow Architecture
 
-High-performance canvas rendering using Konva.js and react-konva.
+### State Management Strategy
 
-**Konva Stage:**
-- 10,000 x 10,000px canvas
-- Manages viewport transformations (pan/zoom)
-- Event handling for mouse interactions
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        APPLICATION STATE                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  LOCAL STATE (React useState/useReducer)                        │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │  • Canvas viewport (pan, zoom, dimensions)             │    │
+│  │  • Selected tool (select, rectangle, circle, line)     │    │
+│  │  • Selection state (selectedShapeIds)                  │    │
+│  │  • UI state (modal open/close, loading)                │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  SHARED STATE (Context API + useReducer)                        │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │  • Auth state (current user, loading, error)           │    │
+│  │  • Viewport state (shared across components)           │    │
+│  │  • Tool state (shared tool selection)                  │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  FIREBASE REALTIME DATABASE (High-frequency, ephemeral)         │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │  • User presence (all active users)                    │    │
+│  │  • Cursor positions (real-time updates)                │    │
+│  │  • Connection status                                   │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  FIRESTORE (Persistent, structured data)                        │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │  • User profiles                                       │    │
+│  │  • Shape objects (all canvas objects)                  │    │
+│  │  • Document metadata                                   │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
 
-**Konva Layer:**
-- Container for all canvas objects
-- Optimized batch rendering
+### State Flow Diagram
 
-**Konva Shapes:**
-- Rectangle primitives
-- Dynamic properties from ShapeState
-- Draggable with boundary constraints
-
-**Konva Cursors:**
-- Custom cursor graphics (pointer + label)
-- Positioned based on PresenceState
-- Color-coded per user
+```
+User Interaction
+      ↓
+React Component
+      ↓
+Event Handler
+      ↓
+┌─────────────────────┐
+│  Optimistic Update  │ → Update local state immediately
+│  (Local State)      │
+└─────────────────────┘
+      ↓
+┌─────────────────────┐
+│  Debounced/         │ → Throttle rapid updates
+│  Throttled Write    │
+└─────────────────────┘
+      ↓
+Firebase Service
+      ↓
+Firestore Write
+      ↓
+┌─────────────────────┐
+│  Real-time          │ → Broadcast to all clients
+│  Listener           │
+└─────────────────────┘
+      ↓
+┌─────────────────────┐
+│  Server             │ → Update local state from server
+│  Reconciliation     │
+└─────────────────────┘
+      ↓
+Re-render Components
+```
 
 ---
 
-### **Layer 4: Firebase Backend**
+## Firestore Database Schema
 
-**Firebase Authentication:**
-- Anonymous sign-in enabled
-- No email/password required
-- Automatic user ID generation
+### Collections Structure
 
-**Cloud Firestore:**
-- Real-time NoSQL database
-- Three main collections:
+```
+firestore/
+├── users/                           # User profiles
+│   └── {userId}/                    # Document per user
+│       ├── userId: string
+│       ├── displayName: string
+│       ├── color: string
+│       ├── createdAt: Timestamp
+│       └── lastActive: Timestamp
+│
+└── documents/                       # Canvas documents
+    └── main/                        # Single document for MVP
+        ├── name: "Shared Canvas"
+        ├── createdAt: Timestamp
+        ├── lastModified: Timestamp
+        │
+        ├── presence/                # User presence subcollection
+        │   └── {userId}/            # Document per active user
+        │       ├── userId: string
+        │       ├── displayName: string
+        │       ├── color: string
+        │       ├── cursorX: number
+        │       ├── cursorY: number
+        │       ├── connectedAt: Timestamp
+        │       └── lastUpdate: Timestamp
+        │
+        └── shapes/                  # Shape objects subcollection
+            └── {shapeId}/           # Document per shape
+                ├── id: string
+                ├── type: 'rectangle' | 'circle' | 'line'
+                ├── x: number
+                ├── y: number
+                ├── width: number (optional)
+                ├── height: number (optional)
+                ├── radius: number (optional)
+                ├── points: number[] (optional)
+                ├── fillColor: string
+                ├── strokeColor: string
+                ├── strokeWidth: number
+                ├── opacity: number
+                ├── borderRadius: number (optional)
+                ├── rotation: number
+                ├── zIndex: number
+                ├── createdBy: string
+                ├── createdAt: Timestamp
+                ├── lastModifiedBy: string
+                ├── lastModifiedAt: Timestamp
+                ├── lockedBy: string | null
+                └── lockedAt: Timestamp | null
+```
 
-**Collections Structure:**
+### Firestore Indexes
 
-1. **`users` Collection:**
-```typescript
+```javascript
+// Required composite indexes for Firestore
 {
-  userId: string (document ID)
-  color: string (hex color)
-  displayName: string (user ID)
-  lastActive: timestamp
-  cursorPosition: { x: number, y: number }
+  collectionGroup: "shapes",
+  fields: [
+    { fieldPath: "zIndex", order: "ASCENDING" },
+    { fieldPath: "createdAt", order: "DESCENDING" }
+  ]
 }
 ```
 
-2. **`shapes` Collection:**
-```typescript
-{
-  shapeId: string (document ID)
-  type: 'rectangle'
-  x: number
-  y: number
-  width: number
-  height: number
-  fill: string (hex color)
-  createdBy: string (user ID)
-  createdAt: timestamp
-  lockedBy?: string (user ID)
-  lockedAt?: timestamp
-}
-```
+### Realtime Database Indexes
 
-3. **`canvasSession` Collection:**
-```typescript
+```json
+// Realtime Database rules with indexing
 {
-  sessionId: 'default' (document ID)
-  activeUsers: string[] (array of user IDs)
-  lastModified: timestamp
+  "rules": {
+    "presence": {
+      "main": {
+        "$userId": {
+          ".indexOn": ["lastUpdate", "connectedAt"]
+        }
+      }
+    }
+  }
 }
 ```
 
 ---
 
-## Data Flow Diagrams
+## Component Hierarchy
 
-### **User Authentication Flow**
-```
-User Opens App
-    ↓
-useAuth Hook Initializes
-    ↓
-AuthService.signInAnonymously()
-    ↓
-Firebase Auth Creates Anonymous User
-    ↓
-AuthService.createUserDocument()
-    ↓
-Generate Random Color
-    ↓
-Write to Firestore users/{userId}
-    ↓
-UserState Updated
-    ↓
-App Renders with User Context
-```
+### Application Component Tree
 
-### **Cursor Sync Flow**
 ```
-User Moves Mouse on Canvas
-    ↓
-Canvas Component Captures mousemove
-    ↓
-Convert Screen → Canvas Coordinates
-    ↓
-Debounce (≤50ms)
-    ↓
-PresenceService.updateCursor(x, y)
-    ↓
-Update Firestore users/{userId}.cursorPosition
-    ↓
-Real-time Listener Triggers on Other Clients
-    ↓
-PresenceState Updated
-    ↓
-Cursor Components Re-render
-```
-
-### **Shape Creation Flow**
-```
-User Clicks "Draw Rect" Button
-    ↓
-CanvasState.activeTool = 'rectangle'
-    ↓
-User Press/Drag/Release on Canvas
-    ↓
-Canvas Component Tracks Interaction
-    ↓
-During Drag: Render Local Preview
-    ↓
-During Drag: Sync to Firestore (in-progress)
-    ↓
-On Release: ShapeService.createShape()
-    ↓
-Enforce Boundary Constraints
-    ↓
-Write to Firestore shapes/{shapeId}
-    ↓
-Real-time Listener Triggers on All Clients
-    ↓
-ShapeState Updated
-    ↓
-Shape Components Render New Shape
+App (Root)
+├── AuthProvider (Context)
+│   └── AuthModal (conditional on !authenticated)
+│
+├── ViewportProvider (Context)
+│   └── ToolProvider (Context)
+│       └── PresenceProvider (Context)
+│           └── ShapesProvider (Context)
+│               │
+│               ├── ShapeToolbar (top-left)
+│               │
+│               ├── UserPresenceSidebar (right side)
+│               │   └── UserPresenceItem[] (list items)
+│               │
+│               ├── Canvas (main area)
+│               │   └── Konva.Stage
+│               │       ├── GridBackground (Layer)
+│               │       │   └── Konva.Rect + Konva.Line[]
+│               │       │
+│               │       ├── ShapeRenderer (Layer)
+│               │       │   └── [Rectangle | Circle | Line][]
+│               │       │       └── SelectionHandles (conditional)
+│               │       │
+│               │       └── RemoteCursors (Layer)
+│               │           └── RemoteCursor[] (one per user)
+│               │
+│               ├── PropertiesPanel (left side, conditional on selection)
+│               │   ├── ColorPicker (fill)
+│               │   ├── ColorPicker (stroke)
+│               │   ├── NumberInput (stroke width)
+│               │   ├── NumberInput (opacity)
+│               │   └── NumberInput (border radius)
+│               │
+│               ├── ZIndexModal (conditional on open)
+│               │   └── ZIndexItem[] (list items)
+│               │
+│               └── MarqueeBox (conditional on active)
 ```
 
-### **Shape Drag Flow**
+---
+
+## Real-Time Synchronization Architecture
+
+### Sync Flow for Shape Creation (Firestore)
+
 ```
-User Mousedown on Shape
-    ↓
-Check if Shape Locked
-    ↓
-If Locked by Another User: Prevent Interaction
-    ↓
-If Unlocked: Acquire Lock
-    ↓
-ShapeService.lockShape(shapeId, userId)
-    ↓
-Update Firestore shapes/{shapeId}.lockedBy
-    ↓
-Render 🔒 Lock Indicator
-    ↓
-User Drags Shape
-    ↓
-Track Movement, Enforce Boundaries
-    ↓
-Update Shape Position (optimistic local)
-    ↓
-Sync to Firestore (real-time)
-    ↓
-User Releases Mouse
-    ↓
-ShapeService.unlockShape(shapeId)
-    ↓
-Clear Firestore shapes/{shapeId}.lockedBy
-    ↓
-Remove Lock Indicator
+User A creates rectangle
+         ↓
+┌─────────────────────────┐
+│  Local Optimistic       │
+│  Update                 │  → Rectangle appears immediately for User A
+└─────────────────────────┘
+         ↓
+┌─────────────────────────┐
+│  shapeService           │
+│  .createShape()         │
+└─────────────────────────┘
+         ↓
+┌─────────────────────────┐
+│  Firestore Write        │  → Write to /documents/main/shapes/{id}
+│  (with timestamp)       │     Latency: ~100-200ms
+└─────────────────────────┘
+         ↓
+┌─────────────────────────┐
+│  Firestore Listener     │  → Firestore broadcasts change
+│  (all clients)          │     Total latency: ~100-300ms
+└─────────────────────────┘
+         ↓                ↓
+    User B            User C
+    ↓                    ↓
+Shape appears       Shape appears
+(~100-300ms delay)  (~100-300ms delay)
 ```
 
-### **Disconnect Handling Flow**
+### Sync Flow for Cursor Movement (Realtime Database)
+
 ```
-User Closes Browser/Loses Connection
+User A moves mouse
+         ↓
+┌─────────────────────────┐
+│  onMouseMove Handler    │
+└─────────────────────────┘
+         ↓
+┌─────────────────────────┐
+│  Throttled Update       │  → Only send every 50ms
+│  (50ms throttle)        │
+└─────────────────────────┘
+         ↓
+┌─────────────────────────┐
+│  Realtime DB Update     │  → Update /presence/main/{userId}
+│  .update()              │     { cursorX: x, cursorY: y }
+└─────────────────────────┘     Latency: ~20-50ms
+         ↓
+┌─────────────────────────┐
+│  Realtime DB Listener   │  → Realtime DB broadcasts instantly
+│  .on('value')           │     Total latency: <50ms
+└─────────────────────────┘
+         ↓                ↓
+    User B            User C
+    ↓                    ↓
+Cursor updates      Cursor updates
+instantly           instantly
+(<50ms latency)     (<50ms latency)
+
+Key Difference: Realtime DB is 3-6x faster than Firestore
+```
+
+### Sync Flow for Shape Transformation
+
+```
+User A drags rectangle
+         ↓
+┌─────────────────────────┐
+│  onDragMove Handler     │  → Fires on every pixel movement
+└─────────────────────────┘
+         ↓
+┌─────────────────────────┐
+│  Local State Update     │  → Update local position immediately
+│  (Optimistic)           │
+└─────────────────────────┘
+         ↓
+┌─────────────────────────┐
+│  Debounced Firestore    │  → Only write every 300ms
+│  Update (300ms)         │
+└─────────────────────────┘
+         ↓
+┌─────────────────────────┐
+│  Real-time Listener     │  → Other users see smooth movement
+│  (all other clients)    │     (with slight delay)
+└─────────────────────────┘
+         ↓
+User B & C see position updates
+(lagged by ~300-400ms)
+```
+
+### Cursor Position Sync (Realtime Database)
+
+```
+User A moves mouse
+         ↓
+┌─────────────────────────┐
+│  onMouseMove Handler    │
+└─────────────────────────┘
+         ↓
+┌─────────────────────────┐
+│  Throttled Update       │  → Only send every 50ms
+│  (50ms throttle)        │
+└─────────────────────────┘
+         ↓
+┌─────────────────────────┐
+│  presenceService        │
+│  .updateCursor()        │
+└─────────────────────────┘
+         ↓
+┌─────────────────────────┐
+│  Realtime DB Write      │  → Update cursor position
+│  database.ref().update()│     Very low latency (~20-50ms)
+└─────────────────────────┘
+         ↓
+┌─────────────────────────┐
+│  Realtime DB Listener   │  → Target <50ms latency
+│  .on('value')           │     Much faster than Firestore
+└─────────────────────────┘
+         ↓
+User B & C see cursor move
+(with 20-50ms delay)
+
+✅ Uses Realtime Database for speed
+✅ Sub-50ms latency consistently
+✅ 3-6x faster than Firestore
+```
+
+### Why Two Databases?
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    DATABASE COMPARISON                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  FIRESTORE                          REALTIME DATABASE            │
+│  ├─ Latency: 100-300ms              ├─ Latency: 20-50ms        │
+│  ├─ Structure: Documents            ├─ Structure: JSON tree     │
+│  ├─ Queries: Complex, indexed       ├─ Queries: Simple paths    │
+│  ├─ Transactions: ACID              ├─ Transactions: Limited    │
+│  ├─ Offline: Full support           ├─ Offline: Basic support   │
+│  └─ Best for: Persistent data       └─ Best for: Ephemeral data │
+│                                                                  │
+│  USE CASES IN OUR APP:                                          │
+│  ├─ Shapes (complex, persistent)    → Firestore                │
+│  ├─ User profiles (queryable)       → Firestore                │
+│  ├─ Shape locks (transactional)     → Firestore                │
+│  ├─ Cursor positions (fast, temp)   → Realtime Database        │
+│  └─ Presence heartbeat (fast)       → Realtime Database        │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Coordinate System Architecture
+
+### Canvas Coordinate Spaces
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    SCREEN COORDINATES                           │
+│  (Browser viewport pixels)                                      │
+│                                                                 │
+│  Origin: Top-left of browser window                            │
+│  Range: (0, 0) to (window.innerWidth, window.innerHeight)     │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │                   VIEWPORT                                │ │
+│  │  Current visible area of canvas                          │ │
+│  │                                                           │ │
+│  │  Transform:                                               │ │
+│  │  - Translation: (viewport.x, viewport.y)                 │ │
+│  │  - Scale: viewport.scale                                 │ │
+│  │                                                           │ │
+│  │  ┌─────────────────────────────────────────────────────┐│ │
+│  │  │          CANVAS COORDINATES                         ││ │
+│  │  │  (Absolute 10,000 x 10,000 space)                  ││ │
+│  │  │                                                     ││ │
+│  │  │  Origin: (0, 0) - Top-left of canvas               ││ │
+│  │  │  Range: (0, 0) to (10000, 10000)                   ││ │
+│  │  │                                                     ││ │
+│  │  │  All shapes positioned in this space               ││ │
+│  │  │  Grid lines calculated in this space               ││ │
+│  │  │                                                     ││ │
+│  │  └─────────────────────────────────────────────────────┘│ │
+│  └──────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Coordinate Transformation Functions
+
+```typescript
+// coordinateTransform.ts
+
+/**
+ * Convert screen coordinates to canvas coordinates
+ */
+function screenToCanvas(
+  screenX: number,
+  screenY: number,
+  viewport: ViewportState
+): { x: number; y: number } {
+  return {
+    x: (screenX - viewport.x) / viewport.scale,
+    y: (screenY - viewport.y) / viewport.scale
+  };
+}
+
+/**
+ * Convert canvas coordinates to screen coordinates
+ */
+function canvasToScreen(
+  canvasX: number,
+  canvasY: number,
+  viewport: ViewportState
+): { x: number; y: number } {
+  return {
+    x: canvasX * viewport.scale + viewport.x,
+    y: canvasY * viewport.scale + viewport.y
+  };
+}
+
+/**
+ * Calculate visible canvas bounds for viewport culling
+ */
+function getVisibleBounds(viewport: ViewportState): {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+} {
+  const topLeft = screenToCanvas(0, 0, viewport);
+  const bottomRight = screenToCanvas(
+    viewport.width,
+    viewport.height,
+    viewport
+  );
+  
+  return {
+    minX: topLeft.x,
+    minY: topLeft.y,
+    maxX: bottomRight.x,
+    maxY: bottomRight.y
+  };
+}
+```
+
+---
+
+## Performance Optimization Strategies
+
+### Viewport Culling
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Canvas (10,000 x 10,000)                     │
+│                                                                 │
+│   ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─    │
+│                                                             │   │
+│   │  Shapes outside viewport                                   │
+│      (NOT RENDERED)                                         │   │
+│   │                                                             │
+│      ┌──────────────────────────────────────────┐          │   │
+│   │  │         VIEWPORT                        │              │
+│      │  (Visible area)                         │          │   │
+│   │  │                                         │              │
+│      │  Shapes inside viewport                 │          │   │
+│   │  │  (RENDERED)                             │              │
+│      │                                         │          │   │
+│   │  │  • Shape culling based on bounds       │              │
+│      │  • Grid lines culled to visible area   │          │   │
+│   │  │  • Remote cursors always visible       │              │
+│      │                                         │          │   │
+│   │  └──────────────────────────────────────────┘              │
+│                                                             │   │
+│   │  Shapes outside viewport                                   │
+│      (NOT RENDERED)                                         │   │
+│   │                                                             │
+│    ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+Algorithm:
+1. Calculate visible bounds from viewport state
+2. Filter shapes: keep only if bounds intersect visible area
+3. Render only visible shapes
+4. Update on pan/zoom
+```
+
+### Render Optimization Layers
+
+```
+Konva Stage
+│
+├── Layer: GridBackground
+│   - listening: false (non-interactive)
+│   - cache: enabled (static until zoom changes)
+│   - Only render visible grid lines
+│
+├── Layer: Shapes
+│   - listening: true (interactive)
+│   - cache: disabled (frequently changing)
+│   - Viewport culling applied
+│   - Individual shape caching for selected shapes
+│
+└── Layer: RemoteCursors
+    - listening: false (non-interactive)
+    - cache: disabled (constantly updating)
+    - Always render (small count)
+```
+
+### Debouncing & Throttling Strategy
+
+```
+User Input Event → Database Choice
+       ↓
+┌─────────────────┐
+│  Cursor Move    │ → Throttle to 50ms → REALTIME DATABASE
+│  (mouse move)   │   (max 20 updates/second)
+└─────────────────┘   Ultra-low latency required
+
+┌─────────────────┐
+│  Presence       │ → Interval 5000ms → REALTIME DATABASE
+│  Heartbeat      │   (periodic keep-alive)
+└─────────────────┘   Ephemeral data
+
+┌─────────────────┐
+│  Shape Drag     │ → Debounce to 300ms → FIRESTORE
+│  (position)     │   (write after user stops moving)
+└─────────────────┘   Persistent data
+
+┌─────────────────┐
+│  Property Edit  │ → Debounce to 500ms → FIRESTORE
+│  (color, etc)   │   (write after user stops typing)
+└─────────────────┘   Persistent data
+
+┌─────────────────┐
+│  Shape Create   │ → Immediate write → FIRESTORE
+│  (new object)   │   (no debounce)
+└─────────────────┘   Permanent operation
+```
+
+---
+
+## Lock Management Architecture
+
+### Shape Locking Flow
+
+```
+User A clicks shape
+        ↓
+┌─────────────────────────┐
+│  Check Lock Status      │
+│  (from local state)     │
+└─────────────────────────┘
+        ↓
+    Is locked?
+   /          \
+  Yes         No
+  ↓            ↓
+Check owner   Acquire Lock
+  ↓            ↓
+Same user?   ┌─────────────────────────┐
+  ↓          │  Firestore Transaction  │
+Allow        │  Update shape:          │
+  ↓          │  - lockedBy: userId     │
+  │          │  - lockedAt: timestamp  │
+  │          └─────────────────────────┘
+  │                   ↓
+  │              Success?
+  │             /         \
+  │           Yes         No
+  │            ↓          ↓
+  │      Add to       Log error
+  │      selection    to console
+  │            ↓
+  └───────────┴──────────→ Enable editing
+
+Different user?
+  ↓
+Log to console:
+"Shape locked by [user]"
+  ↓
+Abort selection
+```
+
+### Lock Timeout Mechanism
+
+```
+Background Service (runs every 30s)
+
+Query shapes where:
+  - lockedBy != null
+  - lockedAt < (now - 60 seconds)
+
+For each stale lock:
+  ↓
+┌─────────────────────────┐
+│  Release Lock           │
+│  (Firestore update)     │
+│  - lockedBy: null       │
+│  - lockedAt: null       │
+└─────────────────────────┘
+  ↓
+Real-time listener notifies all clients
+  ↓
+Shape becomes available for selection
+```
+
+---
+
+## Authentication Flow
+
+### User Authentication Sequence
+
+```
+App loads
     ↓
-Firebase onDisconnect Handler Triggers
+┌─────────────────────────┐
+│  Check Auth State       │
+│  (Firebase Auth)        │
+└─────────────────────────┘
     ↓
-PresenceService Cleanup:
-    - Remove user from activeUsers[]
-    - Delete user document
-    ↓
-ShapeService Cleanup:
-    - Find shapes with lockedBy = userId
-    - Clear lockedBy field
-    - Cancel in-progress operations
-    ↓
-Other Clients Receive Updates
-    ↓
-Remove Cursor from PresenceState
-    ↓
-Release Shape Locks
-    ↓
-Re-enable Interactions
+  Is authenticated?
+   /          \
+ Yes           No
+  ↓            ↓
+Load user    Show AuthModal
+profile          ↓
+  ↓          User chooses:
+  │          ┌──────────────┬──────────────┐
+  │          ↓              ↓              ↓
+  │     Continue as    Sign in with   (Close modal
+  │     Guest          Google         = no access)
+  │          ↓              ↓
+  │     Anonymous      Google OAuth
+  │     sign-in        flow
+  │          ↓              ↓
+  │     ┌────────────────────┐
+  │     │  Create User       │
+  │     │  Profile           │
+  │     │  - Generate UUID   │
+  │     │  - Assign color    │
+  │     │  - Set name        │
+  │     └────────────────────┘
+  │              ↓
+  └──────────────┴───────────→ User authenticated
+                               ↓
+                          ┌─────────────────────────┐
+                          │  Create Presence        │
+                          │  Document               │
+                          │  (Firestore)            │
+                          └─────────────────────────┘
+                               ↓
+                          Load canvas
+```
+
+---
+
+## Error Handling Architecture
+
+### Error Handling Strategy
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        ERROR BOUNDARIES                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  App Level Error Boundary                                       │
+│  └── Catches all uncaught errors                                │
+│      └── Shows error UI with reload option                      │
+│                                                                  │
+│  Feature Level Error Handling                                   │
+│  ├── Auth errors → Show in auth modal                          │
+│  ├── Firestore errors → Retry with exponential backoff         │
+│  ├── Network errors → Queue operations, retry on reconnect     │
+│  └── Validation errors → Show inline error messages            │
+│                                                                  │
+│  Logging Strategy                                               │
+│  ├── Console errors: Development only                          │
+│  ├── Critical errors: Log to console.error                     │
+│  ├── Warnings: Log to console.warn                             │
+│  └── Info: Log to console.log (removed in production)          │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Network Resilience
+
+```
+Network Interruption
+        ↓
+┌─────────────────────────┐
+│  Detect Offline         │
+│  (Firebase listeners)   │
+└─────────────────────────┘
+        ↓
+┌─────────────────────────┐
+│  Realtime DB:           │
+│  - Presence auto-       │
+│    removed via          │
+│    onDisconnect()       │
+│  - Cursor updates stop  │
+└─────────────────────────┘
+        ↓
+┌─────────────────────────┐
+│  Firestore:             │
+│  - Queue Write          │
+│    Operations           │
+│  - Store in memory      │
+└─────────────────────────┘
+        ↓
+┌─────────────────────────┐
+│  Show Offline           │
+│  Indicator to User      │
+└─────────────────────────┘
+        ↓
+    Wait for reconnect
+        ↓
+┌─────────────────────────┐
+│  Detect Online          │
+│  (Firebase listeners)   │
+└─────────────────────────┘
+        ↓
+┌─────────────────────────┐
+│  Realtime DB:           │
+│  - Re-establish         │
+│    presence             │
+│  - Resume cursor sync   │
+└─────────────────────────┘
+        ↓
+┌─────────────────────────┐
+│  Firestore:             │
+│  - Flush Queued         │
+│    Operations           │
+│  - Reconcile state      │
+└─────────────────────────┘
+        ↓
+    Resume normal operation
+```
+
+---
+
+## Future Architecture Considerations
+
+### AI Agent Integration (Stage 4)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   FUTURE AI ARCHITECTURE                         │
+│                   (Not implemented in MVP)                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │                    AI Agent Layer                      │    │
+│  │                                                        │    │
+│  │  ┌──────────────┐      ┌──────────────┐             │    │
+│  │  │   Natural    │      │   Function   │             │    │
+│  │  │   Language   │ ───→ │   Calling    │             │    │
+│  │  │   Input      │      │   (OpenAI)   │             │    │
+│  │  └──────────────┘      └──────────────┘             │    │
+│  │         ↓                      ↓                     │    │
+│  │  ┌──────────────┐      ┌──────────────┐             │    │
+│  │  │   Command    │      │   Canvas     │             │    │
+│  │  │   Parser     │      │   API        │             │    │
+│  │  └──────────────┘      └──────────────┘             │    │
+│  │                               ↓                      │    │
+│  │                    ┌──────────────────┐             │    │
+│  │                    │  Shape Service   │             │    │
+│  │                    │  (Existing CRUD) │             │    │
+│  │                    └──────────────────┘             │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  Canvas API Interface (to be exposed):                         │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │  createShape(type, properties): Promise<Shape>        │    │
+│  │  updateShape(shapeId, properties): Promise<Shape>     │    │
+│  │  deleteShape(shapeId): Promise<void>                  │    │
+│  │  getCanvasState(): Promise<CanvasState>               │    │
+│  │  arrangeShapes(shapeIds, layout): Promise<void>       │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  Architectural Decisions for AI Support:                        │
+│  • Use Command pattern for all operations (undo/redo ready)   │
+│  • Keep CRUD functions pure and composable                     │
+│  • Expose getters for full canvas state query                  │
+│  • Maintain operation history for AI learning                  │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Scalability Considerations
+
+```
+Current Architecture (MVP)
+├── Single document ("main")
+├── All users in same canvas
+└── Direct Firestore real-time listeners
+
+Future Scalability Path
+├── Multiple documents (user-created projects)
+├── Document-level permissions
+├── WebSocket server for high-frequency updates (cursors)
+├── Firestore for persistent data only
+├── Redis cache for hot data
+└── Horizontal scaling with load balancing
+```
+
+---
+
+## Performance Targets & Monitoring
+
+### Performance Metrics
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     PERFORMANCE TARGETS                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Rendering Performance                                          │
+│  ├── Frame Rate: 60 FPS (16.67ms per frame)                    │
+│  ├── Pan/Zoom: No dropped frames                               │
+│  └── Shape Transform: Smooth at 60 FPS                         │
+│                                                                  │
+│  Synchronization Latency                                        │
+│  ├── Cursor sync (Realtime DB): <50ms ⚡                       │
+│  ├── Presence updates (Realtime DB): <100ms                    │
+│  ├── Object sync (Firestore): <300ms                           │
+│  └── Shape properties (Firestore): <500ms (debounced)          │
+│                                                                  │
+│  Database Performance                                           │
+│  ├── Realtime DB reads: ~1200/minute (20/sec * 60)            │
+│  │   (cursor updates for 5 users)                              │
+│  ├── Realtime DB writes: ~600/minute (10/sec * 60)            │
+│  │   (cursor + heartbeat)                                      │
+│  ├── Firestore reads: <100/minute per user                     │
+│  └── Firestore writes: <50/minute per user                     │
+│                                                                  │
+│  Scalability                                                    │
+│  ├── Max shapes: 500+ without FPS drop                         │
+│  ├── Max concurrent users: 5+ without degradation              │
+│  └── Initial load time: <3 seconds                             │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Monitoring Points
+
+```typescript
+// performanceMonitor.ts
+
+interface PerformanceMetrics {
+  fps: number;
+  lastFrameTime: number;
+  shapeCount: number;
+  visibleShapeCount: number;
+  firestoreReads: number;
+  firestoreWrites: number;
+  syncLatency: number;
+}
+
+// Monitor in development mode
+if (import.meta.env.DEV) {
+  // Track FPS
+  // Track Firestore operations
+  // Track sync latency
+  // Log warnings if thresholds exceeded
+}
 ```
 
 ---
 
 ## Technology Stack Details
 
-### **Frontend**
-- **React 18+** - Component-based UI
-- **TypeScript** - Type safety and developer experience
-- **Konva.js** - High-performance canvas rendering
-- **react-konva** - React bindings for Konva
-- **Vite** - Fast build tool and dev server
+### Core Dependencies
 
-### **Backend**
-- **Firebase Authentication** - Anonymous user management
-- **Cloud Firestore** - Real-time NoSQL database
-- **Firebase Hosting** - Static site deployment
+```json
+{
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "konva": "^9.2.0",
+    "react-konva": "^18.2.0",
+    "firebase": "^10.7.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "eslint-plugin-react": "^7.33.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "typescript": "^5.2.0",
+    "vite": "^5.0.0"
+  }
+}
+```
 
-### **Development Tools**
-- **ESLint** - Code linting
-- **Prettier** - Code formatting
-- **TypeScript Compiler** - Type checking
+### Firebase Services Used
 
----
+```typescript
+// src/api/firebase.ts
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getDatabase } from 'firebase/database'; // Realtime Database
+import { getAuth } from 'firebase/auth';
 
-## Performance Considerations
+const app = initializeApp(firebaseConfig);
 
-### **Rendering Optimization**
-- Use `React.memo` for Shape and Cursor components
-- Implement `useCallback` for event handlers
-- Debounce cursor position updates (≤50ms)
-- Batch Firestore writes where possible
-- Optimize Konva layer rendering (avoid unnecessary redraws)
+export const firestore = getFirestore(app);  // Persistent data
+export const database = getDatabase(app);     // Real-time sync
+export const auth = getAuth(app);             // Authentication
+```
 
-### **Network Optimization**
-- Throttle cursor position syncs (60 FPS max)
-- Use Firestore transaction for lock acquisition
-- Implement optimistic updates for local user
-- Cache user colors locally
-- Minimize payload size in Firestore documents
+### Build Configuration
 
-### **Scalability**
-- Firestore auto-scales for concurrent users
-- Client-side rendering reduces server load
-- Real-time listeners are efficient for <100 concurrent users
-- Consider Firestore indexes for large shape collections
+```typescript
+// vite.config.ts
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': '/src',
+      '@components': '/src/components',
+      '@features': '/src/features',
+      '@hooks': '/src/hooks',
+      '@utils': '/src/utils',
+      '@types': '/src/types'
+    }
+  },
+  build: {
+    target: 'esnext',
+    sourcemap: true
+  }
+});
+```
 
 ---
 
 ## Security Considerations
 
-### **Firestore Security Rules**
+### Firestore Security Rules (Development)
+
 ```javascript
+// firestore.rules (DEVELOPMENT ONLY - Open for testing)
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can read all documents
+    // Allow all reads and writes during development
     match /{document=**} {
-      allow read: if request.auth != null;
-    }
-    
-    // Users can only write their own user document
-    match /users/{userId} {
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Any authenticated user can create shapes
-    match /shapes/{shapeId} {
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null;
-    }
-    
-    // Session document accessible to all authenticated users
-    match /canvasSession/{sessionId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
   }
 }
 ```
 
-### **Client-Side Validation**
-- Validate shape boundaries before Firestore write
-- Validate lock ownership before updates
-- Sanitize user input (future features)
+### Realtime Database Security Rules (Development)
 
----
-
-## File Structure
-
-```
-collabcanvas/
-├── _docs/                 # Project documentation
-│   ├── PRD.md
-│   ├── TASK_LIST.md
-│   ├── ARCHITECTURE.md
-│   └── react-architecture-guide.md
-├── src/
-│   ├── components/
-│   │   ├── Canvas.tsx
-│   │   ├── Toolbar.tsx
-│   │   ├── Shape.tsx
-│   │   ├── Cursor.tsx
-│   │   └── LockIndicator.tsx
-│   ├── hooks/
-│   │   ├── useAuth.ts
-│   │   ├── usePresence.ts
-│   │   ├── useShapes.ts
-│   │   └── useCanvas.ts
-│   ├── services/
-│   │   ├── firebase.ts
-│   │   ├── authService.ts
-│   │   ├── presenceService.ts
-│   │   └── shapeService.ts
-│   ├── types/
-│   │   ├── User.ts
-│   │   ├── Shape.ts
-│   │   └── Canvas.ts
-│   ├── utils/
-│   │   ├── colors.ts
-│   │   ├── boundaries.ts
-│   │   └── debounce.ts
-│   ├── App.tsx
-│   └── main.tsx
-├── .env
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-└── README.md
+```json
+// database.rules.json (DEVELOPMENT ONLY - Open for testing)
+{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}
 ```
 
----
+### Future Production Rules
 
-## MVP Success Criteria Mapping
+**Firestore:**
+```javascript
+// firestore.rules (PRODUCTION - Example for future)
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read/write their own profile
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == userId;
+    }
+    
+    // Document access
+    match /documents/{docId} {
+      // Anyone authenticated can read
+      allow read: if request.auth != null;
+      
+      // Shapes - authenticated users can create/modify
+      match /shapes/{shapeId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow update: if request.auth != null 
+                      && (resource.data.lockedBy == null 
+                          || resource.data.lockedBy == request.auth.uid);
+        allow delete: if request.auth != null;
+      }
+    }
+  }
+}
+```
 
-| Requirement | Architecture Component |
-|-------------|----------------------|
-| Canvas 10,000x10,000px | Konva Stage configuration |
-| Pan/Zoom | Canvas Component + useCanvas hook |
-| Boundary enforcement | Boundary utils + Canvas constraints |
-| Anonymous auth | Firebase Auth + AuthService |
-| User colors | AuthService color generation |
-| Cursor sync <50ms | PresenceService + debounced updates |
-| Shape creation | ShapeService + Canvas interactions |
-| Shape persistence | Firestore shapes collection |
-| Object locking | ShapeService lock/unlock methods |
-| Lock indicator | LockIndicator component |
-| Disconnect handling | Firebase onDisconnect + cleanup |
-| Real-time sync | Firestore real-time listeners |
-| 60 FPS performance | Konva optimization + React.memo |
-
----
-
-## Development Guidelines
-
-### **Component Development**
-- Follow React architecture guide principles
-- Use functional components with hooks exclusively
-- Implement TypeScript interfaces for all props
-- Use `React.memo` for performance optimization
-- Keep components under 200 lines
-- Single responsibility per component
-
-### **State Management**
-- Keep state as close to usage as possible
-- Lift state only when necessary for sharing
-- Use custom hooks for complex state logic
-- Avoid prop drilling (max 2-3 levels)
-
-### **Performance**
-- Profile components during development
-- Test with 500+ shapes regularly
-- Monitor network payload sizes
-- Measure FPS during interactions
-- Optimize before adding features
-
-### **Testing Strategy**
-- Test with multiple browser windows
-- Simulate network disconnections
-- Test boundary edge cases
-- Verify lock race conditions
-- Load test with multiple concurrent users
-
----
-
-## Common Pitfalls & Solutions
-
-### **Problem: Cursor lag**
-**Solution:** Ensure cursor updates are debounced to ≤50ms and use optimistic local rendering
-
-### **Problem: Shape sync conflicts**
-**Solution:** Implement proper lock acquisition with Firestore transactions
-
-### **Problem: Canvas performance degradation**
-**Solution:** Use Konva layer optimization and React.memo for shape components
-
-### **Problem: Stale locks after disconnect**
-**Solution:** Implement Firebase onDisconnect handlers for automatic cleanup
-
-### **Problem: Boundary calculation errors**
-**Solution:** Test thoroughly with edge cases and use helper utilities for calculations
-
----
-
-## Future Architecture Considerations
-
-While out of scope for MVP, the architecture should accommodate:
-
-- **AI Agent Integration:** Service layer can expose canvas API functions for AI function calling
-- **Multiple Shape Types:** Shape model extensible with `type` discriminator
-- **Advanced Selections:** Selection state can be added to CanvasState
-- **Undo/Redo:** History service with command pattern
-- **Permissions:** User roles can be added to User model
-- **Export:** Export service can serialize canvas state
+**Realtime Database:**
+```json
+// database.rules.json (PRODUCTION - Example for future)
+{
+  "rules": {
+    "presence": {
+      "main": {
+        "$userId": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.uid == $userId",
+          ".validate": "newData.hasChildren(['userId', 'displayName', 'color', 'cursorX', 'cursorY', 'connectedAt', 'lastUpdate'])"
+        }
+      }
+    }
+  }
+}
+```
 
 ---
 
 ## Deployment Architecture
 
+### Firebase Hosting Structure
+
 ```
-Developer Machine
-    ↓ (git push)
-GitHub Repository
-    ↓ (firebase deploy)
-Firebase Hosting (CDN)
-    ↓ (serves)
-Static Assets (HTML, JS, CSS)
-    ↓ (connects to)
-Firebase Services
-    ├── Firebase Auth
-    └── Cloud Firestore
+Firebase Project
+├── Hosting
+│   ├── Domain: [project-id].web.app
+│   ├── Static files: /dist/*
+│   └── SPA rewrite: /* → /index.html
+│
+├── Firestore (Persistent Data)
+│   ├── Database: (default)
+│   ├── Indexes: Auto-generated
+│   └── Rules: firestore.rules
+│
+├── Realtime Database (Real-time Sync)
+│   ├── Database: (default-rtdb)
+│   ├── Indexes: Defined in rules
+│   └── Rules: database.rules.json
+│
+└── Authentication
+    ├── Providers: Anonymous, Google
+    ├── Domain: [project-id].firebaseapp.com
+    └── OAuth redirect: Auto-configured
 ```
 
-**Deployment Steps:**
-1. Build production bundle: `npm run build`
-2. Initialize Firebase: `firebase init`
-3. Deploy to hosting: `firebase deploy`
-4. Verify production URL
-5. Test with multiple users
+### Deployment Flow
+
+```
+Local Development
+      ↓
+┌─────────────────────────┐
+│  npm run build          │
+│  (Vite build)           │
+└─────────────────────────┘
+      ↓
+┌─────────────────────────┐
+│  dist/ folder           │
+│  created with           │
+│  optimized assets       │
+└─────────────────────────┘
+      ↓
+┌─────────────────────────┐
+│  firebase deploy        │
+│  (deploys all services) │
+└─────────────────────────┘
+      ↓                    ↓                    ↓
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│   Hosting    │  │  Firestore   │  │  Realtime DB │
+│   (static)   │  │   (rules)    │  │   (rules)    │
+└──────────────┘  └──────────────┘  └──────────────┘
+      ↓
+    Production URL
+```
+## Deployment Commands
+
+```bash
+# Deploy everything
+firebase deploy
+
+# Deploy only hosting
+firebase deploy --only hosting
+
+# Deploy only Firestore rules
+firebase deploy --only firestore:rules
+
+# Deploy only Realtime Database rules
+firebase deploy --only database
+
+# Deploy Firestore indexes
+firebase deploy --only firestore:indexes
+```
 
 ---
 
-## Monitoring & Observability
+## API Service Layer Architecture
 
-### **Metrics to Track**
-- Firestore read/write operations
-- Authentication success rate
-- Average cursor sync latency
-- Canvas rendering FPS
-- User session duration
-- Concurrent user count
+### Service Organization
 
-### **Error Tracking**
-- Log Firestore connection errors
-- Track authentication failures
-- Monitor lock acquisition conflicts
-- Record boundary constraint violations
+```
+src/
+├── features/
+│   ├── auth/
+│   │   └── services/
+│   │       └── authService.ts          # Firestore user profiles
+│   │
+│   ├── presence/
+│   │   └── services/
+│   │       └── presenceService.ts      # Realtime DB presence
+│   │
+│   └── shapes/
+│       └── services/
+│           └── shapeService.ts         # Firestore shapes CRUD
+```
+
+### Service Responsibilities
+
+**authService.ts** (Firestore):
+```typescript
+// User profile management in Firestore
+- createUserProfile(user): Promise<void>
+- getUserProfile(userId): Promise<User>
+- updateUserProfile(userId, updates): Promise<void>
+```
+
+**presenceService.ts** (Realtime Database):
+```typescript
+// Real-time presence in Realtime DB
+- createPresence(user): Promise<void>
+- updatePresence(userId, updates): Promise<void>
+- updateCursor(userId, x, y): Promise<void>
+- removePresence(userId): Promise<void>
+- onPresenceChange(callback): () => void  // Listener
+```
+
+**shapeService.ts** (Firestore):
+```typescript
+// Shape CRUD operations in Firestore
+- createShape(shape): Promise<Shape>
+- updateShape(shapeId, updates): Promise<Shape>
+- deleteShape(shapeId): Promise<void>
+- lockShape(shapeId, userId): Promise<boolean>
+- unlockShape(shapeId): Promise<void>
+- onShapesChange(callback): () => void  // Listener
+```
 
 ---
 
-## Glossary
+## Code Examples for Database Usage
 
-- **Canvas Space:** 10,000x10,000px coordinate system with (0,0) at center
-- **Viewport:** Visible portion of canvas rendered in browser window
-- **Lock:** Exclusive write access to a shape during manipulation
-- **Presence:** Real-time awareness of active users and their cursors
-- **Sync:** Propagating state changes across all connected clients
-- **Debounce:** Limiting function execution frequency (e.g., cursor updates)
-- **Optimistic Update:** Updating local UI before server confirmation
+### Realtime Database - Cursor Update
+
+```typescript
+// features/presence/services/presenceService.ts
+import { ref, update, onDisconnect } from 'firebase/database';
+import { database } from '@/api/firebase';
+
+export const presenceService = {
+  // Update cursor position (throttled to 50ms)
+  updateCursor: async (userId: string, x: number, y: number) => {
+    const presenceRef = ref(database, `/presence/main/${userId}`);
+    await update(presenceRef, {
+      cursorX: x,
+      cursorY: y,
+      lastUpdate: Date.now()
+    });
+  },
+  
+  // Setup presence with disconnect cleanup
+  createPresence: async (user: User) => {
+    const presenceRef = ref(database, `/presence/main/${user.userId}`);
+    
+    // Set presence data
+    await update(presenceRef, {
+      userId: user.userId,
+      displayName: user.displayName,
+      color: user.color,
+      cursorX: 0,
+      cursorY: 0,
+      connectedAt: Date.now(),
+      lastUpdate: Date.now()
+    });
+    
+    // Setup auto-cleanup on disconnect
+    onDisconnect(presenceRef).remove();
+  },
+  
+  // Listen to all presence changes
+  onPresenceChange: (callback: (users: Map<string, UserPresence>) => void) => {
+    const presenceRef = ref(database, '/presence/main');
+    const unsubscribe = onValue(presenceRef, (snapshot) => {
+      const users = new Map<string, UserPresence>();
+      const data = snapshot.val();
+      
+      if (data) {
+        Object.entries(data).forEach(([userId, presence]) => {
+          // Filter out stale presence (>30s old)
+          const now = Date.now();
+          if (now - presence.lastUpdate < 30000) {
+            users.set(userId, presence as UserPresence);
+          }
+        });
+      }
+      
+      callback(users);
+    });
+    
+    return unsubscribe;
+  }
+};
+```
+
+### Firestore - Shape Operations
+
+```typescript
+// features/shapes/services/shapeService.ts
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc,
+  onSnapshot,
+  runTransaction 
+} from 'firebase/firestore';
+import { firestore } from '@/api/firebase';
+
+export const shapeService = {
+  // Create shape (persistent)
+  createShape: async (shape: Shape): Promise<Shape> => {
+    const shapeRef = doc(collection(firestore, 'documents/main/shapes'));
+    await setDoc(shapeRef, {
+      ...shape,
+      id: shapeRef.id,
+      createdAt: serverTimestamp(),
+      lastModifiedAt: serverTimestamp()
+    });
+    return { ...shape, id: shapeRef.id };
+  },
+  
+  // Update shape (debounced from drag)
+  updateShape: async (shapeId: string, updates: Partial<Shape>) => {
+    const shapeRef = doc(firestore, `documents/main/shapes/${shapeId}`);
+    await updateDoc(shapeRef, {
+      ...updates,
+      lastModifiedAt: serverTimestamp()
+    });
+  },
+  
+  // Lock shape (uses transaction for atomicity)
+  lockShape: async (shapeId: string, userId: string): Promise<boolean> => {
+    const shapeRef = doc(firestore, `documents/main/shapes/${shapeId}`);
+    
+    try {
+      const success = await runTransaction(firestore, async (transaction) => {
+        const shapeDoc = await transaction.get(shapeRef);
+        
+        if (!shapeDoc.exists()) {
+          return false;
+        }
+        
+        const shape = shapeDoc.data();
+        
+        // Check if already locked by another user
+        if (shape.lockedBy && shape.lockedBy !== userId) {
+          return false;
+        }
+        
+        // Acquire lock
+        transaction.update(shapeRef, {
+          lockedBy: userId,
+          lockedAt: serverTimestamp()
+        });
+        
+        return true;
+      });
+      
+      return success;
+    } catch (error) {
+      console.error('Lock acquisition failed:', error);
+      return false;
+    }
+  },
+  
+  // Listen to shape changes
+  onShapesChange: (callback: (shapes: Shape[]) => void) => {
+    const shapesRef = collection(firestore, 'documents/main/shapes');
+    
+    const unsubscribe = onSnapshot(shapesRef, (snapshot) => {
+      const shapes: Shape[] = [];
+      snapshot.forEach((doc) => {
+        shapes.push(doc.data() as Shape);
+      });
+      callback(shapes);
+    });
+    
+    return unsubscribe;
+  }
+};
+```
 
 ---
 
-This architecture provides a solid foundation for the CollabCanvas MVP while remaining extensible for future enhancements.
+## Performance Monitoring Implementation
+
+```typescript
+// utils/performanceMonitor.ts
+
+interface PerformanceMetrics {
+  // Rendering
+  fps: number;
+  lastFrameTime: number;
+  
+  // Object counts
+  shapeCount: number;
+  visibleShapeCount: number;
+  
+  // Database operations
+  realtimeDbReads: number;
+  realtimeDbWrites: number;
+  firestoreReads: number;
+  firestoreWrites: number;
+  
+  // Latency tracking
+  cursorLatency: number;  // Realtime DB
+  shapeLatency: number;   // Firestore
+}
+
+class PerformanceMonitor {
+  private metrics: PerformanceMetrics;
+  private frameCount = 0;
+  private lastFpsUpdate = Date.now();
+  
+  constructor() {
+    this.metrics = {
+      fps: 60,
+      lastFrameTime: 0,
+      shapeCount: 0,
+      visibleShapeCount: 0,
+      realtimeDbReads: 0,
+      realtimeDbWrites: 0,
+      firestoreReads: 0,
+      firestoreWrites: 0,
+      cursorLatency: 0,
+      shapeLatency: 0
+    };
+  }
+  
+  // Track frame rate
+  recordFrame() {
+    this.frameCount++;
+    const now = Date.now();
+    
+    if (now - this.lastFpsUpdate >= 1000) {
+      this.metrics.fps = this.frameCount;
+      this.frameCount = 0;
+      this.lastFpsUpdate = now;
+      
+      if (this.metrics.fps < 55 && import.meta.env.DEV) {
+        console.warn(`Low FPS detected: ${this.metrics.fps}`);
+      }
+    }
+  }
+  
+  // Track database operations
+  recordRealtimeDbRead() {
+    this.metrics.realtimeDbReads++;
+  }
+  
+  recordRealtimeDbWrite() {
+    this.metrics.realtimeDbWrites++;
+  }
+  
+  recordFirestoreRead() {
+    this.metrics.firestoreReads++;
+  }
+  
+  recordFirestoreWrite() {
+    this.metrics.firestoreWrites++;
+  }
+  
+  // Track latency
+  recordCursorLatency(latency: number) {
+    this.metrics.cursorLatency = latency;
+    
+    if (latency > 50 && import.meta.env.DEV) {
+      console.warn(`High cursor latency: ${latency}ms`);
+    }
+  }
+  
+  recordShapeLatency(latency: number) {
+    this.metrics.shapeLatency = latency;
+    
+    if (latency > 300 && import.meta.env.DEV) {
+      console.warn(`High shape latency: ${latency}ms`);
+    }
+  }
+  
+  getMetrics(): PerformanceMetrics {
+    return { ...this.metrics };
+  }
+  
+  // Log summary (development only)
+  logSummary() {
+    if (!import.meta.env.DEV) return;
+    
+    console.table({
+      'FPS': this.metrics.fps,
+      'Shapes (total)': this.metrics.shapeCount,
+      'Shapes (visible)': this.metrics.visibleShapeCount,
+      'Cursor Latency (ms)': this.metrics.cursorLatency,
+      'Shape Latency (ms)': this.metrics.shapeLatency,
+      'Realtime DB Reads': this.metrics.realtimeDbReads,
+      'Realtime DB Writes': this.metrics.realtimeDbWrites,
+      'Firestore Reads': this.metrics.firestoreReads,
+      'Firestore Writes': this.metrics.firestoreWrites
+    });
+  }
+}
+
+export const performanceMonitor = new PerformanceMonitor();
+
+// Usage in components:
+// import { performanceMonitor } from '@/utils/performanceMonitor';
+// performanceMonitor.recordFrame();
+// performanceMonitor.recordCursorLatency(latency);
+```
+
+---
+
+## Database Selection Quick Reference
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    WHEN TO USE WHAT                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  USE REALTIME DATABASE WHEN:                                    │
+│  ✅ Data updates multiple times per second                      │
+│  ✅ Ultra-low latency required (<50ms)                          │
+│  ✅ Data is ephemeral (OK to lose on disconnect)               │
+│  ✅ Simple key-value structure is sufficient                    │
+│  ✅ Real-time synchronization is critical                       │
+│                                                                  │
+│  Examples: Cursor positions, presence heartbeat                 │
+│                                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  USE FIRESTORE WHEN:                                            │
+│  ✅ Data must persist permanently                               │
+│  ✅ Need complex queries and indexing                           │
+│  ✅ Need ACID transactions                                      │
+│  ✅ Structured documents with relationships                     │
+│  ✅ Update frequency is low (<1/second)                         │
+│                                                                  │
+│  Examples: Shapes, user profiles, locks                         │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## End of Architecture Diagram
+
+This architecture document now includes **both Firebase Realtime Database and Firestore**, optimized for their respective strengths:
+- **Realtime Database**: High-frequency, low-latency operations (cursors, presence)
+- **Firestore**: Persistent, structured data with complex queries (shapes, profiles)
+
+All components, data flows, and architectural decisions reflect this dual-database approach for optimal performance.
+
+**Quick Reference:**
+- For requirements: See `_docs/PRD.md`
+- For implementation steps: See `_docs/TASK_LIST.md`
+- For React patterns: See `_docs/react-architecture-guide.md` (if available)
+
+---
+
+## End of Architecture Diagram
+
+This architecture document provides a comprehensive system design for CollabCanvas, optimized for AI agent implementation. All components, data flows, and architectural decisions are documented to guide development.
