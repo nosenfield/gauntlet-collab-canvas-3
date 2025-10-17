@@ -28,10 +28,13 @@ export interface AxisAlignedBoundingBox {
 
 /**
  * Oriented Bounding Box (OBB)
- * AABB with rotation for accurate bounds of rotated objects
+ * Rotated bounding box defined by 4 corners
+ * Used for accurate bounds of rotated objects
  */
-export interface OrientedBoundingBox extends AxisAlignedBoundingBox {
-  rotation: number; // Degrees
+export interface OrientedBoundingBox {
+  corners: Point[];  // 4 corner points in world space [TL, TR, BR, BL]
+  center: Point;     // Center point
+  rotation: number;  // Rotation in degrees
 }
 
 /**

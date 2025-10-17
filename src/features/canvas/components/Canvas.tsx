@@ -28,6 +28,9 @@ import { useTool } from '@/features/displayObjects/common/store/toolStore';
 import { useMarqueeSelection } from '@/features/displayObjects/common/hooks/useMarqueeSelection';
 import { MarqueeBox } from '@/features/displayObjects/common/components/MarqueeBox';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
+import { useBoundingBox } from '@/features/displayObjects/common/hooks/useBoundingBox';
+import { CollectionBoundingBox } from '@/features/displayObjects/common/components/CollectionBoundingBox';
+import { ObjectHighlight } from '@/features/displayObjects/common/components/ObjectHighlight';
 
 /**
  * Canvas Component
@@ -95,6 +98,12 @@ export function Canvas(): React.ReactElement {
     handleMouseMove: marqueeMouseMove,
     handleMouseUp: marqueeMouseUp,
   } = useMarqueeSelection(shapes, stageRef, isSelectMode());
+  
+  // Get selected shapes for bounding box calculation
+  const selectedShapes = shapes.filter(shape => selectedIds.includes(shape.id));
+  
+  // Calculate bounding boxes for selected shapes
+  const { collectionBounds, objectCorners } = useBoundingBox(selectedShapes);
 
   // Handle shape click (select when in select mode)
   const handleShapeClick = (shapeId: string, isShiftClick: boolean) => {
@@ -223,6 +232,20 @@ export function Canvas(): React.ReactElement {
           selectedIds={selectedIds}
           onShapeClick={handleShapeClick}
         />
+        {/* Bounding Box Layer - Selection highlights */}
+        <Layer listening={false}>
+          {/* Individual object highlights (solid OBB) */}
+          {selectedShapes.map(shape => {
+            const corners = objectCorners.get(shape.id);
+            if (!corners) return null;
+            return <ObjectHighlight key={`highlight-${shape.id}`} corners={corners} />;
+          })}
+          
+          {/* Collection bounding box (dashed AABB) */}
+          {collectionBounds && selectedShapes.length > 1 && (
+            <CollectionBoundingBox bounds={collectionBounds} />
+          )}
+        </Layer>
         {/* Marquee Selection Layer */}
         <Layer listening={false}>
           {isMarqueeActive && getMarqueeBox() && (

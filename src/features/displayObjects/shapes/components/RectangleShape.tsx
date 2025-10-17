@@ -46,14 +46,15 @@ export function RectangleShape({
   };
 
   // Constrain dragging to canvas boundaries (10,000 x 10,000px)
+  // Note: Position is top-left corner, so constrain to keep shape within bounds
   const dragBoundFunc = (pos: { x: number; y: number }) => {
     const CANVAS_SIZE = 10000;
-    const halfWidth = shape.width / 2;
-    const halfHeight = shape.height / 2;
+    const scaledWidth = shape.width * shape.scaleX;
+    const scaledHeight = shape.height * shape.scaleY;
     
     return {
-      x: Math.max(halfWidth, Math.min(pos.x, CANVAS_SIZE - halfWidth)),
-      y: Math.max(halfHeight, Math.min(pos.y, CANVAS_SIZE - halfHeight)),
+      x: Math.max(0, Math.min(pos.x, CANVAS_SIZE - scaledWidth)),
+      y: Math.max(0, Math.min(pos.y, CANVAS_SIZE - scaledHeight)),
     };
   };
 

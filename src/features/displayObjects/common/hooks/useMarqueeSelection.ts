@@ -60,6 +60,8 @@ function getShapeBounds(shape: ShapeDisplayObject) {
 /**
  * Check if a shape intersects with the marquee box
  * Simple AABB (Axis-Aligned Bounding Box) intersection test
+ * 
+ * Note: Shape position is top-left corner (Konva default)
  */
 function shapeIntersectsMarquee(
   shape: ShapeDisplayObject,
@@ -71,10 +73,11 @@ function shapeIntersectsMarquee(
   // Get shape bounds (simplified - doesn't account for rotation yet)
   const { width, height } = getShapeBounds(shape);
   
-  const shapeLeft = shape.x - width / 2;
-  const shapeRight = shape.x + width / 2;
-  const shapeTop = shape.y - height / 2;
-  const shapeBottom = shape.y + height / 2;
+  // Shape bounds (position is top-left corner)
+  const shapeLeft = shape.x;
+  const shapeRight = shape.x + width;
+  const shapeTop = shape.y;
+  const shapeBottom = shape.y + height;
   
   const marqueeLeft = marqueeX;
   const marqueeRight = marqueeX + marqueeWidth;
