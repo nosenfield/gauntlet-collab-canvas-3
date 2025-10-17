@@ -17,6 +17,7 @@ import {
   query,
   orderBy,
   serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import { firestore } from '@/api/firebase';
 import type { ShapeDisplayObject, CreateShapeData, UpdateShapeData } from '../types';
@@ -144,6 +145,44 @@ export const deleteShape = async (shapeId: string): Promise<void> => {
     console.log('[ShapeService] Shape deleted:', shapeId);
   } catch (error) {
     console.error('[ShapeService] Error deleting shape:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete all shapes
+ * 
+ * Uses batch delete for efficiency
+ * 
+ * @returns Promise resolving to the number of shapes deleted
+ */
+export const deleteAllShapes = async (): Promise<number> => {
+  try {
+    console.log('[ShapeService] Deleting all shapes...');
+    
+    // Get all shapes
+    const shapesSnapshot = await getDocs(getShapesCollection());
+    
+    if (shapesSnapshot.empty) {
+      console.log('[ShapeService] No shapes to delete');
+      return 0;
+    }
+    
+    // Use batch delete for efficiency (max 500 operations per batch)
+    const batch = writeBatch(firestore);
+    let count = 0;
+    
+    shapesSnapshot.forEach((doc) => {
+      batch.delete(doc.ref);
+      count++;
+    });
+    
+    await batch.commit();
+    console.log(`[ShapeService] Successfully deleted ${count} shapes`);
+    
+    return count;
+  } catch (error) {
+    console.error('[ShapeService] Error deleting all shapes:', error);
     throw error;
   }
 };

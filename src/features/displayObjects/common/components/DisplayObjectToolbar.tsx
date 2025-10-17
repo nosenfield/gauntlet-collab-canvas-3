@@ -6,6 +6,8 @@
  */
 
 import { useTool, type ToolType, TOOL_LABELS } from '../store/toolStore';
+import { deleteAllShapes } from '@/features/displayObjects/shapes/services/shapeService';
+import { useSelection } from '../store/selectionStore';
 import './DisplayObjectToolbar.css';
 
 /**
@@ -60,11 +62,35 @@ function ToolButton({ tool, isActive, onClick }: ToolButtonProps) {
  */
 export function DisplayObjectToolbar() {
   const { setTool, isToolActive } = useTool();
+  const { clearSelection } = useSelection();
 
   const tools: ToolType[] = ['select', 'rectangle', 'circle', 'line'];
 
   const handleToolClick = (tool: ToolType) => {
     setTool(tool);
+  };
+
+  const handleClearAll = async () => {
+    // Confirm before deleting
+    const confirmed = window.confirm(
+      'Are you sure you want to delete all objects from the canvas? This action cannot be undone.'
+    );
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    try {
+      // Clear selection first
+      clearSelection();
+      
+      // Delete all shapes
+      const count = await deleteAllShapes();
+      console.log(`[Toolbar] Cleared ${count} objects from canvas`);
+    } catch (error) {
+      console.error('[Toolbar] Error clearing canvas:', error);
+      alert('Failed to clear canvas. Please try again.');
+    }
   };
 
   return (
@@ -78,6 +104,20 @@ export function DisplayObjectToolbar() {
             onClick={() => handleToolClick(tool)}
           />
         ))}
+        
+        {/* Separator */}
+        <div className="display-object-toolbar__separator" />
+        
+        {/* Clear All Button */}
+        <button
+          className="tool-button tool-button--danger"
+          onClick={handleClearAll}
+          title="Clear All Objects"
+          aria-label="Clear All Objects"
+        >
+          <span className="tool-button__icon">🗑️</span>
+          <span className="tool-button__label">Clear All</span>
+        </button>
       </div>
     </div>
   );

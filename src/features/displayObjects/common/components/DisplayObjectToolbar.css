@@ -108,6 +108,28 @@
   border-color: transparent;
 }
 
+/* Separator */
+.display-object-toolbar__separator {
+  width: 2px;
+  height: 64px;
+  background-color: rgba(255, 255, 255, 0.15);
+  margin: 0 4px;
+}
+
+/* Danger Button (Clear All) */
+.tool-button--danger {
+  color: #FF6B6B;
+}
+
+.tool-button--danger:hover {
+  background-color: rgba(255, 107, 107, 0.15);
+  border-color: rgba(255, 107, 107, 0.3);
+}
+
+.tool-button--danger:active {
+  background-color: rgba(255, 107, 107, 0.25);
+}
+
 /* Responsive: Stack vertically on small screens */
 @media (max-width: 768px) {
   .display-object-toolbar {
@@ -132,6 +154,12 @@
   
   .tool-button__label {
     font-size: 10px;
+  }
+  
+  .display-object-toolbar__separator {
+    width: 52px;
+    height: 2px;
+    margin: 2px 0;
   }
 }
 
