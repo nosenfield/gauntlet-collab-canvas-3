@@ -62,10 +62,40 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
   const dashPattern = [5 / viewport.scale, 5 / viewport.scale];
   const rotationDistance = ROTATION_HANDLE_DISTANCE / viewport.scale;
 
+  // Store resize data
+  const resizeDataRef = useRef<{ 
+    stage: Konva.Stage; 
+    handleType: ResizeHandle;
+    startMousePos: { x: number; y: number };
+    startX: number;
+    startY: number;
+    startWidth: number;
+    startHeight: number;
+  } | null>(null);
+
   /**
-   * Handle resize drag start
+   * Handle resize mouse down
    */
-  const handleResizeDragStart = (handleType: ResizeHandle) => {
+  const handleResizeMouseDown = (handleType: ResizeHandle) => (e: Konva.KonvaEventObject<MouseEvent>) => {
+    e.cancelBubble = true;
+    
+    const stage = e.target.getStage();
+    if (!stage) return;
+
+    const pointerPos = stage.getPointerPosition();
+    if (!pointerPos) return;
+
+    // Store resize data with absolute starting positions
+    resizeDataRef.current = {
+      stage,
+      handleType,
+      startMousePos: pointerPos,
+      startX: shape.x,
+      startY: shape.y,
+      startWidth: shape.width || 0,
+      startHeight: shape.height || 0,
+    };
+
     dragStartRef.current = {
       width: shape.width || 0,
       height: shape.height || 0,
@@ -73,119 +103,223 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
       y: shape.y,
       rotation: shape.rotation || 0,
     };
+
+    // Add global mouse listeners
+    const handleGlobalMouseMove = () => {
+      if (!resizeDataRef.current) return;
+      const { stage, handleType, startMousePos, startX, startY, startWidth, startHeight } = resizeDataRef.current;
+      
+      const pointerPos = stage.getPointerPosition();
+      if (!pointerPos) return;
+
+      // Calculate delta from start position (in screen coordinates)
+      const screenDx = pointerPos.x - startMousePos.x;
+      const screenDy = pointerPos.y - startMousePos.y;
+      
+      // Convert to canvas coordinates by dividing by zoom scale
+      const dx = screenDx / viewport.scale;
+      const dy = screenDy / viewport.scale;
+
+      let newWidth: number;
+      let newHeight: number;
+      let newX: number | undefined;
+      let newY: number | undefined;
+
+      // Calculate new dimensions based on which handle and mouse delta
+      // Key: anchor point (opposite corner) stays fixed
+      // Allow negative dimensions to support flipping
+      switch (handleType) {
+        case 'top-left':
+          // Anchor: bottom-right stays at (startX + startWidth, startY + startHeight)
+          newWidth = startWidth - dx;
+          newHeight = startHeight - dy;
+          // Handle flipping: adjust position when dimensions go negative
+          if (newWidth < 0) {
+            newX = startX + startWidth;  // Anchor becomes new origin
+          } else {
+            newX = startX + dx;
+          }
+          if (newHeight < 0) {
+            newY = startY + startHeight;
+          } else {
+            newY = startY + dy;
+          }
+          break;
+
+        case 'top-right':
+          // Anchor: bottom-left stays at (startX, startY + startHeight)
+          newWidth = startWidth + dx;
+          newHeight = startHeight - dy;
+          // Handle horizontal flipping (dragged left past anchor)
+          if (newWidth < 0) {
+            newX = startX + newWidth;  // Move origin left from anchor
+          } else {
+            newX = startX;  // Normal: X doesn't change
+          }
+          // Handle vertical flipping (dragged down past anchor)
+          if (newHeight < 0) {
+            newY = startY + startHeight + newHeight;  // Move origin down from anchor
+          } else {
+            newY = startY + dy;
+          }
+          break;
+
+        case 'bottom-left':
+          // Anchor: top-right stays at (startX + startWidth, startY)
+          newWidth = startWidth - dx;
+          newHeight = startHeight + dy;
+          // Handle horizontal flipping (dragged right past anchor)
+          if (newWidth < 0) {
+            newX = startX + startWidth + newWidth;  // Move origin right from anchor
+          } else {
+            newX = startX + dx;
+          }
+          // Handle vertical flipping (dragged up past anchor)
+          if (newHeight < 0) {
+            newY = startY + newHeight;  // Move origin up from anchor
+          } else {
+            newY = startY;  // Normal: Y doesn't change
+          }
+          break;
+
+        case 'bottom-right':
+          // Anchor: top-left stays at (startX, startY)
+          newWidth = startWidth + dx;
+          newHeight = startHeight + dy;
+          // Handle horizontal flipping (dragged left past anchor)
+          if (newWidth < 0) {
+            newX = startX + newWidth;  // Move origin left from anchor
+          } else {
+            newX = startX;  // Normal: X doesn't change
+          }
+          // Handle vertical flipping (dragged up past anchor)
+          if (newHeight < 0) {
+            newY = startY + newHeight;  // Move origin up from anchor
+          } else {
+            newY = startY;  // Normal: Y doesn't change
+          }
+          break;
+      }
+
+      // Apply resize with stage reference for optimistic updates
+      // Pass absolute values for dimensions, handle flipping in the rendering
+      handleResize(shape.id, Math.abs(newWidth), Math.abs(newHeight), newX, newY, { current: stage });
+    };
+
+    const handleGlobalMouseUp = () => {
+      if (!resizeDataRef.current) return;
+      const { stage, handleType, startMousePos, startX, startY, startWidth, startHeight } = resizeDataRef.current;
+      
+      const pointerPos = stage.getPointerPosition();
+      if (pointerPos) {
+        // Calculate final delta (in screen coordinates)
+        const screenDx = pointerPos.x - startMousePos.x;
+        const screenDy = pointerPos.y - startMousePos.y;
+        
+        // Convert to canvas coordinates by dividing by zoom scale
+        const dx = screenDx / viewport.scale;
+        const dy = screenDy / viewport.scale;
+
+        let newWidth: number;
+        let newHeight: number;
+        let newX: number | undefined;
+        let newY: number | undefined;
+
+        // Calculate final dimensions with proper anchor points
+        // Allow negative dimensions to support flipping
+        switch (handleType) {
+          case 'top-left':
+            // Anchor: bottom-right stays fixed
+            newWidth = startWidth - dx;
+            newHeight = startHeight - dy;
+            // Handle flipping
+            if (newWidth < 0) {
+              newX = startX + startWidth;
+            } else {
+              newX = startX + dx;
+            }
+            if (newHeight < 0) {
+              newY = startY + startHeight;
+            } else {
+              newY = startY + dy;
+            }
+            break;
+
+          case 'top-right':
+            // Anchor: bottom-left stays fixed
+            newWidth = startWidth + dx;
+            newHeight = startHeight - dy;
+            // Handle horizontal flipping
+            if (newWidth < 0) {
+              newX = startX + newWidth;
+            } else {
+              newX = startX;
+            }
+            // Handle vertical flipping
+            if (newHeight < 0) {
+              newY = startY + startHeight + newHeight;
+            } else {
+              newY = startY + dy;
+            }
+            break;
+
+          case 'bottom-left':
+            // Anchor: top-right stays fixed
+            newWidth = startWidth - dx;
+            newHeight = startHeight + dy;
+            // Handle horizontal flipping
+            if (newWidth < 0) {
+              newX = startX + startWidth + newWidth;
+            } else {
+              newX = startX + dx;
+            }
+            // Handle vertical flipping
+            if (newHeight < 0) {
+              newY = startY + newHeight;
+            } else {
+              newY = startY;
+            }
+            break;
+
+          case 'bottom-right':
+            // Anchor: top-left stays fixed
+            newWidth = startWidth + dx;
+            newHeight = startHeight + dy;
+            // Handle horizontal flipping
+            if (newWidth < 0) {
+              newX = startX + newWidth;
+            } else {
+              newX = startX;
+            }
+            // Handle vertical flipping
+            if (newHeight < 0) {
+              newY = startY + newHeight;
+            } else {
+              newY = startY;
+            }
+            break;
+        }
+
+        // Finalize resize with absolute dimensions
+        handleResizeEnd(shape.id, Math.abs(newWidth), Math.abs(newHeight), newX, newY);
+      }
+
+      dragStartRef.current = null;
+      
+      // Remove event listeners
+      stage.off('mousemove', handleGlobalMouseMove);
+      stage.off('mouseup', handleGlobalMouseUp);
+      
+      resizeDataRef.current = null;
+      
+      console.log('✅ Resize end:', handleType);
+    };
+
+    // Add event listeners to stage
+    stage.on('mousemove', handleGlobalMouseMove);
+    stage.on('mouseup', handleGlobalMouseUp);
+    
     console.log('🎯 Resize start:', handleType);
-  };
-
-  /**
-   * Handle resize drag move
-   * Note: Resize works best on non-rotated shapes. For rotated shapes, consider resetting rotation first.
-   */
-  const handleResizeDragMove = (
-    handleType: ResizeHandle,
-    e: Konva.KonvaEventObject<DragEvent>
-  ) => {
-    if (!dragStartRef.current) return;
-
-    const node = e.target;
-    
-    // Get absolute position of handle in world coordinates
-    const handlePos = node.getAbsolutePosition();
-
-    const { width: originalWidth, height: originalHeight, x: originalX, y: originalY } = dragStartRef.current;
-
-    let newWidth = originalWidth;
-    let newHeight = originalHeight;
-    let newX = originalX;
-    let newY = originalY;
-
-    // Calculate new dimensions based on which handle is being dragged
-    // For non-rotated shapes, this works perfectly
-    // For rotated shapes, dimensions will be in axis-aligned space
-    switch (handleType) {
-      case 'top-left':
-        newWidth = originalX + originalWidth - handlePos.x;
-        newHeight = originalY + originalHeight - handlePos.y;
-        newX = handlePos.x;
-        newY = handlePos.y;
-        break;
-
-      case 'top-right':
-        newWidth = handlePos.x - originalX;
-        newHeight = originalY + originalHeight - handlePos.y;
-        newY = handlePos.y;
-        break;
-
-      case 'bottom-left':
-        newWidth = originalX + originalWidth - handlePos.x;
-        newHeight = handlePos.y - originalY;
-        newX = handlePos.x;
-        break;
-
-      case 'bottom-right':
-        newWidth = handlePos.x - originalX;
-        newHeight = handlePos.y - originalY;
-        break;
-    }
-
-    // Get stage for optimistic updates
-    const stage = node.getStage();
-
-    // Apply resize with stage reference for optimistic updates
-    handleResize(shape.id, newWidth, newHeight, newX, newY, stage ? { current: stage } : undefined);
-  };
-
-  /**
-   * Handle resize drag end
-   */
-  const handleResizeDragEnd = (
-    handleType: ResizeHandle,
-    e: Konva.KonvaEventObject<DragEvent>
-  ) => {
-    if (!dragStartRef.current) return;
-
-    const node = e.target;
-    
-    // Get absolute position of handle in world coordinates
-    const handlePos = node.getAbsolutePosition();
-
-    const { width: originalWidth, height: originalHeight, x: originalX, y: originalY } = dragStartRef.current;
-
-    let newWidth = originalWidth;
-    let newHeight = originalHeight;
-    let newX = originalX;
-    let newY = originalY;
-
-    // Calculate final dimensions
-    switch (handleType) {
-      case 'top-left':
-        newWidth = originalX + originalWidth - handlePos.x;
-        newHeight = originalY + originalHeight - handlePos.y;
-        newX = handlePos.x;
-        newY = handlePos.y;
-        break;
-
-      case 'top-right':
-        newWidth = handlePos.x - originalX;
-        newHeight = originalY + originalHeight - handlePos.y;
-        newY = handlePos.y;
-        break;
-
-      case 'bottom-left':
-        newWidth = originalX + originalWidth - handlePos.x;
-        newHeight = handlePos.y - originalY;
-        newX = handlePos.x;
-        break;
-
-      case 'bottom-right':
-        newWidth = handlePos.x - originalX;
-        newHeight = handlePos.y - originalY;
-        break;
-    }
-
-    // Finalize resize
-    handleResizeEnd(shape.id, newWidth, newHeight, newX, newY);
-    dragStartRef.current = null;
-    console.log('✅ Resize end:', handleType);
   };
 
   // Store stage and center position for rotation
@@ -299,10 +433,8 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
         fill="white"
         stroke={HANDLE_COLOR}
         strokeWidth={handleStrokeWidth}
-        draggable={true}
-        onDragStart={() => handleResizeDragStart('top-left')}
-        onDragMove={(e) => handleResizeDragMove('top-left', e)}
-        onDragEnd={(e) => handleResizeDragEnd('top-left', e)}
+        draggable={false}
+        onMouseDown={handleResizeMouseDown('top-left')}
         cursor="nwse-resize"
         perfectDrawEnabled={false}
       />
@@ -315,10 +447,8 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
         fill="white"
         stroke={HANDLE_COLOR}
         strokeWidth={handleStrokeWidth}
-        draggable={true}
-        onDragStart={() => handleResizeDragStart('top-right')}
-        onDragMove={(e) => handleResizeDragMove('top-right', e)}
-        onDragEnd={(e) => handleResizeDragEnd('top-right', e)}
+        draggable={false}
+        onMouseDown={handleResizeMouseDown('top-right')}
         cursor="nesw-resize"
         perfectDrawEnabled={false}
       />
@@ -331,10 +461,8 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
         fill="white"
         stroke={HANDLE_COLOR}
         strokeWidth={handleStrokeWidth}
-        draggable={true}
-        onDragStart={() => handleResizeDragStart('bottom-left')}
-        onDragMove={(e) => handleResizeDragMove('bottom-left', e)}
-        onDragEnd={(e) => handleResizeDragEnd('bottom-left', e)}
+        draggable={false}
+        onMouseDown={handleResizeMouseDown('bottom-left')}
         cursor="nesw-resize"
         perfectDrawEnabled={false}
       />
@@ -347,10 +475,8 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
         fill="white"
         stroke={HANDLE_COLOR}
         strokeWidth={handleStrokeWidth}
-        draggable={true}
-        onDragStart={() => handleResizeDragStart('bottom-right')}
-        onDragMove={(e) => handleResizeDragMove('bottom-right', e)}
-        onDragEnd={(e) => handleResizeDragEnd('bottom-right', e)}
+        draggable={false}
+        onMouseDown={handleResizeMouseDown('bottom-right')}
         cursor="nwse-resize"
         perfectDrawEnabled={false}
       />
