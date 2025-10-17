@@ -46,7 +46,7 @@ After completing each task, provide:
 
 ## Project Setup Phase
 
-### SETUP-1: Initialize Project Structure
+### SETUP-1: Initialize Project Structure ✅
 
 **Objective**: Create React + TypeScript + Vite project with proper folder structure
 
@@ -103,10 +103,10 @@ After completing each task, provide:
 5. Set up ESLint with React + TypeScript rules
 
 **Verification**:
-- [ ] Project builds without errors: `npm run dev`
-- [ ] Folder structure matches specification
-- [ ] TypeScript strict mode enabled
-- [ ] All dependencies installed correctly
+- [x] Project builds without errors: `npm run dev`
+- [x] Folder structure matches specification
+- [x] TypeScript strict mode enabled
+- [x] All dependencies installed correctly
 
 **Files to Create**:
 - `tsconfig.json` (updated)
@@ -115,7 +115,7 @@ After completing each task, provide:
 
 ---
 
-### SETUP-2: Firebase Configuration
+### SETUP-2: Firebase Configuration ✅
 
 **Objective**: Set up Firebase client with both Firestore and Realtime Database
 
@@ -146,11 +146,11 @@ After completing each task, provide:
    - Note: UserPresence uses number timestamps (not Firestore Timestamp) for Realtime DB
 
 **Verification**:
-- [ ] Firebase initializes without errors
-- [ ] Firestore instance available
-- [ ] Realtime Database instance available
-- [ ] Environment variables load correctly
-- [ ] TypeScript types are defined and exported
+- [x] Firebase initializes without errors
+- [x] Firestore instance available
+- [x] Realtime Database instance available
+- [x] Environment variables load correctly
+- [x] TypeScript types are defined and exported
 
 **Files to Create**:
 - `src/api/firebase.ts`
@@ -162,7 +162,7 @@ After completing each task, provide:
 
 ## Stage 1: Canvas with Pan/Zoom
 
-### STAGE1-1: Basic Canvas Setup
+### STAGE1-1: Basic Canvas Setup ✅
 
 **Objective**: Render a Konva Stage with 10,000 x 10,000 canvas area
 
@@ -197,10 +197,10 @@ After completing each task, provide:
 4. Update `src/App.tsx` to render Canvas component
 
 **Verification**:
-- [ ] Canvas renders and fills entire browser window
-- [ ] Canvas resizes when window resizes
-- [ ] No console errors
-- [ ] TypeScript compiles without errors
+- [x] Canvas renders and fills entire browser window
+- [x] Canvas resizes when window resizes
+- [x] No console errors
+- [x] TypeScript compiles without errors
 
 **Files to Create**:
 - `src/features/canvas/components/Canvas.tsx`
@@ -212,7 +212,7 @@ After completing each task, provide:
 
 ---
 
-### STAGE1-2: Grid Background
+### STAGE1-2: Grid Background ✅
 
 **Objective**: Render grid background with scaling specifications
 
@@ -231,12 +231,12 @@ After completing each task, provide:
 3. Integrate GridBackground into Canvas component
 
 **Verification**:
-- [ ] Grid displays with correct colors and opacity
-- [ ] Primary grid lines at 100px spacing
-- [ ] Secondary grid lines at 500px spacing (every 5th line)
-- [ ] Grid scales when zooming (tested manually with placeholder zoom)
-- [ ] Background is dark gray
-- [ ] No performance issues with grid rendering
+- [x] Grid displays with correct colors and opacity
+- [x] Primary grid lines at 100px spacing
+- [x] Secondary grid lines at 500px spacing (every 5th line)
+- [x] Grid scales when zooming (tested manually with placeholder zoom)
+- [x] Background is dark gray
+- [x] No performance issues with grid rendering
 
 **Files to Create**:
 - `src/features/canvas/components/GridBackground.tsx`
@@ -247,7 +247,7 @@ After completing each task, provide:
 
 ---
 
-### STAGE1-3: Pan Implementation
+### STAGE1-3: Pan Implementation ✅
 
 **Objective**: Implement smooth panning with scroll
 
@@ -272,11 +272,11 @@ After completing each task, provide:
    - Account for pan and zoom transforms
 
 **Verification**:
-- [ ] Click and drag pans the canvas
-- [ ] Panning is smooth at 60 FPS (check DevTools Performance)
-- [ ] Cannot pan beyond canvas boundaries
-- [ ] Panning works in all directions
-- [ ] Release mouse stops panning
+- [x] Click and drag pans the canvas
+- [x] Panning is smooth at 60 FPS (check DevTools Performance)
+- [x] Cannot pan beyond canvas boundaries
+- [x] Panning works in all directions
+- [x] Release mouse stops panning
 
 **Files to Create**:
 - `src/features/canvas/hooks/usePan.ts`
@@ -288,7 +288,7 @@ After completing each task, provide:
 
 ---
 
-### STAGE1-4: Zoom Implementation
+### STAGE1-4: Zoom Implementation ✅
 
 **Objective**: Implement cursor-centered zoom with Cmd/Ctrl + Scroll
 
@@ -331,13 +331,13 @@ function handleZoom(event: WheelEvent) {
 ```
 
 **Verification**:
-- [ ] Cmd/Ctrl + Scroll zooms the canvas
-- [ ] Zoom is centered on cursor position
-- [ ] Zoom is smooth at 60 FPS
-- [ ] Cannot zoom beyond maximum zoom in (100px across smaller dimension)
-- [ ] Cannot zoom beyond maximum zoom out (10,000px across larger dimension)
-- [ ] Grid scales appropriately with zoom
-- [ ] Regular scroll without modifier does not zoom
+- [x] Cmd/Ctrl + Scroll zooms the canvas
+- [x] Zoom is centered on cursor position
+- [x] Zoom is smooth at 60 FPS
+- [x] Cannot zoom beyond maximum zoom in (100px across smaller dimension)
+- [x] Cannot zoom beyond maximum zoom out (10,000px across larger dimension)
+- [x] Grid scales appropriately with zoom
+- [x] Regular scroll without modifier does not zoom
 
 **Files to Create**:
 - `src/features/canvas/hooks/useZoom.ts`
@@ -349,7 +349,7 @@ function handleZoom(event: WheelEvent) {
 
 ---
 
-### STAGE1-5: Performance Optimization & Testing
+### STAGE1-5: Performance Optimization & Testing ✅
 
 **Objective**: Ensure 60 FPS performance for all Stage 1 features
 
@@ -370,12 +370,12 @@ function handleZoom(event: WheelEvent) {
 4. Test and verify all Stage 1 acceptance criteria
 
 **Verification**:
-- [ ] Pan maintains 60 FPS (verify with Chrome DevTools Performance)
-- [ ] Zoom maintains 60 FPS
-- [ ] Grid rendering is optimized (no unnecessary redraws)
-- [ ] Window resize works smoothly
-- [ ] All Stage 1 acceptance criteria pass
-- [ ] No console errors or warnings
+- [x] Pan maintains 60 FPS (verify with Chrome DevTools Performance)
+- [x] Zoom maintains 60 FPS
+- [x] Grid rendering is optimized (no unnecessary redraws)
+- [x] Window resize works smoothly
+- [x] All Stage 1 acceptance criteria pass
+- [x] No console errors or warnings
 
 **Files to Create**:
 - `src/utils/performanceMonitor.ts`
@@ -388,7 +388,7 @@ function handleZoom(event: WheelEvent) {
 
 ## Stage 2: User Authentication & Presence
 
-### STAGE2-1: Firebase Authentication Setup
+### STAGE2-1: Firebase Authentication Setup ✅
 
 **Objective**: Implement Anonymous and Google OAuth authentication
 
@@ -431,13 +431,13 @@ function handleZoom(event: WheelEvent) {
 - Use UUID for userId (Firebase Auth UID)
 
 **Verification**:
-- [ ] Auth modal appears on first load
-- [ ] Anonymous sign-in works
-- [ ] Google sign-in works
-- [ ] User document created in Firestore `/users/{userId}`
-- [ ] User has UUID, displayName, and color
-- [ ] Auth state persists across browser refresh
-- [ ] Modal closes after authentication
+- [x] Auth modal appears on first load
+- [x] Anonymous sign-in works
+- [x] Google sign-in works
+- [x] User document created in Firestore `/users/{userId}`
+- [x] User has UUID, displayName, and color
+- [x] Auth state persists across browser refresh
+- [x] Modal closes after authentication
 
 **Files to Create**:
 - `src/features/auth/services/authService.ts`
@@ -451,7 +451,7 @@ function handleZoom(event: WheelEvent) {
 
 ---
 
-### STAGE2-2: User Presence System
+### STAGE2-2: User Presence System ✅
 
 **Objective**: Track active users in real-time with Realtime Database
 
@@ -499,13 +499,13 @@ function handleZoom(event: WheelEvent) {
 - Use Realtime Database `.on('value')` for real-time listeners
 
 **Verification**:
-- [ ] User presence created in Realtime Database on auth
-- [ ] Presence heartbeat updates every 5 seconds
-- [ ] Presence removed after 30 seconds of inactivity
-- [ ] onDisconnect cleanup works when closing tab
-- [ ] Multiple tabs share same presence (one per user)
-- [ ] Real-time listener receives presence updates instantly
-- [ ] Check Firebase Realtime Database console to see presence data
+- [x] User presence created in Realtime Database on auth
+- [x] Presence heartbeat updates every 5 seconds
+- [x] Presence removed after 30 seconds of inactivity
+- [x] onDisconnect cleanup works when closing tab
+- [x] Multiple tabs maintain per-tab presence entries
+- [x] Real-time listener receives presence updates instantly
+- [x] Check Firebase Realtime Database console to see presence data
 
 **Files to Create**:
 - `src/features/presence/services/presenceService.ts`
@@ -518,7 +518,7 @@ function handleZoom(event: WheelEvent) {
 
 ---
 
-### STAGE2-3: User Presence Sidebar
+### STAGE2-3: User Presence Sidebar ✅
 
 **Objective**: Display always-visible sidebar with active users
 
@@ -549,13 +549,13 @@ function handleZoom(event: WheelEvent) {
    - Does not block canvas interaction
 
 **Verification**:
-- [ ] Sidebar is visible on right side
-- [ ] Sidebar width is 240px
-- [ ] Current user appears at top with highlight
-- [ ] Other users listed alphabetically
-- [ ] Color swatch displays for each user
-- [ ] Sidebar updates in real-time as users join/leave
-- [ ] Sidebar does not block canvas interaction
+- [x] Sidebar is visible on right side
+- [x] Sidebar width is 240px
+- [x] Current user appears at top with highlight
+- [x] Other users listed alphabetically
+- [x] Color swatch displays for each user
+- [x] Sidebar updates in real-time as users join/leave
+- [x] Sidebar does not block canvas interaction
 
 **Files to Create**:
 - `src/features/presence/components/UserPresenceSidebar.tsx`
@@ -567,7 +567,7 @@ function handleZoom(event: WheelEvent) {
 
 ---
 
-### STAGE2-4: Real-Time Cursor Tracking
+### STAGE2-4: Real-Time Cursor Tracking ✅
 
 **Objective**: Display cursor positions for all active users using Realtime Database
 
@@ -611,16 +611,16 @@ const throttledUpdateCursor = useCallback(
 ```
 
 **Verification**:
-- [ ] Current user's cursor position updates in Realtime Database
-- [ ] Check Firebase Realtime Database console to see cursor updates
-- [ ] Remote cursors display for other users
-- [ ] Cursors move smoothly with <50ms latency
-- [ ] Cursor positions are accurate in canvas coordinates
-- [ ] Cursor label shows correct display name
-- [ ] Cursor color matches user's assigned color
-- [ ] Cursors only visible within canvas area
-- [ ] No performance degradation with multiple cursors
-- [ ] Cursor updates are noticeably faster than shape updates
+- [x] Current user's cursor position updates in Realtime Database
+- [x] Check Firebase Realtime Database console to see cursor updates
+- [x] Remote cursors display for other users
+- [x] Cursors move smoothly with <50ms latency
+- [x] Cursor positions are accurate in canvas coordinates
+- [x] Cursor label shows correct display name
+- [x] Cursor color matches user's assigned color
+- [x] Cursors only visible within canvas area
+- [x] No performance degradation with multiple cursors
+- [x] Cursor updates are noticeably faster than shape updates
 
 **Files to Create**:
 - `src/features/presence/hooks/useCursorTracking.ts`
@@ -633,7 +633,7 @@ const throttledUpdateCursor = useCallback(
 
 ---
 
-### STAGE2-5: Session Persistence & Testing
+### STAGE2-5: Session Persistence & Testing ✅
 
 **Objective**: Ensure sessions persist across tabs and test all Stage 2 features
 
@@ -661,15 +661,15 @@ const throttledUpdateCursor = useCallback(
 5. Verify all Stage 2 acceptance criteria
 
 **Verification**:
-- [ ] User can open multiple tabs without duplicate presence
-- [ ] Presence persists across tab switches
-- [ ] Closing all tabs removes presence after timeout
-- [ ] Network disconnect triggers cleanup
-- [ ] Cursor updates are <50ms (check in Realtime Database console timestamps)
-- [ ] All Stage 2 acceptance criteria pass
-- [ ] No console errors
-- [ ] No memory leaks (check DevTools Memory)
-- [ ] Realtime Database shows presence and cursor data updating
+- [x] User can open multiple tabs with per-tab presence entries
+- [x] Presence persists across tab switches
+- [x] Closing all tabs removes presence immediately (1-2s via onDisconnect)
+- [x] Network disconnect triggers cleanup
+- [x] Cursor updates are <50ms (check in Realtime Database console timestamps)
+- [x] All Stage 2 acceptance criteria pass
+- [x] No console errors
+- [x] No memory leaks (check DevTools Memory)
+- [x] Realtime Database shows presence and cursor data updating
 
 **Files to Modify**:
 - `src/features/presence/services/presenceService.ts`
@@ -677,9 +677,590 @@ const throttledUpdateCursor = useCallback(
 
 ---
 
-## Stage 3: Display Objects - Universal Editing
+## Stage 3: Display Objects - Universal Editing (15 Tasks)
 
-### STAGE3-8: Rotation Knob Implementation
+### STAGE3-1: Refactor Shapes to Display Objects Structure
+
+**Objective**: Restructure existing shapes feature into new displayObjects module
+
+**Actions**:
+1. Create new folder structure:
+   ```
+   src/features/displayObjects/
+   ├── common/
+   │   ├── components/
+   │   ├── hooks/
+   │   ├── services/
+   │   ├── store/
+   │   ├── utils/
+   │   └── types.ts
+   └── shapes/
+       ├── components/
+       ├── hooks/
+       ├── services/
+       ├── store/
+       └── types.ts
+   ```
+
+2. Move existing shapes files to `displayObjects/shapes/`
+   - Move shape components
+   - Move shape services
+   - Move shape store
+   - Update all imports
+
+3. Update shape data model to include display object properties:
+   ```typescript
+   interface ShapeDisplayObject extends BaseDisplayObject {
+     category: 'shape';
+     type: 'rectangle' | 'circle' | 'line';
+     // Add: rotation, scaleX, scaleY (all default to 0, 1, 1)
+     // Keep existing properties
+   }
+   ```
+
+4. Update Firestore schema:
+   - Add `category: 'shape'` field
+   - Add `rotation: 0` (default)
+   - Add `scaleX: 1` (default)
+   - Add `scaleY: 1` (default)
+   - Ensure backward compatibility
+
+5. Create `displayObjects/common/types.ts`:
+   - Define `BaseDisplayObject` interface
+   - Define `Point` type
+   - Define bounding box types
+
+6. Update existing shape rendering to use new structure
+
+**Verification**:
+- [ ] New folder structure created
+- [ ] All shapes files moved successfully
+- [ ] Imports updated and working
+- [ ] Shape objects have new display object properties
+- [ ] Firestore schema updated
+- [ ] Existing shapes still render correctly
+- [ ] No TypeScript errors
+- [ ] No console errors
+
+**Files to Create**:
+- `src/features/displayObjects/common/types.ts`
+- `src/features/displayObjects/shapes/types.ts`
+
+**Files to Move/Modify**:
+- Move all `src/features/shapes/*` to `src/features/displayObjects/shapes/`
+- Update `src/types/firebase.ts` with new interfaces
+
+---
+
+### STAGE3-2: Display Object Toolbar & Tool Selection
+
+**Objective**: Create UI toolbar for selecting display object creation tools
+
+**Actions**:
+1. Create DisplayObjectToolbar component:
+   ```typescript
+   // displayObjects/common/components/DisplayObjectToolbar.tsx
+   - Horizontal toolbar at top of screen
+   - Tool buttons: Select, Rectangle, Circle, Line
+   - Visual indication of selected tool
+   - Click to select tool
+   ```
+
+2. Create tool store:
+   ```typescript
+   // displayObjects/common/store/toolStore.tsx
+   interface ToolState {
+     currentTool: 'select' | 'rectangle' | 'circle' | 'line';
+   }
+   - Context + useReducer for tool selection
+   - Default: 'select'
+   - Actions: setTool(tool)
+   ```
+
+3. Create useTool hook:
+   ```typescript
+   // displayObjects/common/hooks/useTool.ts
+   - Access current tool
+   - Set tool
+   - Return: { currentTool, setTool }
+   ```
+
+4. Style toolbar:
+   - Position: fixed top-left, below any app header
+   - Background: rgba(30, 30, 30, 0.95)
+   - Buttons: 44px × 44px with icons
+   - Selected tool: highlighted background (#4A90E2)
+   - Unselected: subtle hover effect
+   - Spacing: 8px between buttons
+   - Padding: 8px
+
+5. Create tool icons/labels:
+   - Select: Cursor icon or "Select"
+   - Rectangle: Rectangle icon or "□"
+   - Circle: Circle icon or "○"
+   - Line: Line icon or "/"
+
+6. Integrate into Canvas:
+   - Import toolbar in Canvas component
+   - Wire up tool selection to shape creation
+   - When tool !== 'select', canvas click creates shape
+   - After creating shape, revert to 'select' tool
+
+7. Update shape creation hooks:
+   - Check currentTool before creating shape
+   - Create appropriate shape type
+   - Auto-switch to select tool after creation
+
+**Verification**:
+- [ ] Toolbar visible at top of screen
+- [ ] Four tool buttons: Select, Rectangle, Circle, Line
+- [ ] Clicking button selects tool
+- [ ] Selected tool visually highlighted
+- [ ] Tool state accessible via useTool hook
+- [ ] Tool selection persists until changed
+- [ ] Canvas click creates shape when tool selected
+- [ ] Tool reverts to 'select' after shape creation
+- [ ] Toolbar styled correctly
+- [ ] Icons/labels clear and readable
+
+**Files to Create**:
+- `src/features/displayObjects/common/components/DisplayObjectToolbar.tsx`
+- `src/features/displayObjects/common/store/toolStore.tsx`
+- `src/features/displayObjects/common/hooks/useTool.ts`
+
+**Files to Modify**:
+- `src/features/canvas/components/Canvas.tsx`
+- `src/features/displayObjects/shapes/hooks/useShapeCreation.ts`
+- `src/App.tsx` (if toolbar needs to be placed in app layout)
+
+---
+
+### STAGE3-3: Multi-Selection Implementation
+
+**Objective**: Implement selection system supporting single, shift-click, and marquee selection
+
+**Actions**:
+1. Create selection store:
+   ```typescript
+   // displayObjects/common/store/selectionStore.ts
+   interface SelectionState {
+     selectedIds: string[];
+     collectionBounds: AxisAlignedBoundingBox | null;
+     collectionCenter: Point | null;
+     isTransforming: boolean;
+     transformMode: 'translate' | 'rotate' | 'scale' | null;
+     lockedIds: string[];
+   }
+   ```
+
+2. Create selection hooks:
+   - `useSelection.ts`: Access selection state
+   - `useMultiSelection.ts`: Handle multi-select logic
+
+3. Implement single-click selection:
+   - Click object → replace selection
+   - Update selection state
+   - Clear previous selection
+   - Only when currentTool === 'select'
+
+4. Implement shift-click selection:
+   - Detect shift modifier
+   - Add/remove from selectedIds
+   - Toggle if already selected
+
+5. Implement marquee selection:
+   - Detect click on empty canvas (when tool === 'select')
+   - Track drag to create selection rectangle
+   - Show visual feedback during drag
+   - Calculate intersecting objects on release
+   - Select all intersecting objects
+
+6. Create marquee component:
+   ```typescript
+   // displayObjects/common/components/MarqueeBox.tsx
+   ```
+
+7. Add selection handlers to Canvas component
+   - Respect currentTool state
+   - Only select when tool === 'select'
+
+**Verification**:
+- [ ] Single click selects object (when tool === 'select')
+- [ ] Previous selection cleared on new selection
+- [ ] Shift+click adds to selection
+- [ ] Shift+click toggles already-selected objects
+- [ ] Marquee starts on empty canvas click (tool === 'select')
+- [ ] Marquee visual shows during drag
+- [ ] Marquee selects intersecting objects
+- [ ] Max 100 objects enforced
+- [ ] Selection state updates correctly
+- [ ] Selection only works when tool === 'select'
+- [ ] Shape creation works when tool !== 'select'
+
+**Files to Create**:
+- `src/features/displayObjects/common/store/selectionStore.tsx`
+- `src/features/displayObjects/common/hooks/useSelection.ts`
+- `src/features/displayObjects/common/hooks/useMultiSelection.ts`
+- `src/features/displayObjects/common/components/MarqueeBox.tsx`
+
+**Files to Modify**:
+- `src/features/canvas/components/Canvas.tsx`
+- `src/features/displayObjects/shapes/components/Rectangle.tsx` (add click handlers)
+- `src/features/displayObjects/shapes/components/Circle.tsx`
+- `src/features/displayObjects/shapes/components/Line.tsx`
+
+---
+
+### STAGE3-4: Collection & Individual Bounding Boxes
+
+**Objective**: Render AABB for collection and OBB for individual objects
+
+**Actions**:
+1. Create bounding box utilities:
+   ```typescript
+   // displayObjects/common/utils/boundingBoxUtils.ts
+   - calculateCollectionAABB(objects): AABB
+   - calculateObjectOBB(object): OBB
+   - getObjectCorners(object): Point[]
+   ```
+
+2. Create geometry utilities:
+   ```typescript
+   // displayObjects/common/utils/geometryUtils.ts
+   - rotatePoint(point, angle, center): Point
+   - pointsIntersectAABB(points, aabb): boolean
+   ```
+
+3. Create CollectionBoundingBox component:
+   ```typescript
+   // displayObjects/common/components/CollectionBoundingBox.tsx
+   - Konva Line with dashed stroke
+   - Color: #4A90E2, opacity: 0.5
+   - Render AABB rectangle
+   ```
+
+4. Create ObjectHighlight component:
+   ```typescript
+   // displayObjects/common/components/ObjectHighlight.tsx
+   - Konva Line with solid stroke
+   - Color: #4A90E2, opacity: 1.0
+   - Render OBB (rotated rectangle)
+   ```
+
+5. Create useBoundingBox hook:
+   - Calculate bounds when selection changes
+   - Recalculate during transforms
+   - Memoize calculations
+
+6. Integrate into Canvas:
+   - Render CollectionBoundingBox when selection exists
+   - Render ObjectHighlight for each selected object
+   - Proper layer ordering
+
+**Verification**:
+- [ ] Collection AABB displays (dashed blue)
+- [ ] AABB axis-aligned (doesn't rotate)
+- [ ] Individual OBBs display (solid blue)
+- [ ] OBBs rotate with objects
+- [ ] Both visible simultaneously
+- [ ] Bounds calculate correctly
+- [ ] Bounds update during selection changes
+- [ ] Performance acceptable (60 FPS)
+
+**Files to Create**:
+- `src/features/displayObjects/common/utils/boundingBoxUtils.ts`
+- `src/features/displayObjects/common/utils/geometryUtils.ts`
+- `src/features/displayObjects/common/components/CollectionBoundingBox.tsx`
+- `src/features/displayObjects/common/components/ObjectHighlight.tsx`
+- `src/features/displayObjects/common/hooks/useBoundingBox.ts`
+
+**Files to Modify**:
+- `src/features/canvas/components/Canvas.tsx`
+
+---
+
+### STAGE3-5: Individual Object Highlights Rendering
+
+**Objective**: Render oriented bounding boxes for each selected object
+
+**Actions**:
+1. Enhance ObjectHighlight component:
+   - Calculate 4 corners considering rotation
+   - Render as closed path
+   - Apply proper styling
+
+2. Create helper for corner calculation:
+   ```typescript
+   function calculateRotatedCorners(obj: DisplayObject): Point[] {
+     // Get local corners
+     // Apply rotation
+     // Translate to world position
+   }
+   ```
+
+3. Add ObjectHighlight to selection layer:
+   - Map over selectedIds
+   - Render ObjectHighlight for each
+   - Proper z-index ordering
+
+4. Optimize rendering:
+   - Only render for visible objects
+   - Memoize corner calculations
+
+**Verification**:
+- [ ] OBB renders for each selected object
+- [ ] OBB shows correct rotated bounds
+- [ ] OBB updates when object rotates
+- [ ] Multiple OBBs visible simultaneously
+- [ ] Performance acceptable
+
+**Files to Modify**:
+- `src/features/displayObjects/common/components/ObjectHighlight.tsx`
+- `src/features/displayObjects/common/utils/geometryUtils.ts`
+- `src/features/canvas/components/Canvas.tsx`
+
+---
+
+### STAGE3-6: Collection-Level Locking
+
+**Objective**: Implement atomic locking for selected collections
+
+**Actions**:
+1. Create lock service:
+   ```typescript
+   // displayObjects/common/services/lockService.ts
+   - lockCollection(objectIds, userId): Promise<boolean>
+   - releaseCollection(objectIds, userId): Promise<void>
+   - checkAvailability(objectIds): Promise<{available, lockedBy}>
+   - refreshLocks(objectIds, userId): Promise<void>
+   - releaseExpiredLocks(): Promise<void>
+   ```
+
+2. Implement atomic lock acquisition:
+   - Use Firestore transactions
+   - Check all objects available
+   - Lock all or lock none
+   - Return success/failure
+
+3. Add lock checking to selection:
+   - Before adding to selection, check availability
+   - If any locked, log error and abort
+   - If all available, proceed with lock
+
+4. Implement lock heartbeat:
+   - Update `lockedAt` every 5 seconds
+   - Use setInterval while selection active
+   - Clear interval on deselection
+
+5. Implement lock release:
+   - On deselection
+   - On component unmount
+   - On sign-out
+   - On tool change to non-select
+
+6. Implement stale lock cleanup:
+   - Background service (every 30s)
+   - Release locks >60s old
+
+7. Add lock conflict logging:
+   ```typescript
+   console.warn(`Cannot select: Object ${id} is locked by ${displayName}`);
+   ```
+
+**Verification**:
+- [ ] Lock acquisition is atomic
+- [ ] Conflicts logged with user info
+- [ ] Conflicts prevent selection
+- [ ] No partial selections on conflict
+- [ ] Locks release on deselect
+- [ ] Locks release on sign-out
+- [ ] Locks release on tool change
+- [ ] Locks auto-release after 60s
+- [ ] Heartbeat updates every 5s
+- [ ] Stale locks cleaned up
+
+**Files to Create**:
+- `src/features/displayObjects/common/services/lockService.ts`
+
+**Files to Modify**:
+- `src/features/displayObjects/common/hooks/useSelection.ts`
+- `src/features/displayObjects/common/hooks/useMultiSelection.ts`
+- `src/features/displayObjects/common/hooks/useTool.ts` (release locks on tool change)
+- `src/features/displayObjects/shapes/services/shapeService.ts`
+
+---
+
+### STAGE3-7: Translation (Drag) Implementation
+
+**Objective**: Implement drag-to-translate for selected collections
+
+**Actions**:
+1. Create translation hook:
+   ```typescript
+   // displayObjects/common/hooks/useTranslation.ts
+   - Track mouse down/move/up
+   - Calculate delta (current - initial)
+   - Apply optimistic update
+   - Debounce Firestore write (300ms)
+   - Only active when tool === 'select'
+   ```
+
+2. Create transform service:
+   ```typescript
+   // displayObjects/common/services/transformService.ts
+   - translateCollection(objects, deltaX, deltaY): DisplayObject[]
+   - constrainToCanvas(objects, canvasBounds): DisplayObject[]
+   ```
+
+3. Add translation handlers:
+   - onMouseDown on any selected object (when tool === 'select')
+   - onMouseMove calculates delta
+   - Apply delta to all objects in collection
+   - Constrain to canvas boundaries
+
+4. Implement constraints:
+   - Check collection AABB against canvas bounds
+   - Constrain X and Y independently
+   - Prevent movement beyond boundaries
+
+5. Update bounding boxes during drag:
+   - Recalculate collection AABB
+   - Update visual rendering
+
+6. Debounce Firestore updates:
+   - Optimistic local update immediately
+   - Batch write to Firestore after 300ms
+   - Final write on mouse up
+
+**Verification**:
+- [ ] Click and drag moves collection (when tool === 'select')
+- [ ] All objects move together
+- [ ] Movement is smooth (60 FPS)
+- [ ] Canvas boundaries enforced
+- [ ] Bounding boxes move with objects
+- [ ] Firestore updates debounced
+- [ ] Changes sync to other users within 300ms
+- [ ] Translation disabled when tool !== 'select'
+
+**Files to Create**:
+- `src/features/displayObjects/common/hooks/useTranslation.ts`
+- `src/features/displayObjects/common/services/transformService.ts`
+
+**Files to Modify**:
+- `src/features/canvas/components/Canvas.tsx`
+- `src/features/displayObjects/shapes/services/shapeService.ts`
+
+---
+
+### STAGE3-8: Transform Modal UI
+
+**Objective**: Create transform modal with rotation and scale knobs
+
+**Actions**:
+1. Create TransformModal component:
+   ```typescript
+   // displayObjects/common/components/TransformModal.tsx
+   interface TransformModalProps {
+     position: Point;  // Collection centerpoint
+     visible: boolean;
+     onRotate: (delta: number) => void;
+     onScale: (delta: number) => void;
+   }
+   ```
+
+2. Position modal at collection center:
+   - Get centerpoint from collection AABB
+   - Convert to screen coordinates
+   - Fixed size: 120px × 60px
+
+3. Create modal styling:
+   - Background: rgba(30, 30, 30, 0.9)
+   - Border radius: 8px
+   - Subtle shadow
+   - Always on top (high z-index)
+
+4. Add knob placeholders:
+   - Left knob: Rotation (icon: ⟳)
+   - Right knob: Scale (icon: ⊕)
+   - Circular buttons, 40px diameter
+   - Spaced 60px apart (center to center)
+
+5. Handle pan/zoom:
+   - Modal position in canvas coordinates
+   - Transforms with canvas viewport
+
+6. Handle visibility:
+   - Show when collection selected AND tool === 'select'
+   - Hide when no selection or tool !== 'select'
+
+**Verification**:
+- [ ] Modal appears at collection center
+- [ ] Modal size is 120px × 60px
+- [ ] Modal contains two knobs
+- [ ] Knobs positioned correctly (60px apart)
+- [ ] Modal visible when selected (tool === 'select')
+- [ ] Modal hidden when deselected or tool changed
+- [ ] Modal follows collection during pan/zoom
+- [ ] Modal has proper styling
+
+**Files to Create**:
+- `src/features/displayObjects/common/components/TransformModal.tsx`
+
+**Files to Modify**:
+- `src/features/canvas/components/Canvas.tsx`
+
+---
+
+### STAGE3-9: Rotation Knob Implementation
+
+**Objective**: Implement rotation knob with 1px = 1° sensitivity
+
+**Actions**:
+1. Create RotationKnob component:
+   ```typescript
+   // displayObjects/common/components/RotationKnob.tsx
+   interface RotationKnobProps {
+     onRotate: (angleDelta: number) => void;
+     visualAngle: number;
+   }
+   ```
+
+2. Implement knob interaction:
+   - onMouseDown: Start tracking
+   - onMouseMove: Calculate drag distance
+   - Determine direction (up/left = CCW, down/right = CW)
+   - Calculate angle: totalDragDistance * 1° per px
+
+3. Visual feedback:
+   - Rotate knob icon by visualAngle
+   - Smooth spinning animation
+
+4. Create rotation hook:
+   ```typescript
+   // displayObjects/common/hooks/useRotation.ts
+   - Track initial mouse position
+   - Calculate cumulative drag
+   - Convert to angle delta
+   - Apply to collection
+   ```
+
+5. Implement rotation logic:
+   ```typescript
+   // In transformMath.ts
+   function rotateCollection(
+     objects: DisplayObject[],
+     angleDelta: number,
+     centerPoint: Point
+   ): DisplayObject[]
+   ```
+
+6. Apply transform:
+   - Rotate object positions around center
+   - Update each object's rotation property
+   - Recalculate collection AABB
+   - Update modal position (stays at center)
+
+7. Debounce Firestore writes (300ms)
 
 **Verification**:
 - [ ] Knob responds to drag
@@ -706,7 +1287,7 @@ const throttledUpdateCursor = useCallback(
 
 ---
 
-### STAGE3-9: Scale Knob Implementation
+### STAGE3-10: Scale Knob Implementation
 
 **Objective**: Implement scale knob with 1px = 0.01 delta sensitivity
 
@@ -789,7 +1370,7 @@ const throttledUpdateCursor = useCallback(
 
 ---
 
-### STAGE3-10: Transform State Management
+### STAGE3-11: Transform State Management
 
 **Objective**: Centralize transform state and coordinate between transforms
 
@@ -823,6 +1404,7 @@ const throttledUpdateCursor = useCallback(
 5. Implement transform cleanup:
    - Reset mode on mouse up
    - Clear state on deselection
+   - Clear state on tool change
 
 **Verification**:
 - [ ] Only one transform active at a time
@@ -842,7 +1424,7 @@ const throttledUpdateCursor = useCallback(
 
 ---
 
-### STAGE3-11: Collection Bounds Recalculation
+### STAGE3-12: Collection Bounds Recalculation
 
 **Objective**: Ensure collection AABB recalculates during all transforms
 
@@ -889,7 +1471,7 @@ const throttledUpdateCursor = useCallback(
 
 ---
 
-### STAGE3-12: Firestore Sync & Debouncing
+### STAGE3-13: Firestore Sync & Debouncing
 
 **Objective**: Implement optimistic updates with debounced Firestore writes
 
@@ -952,7 +1534,7 @@ const throttledUpdateCursor = useCallback(
 
 ---
 
-### STAGE3-13: Performance Optimization
+### STAGE3-14: Performance Optimization
 
 **Objective**: Ensure 60 FPS with 100+ objects during all operations
 
@@ -1018,68 +1600,89 @@ const throttledUpdateCursor = useCallback(
 
 ---
 
-### STAGE3-14: Testing & Bug Fixes
+### STAGE3-15: Testing & Bug Fixes
 
 **Objective**: Test all Stage 3 features and fix remaining bugs
 
 **Actions**:
 1. Create comprehensive test checklist:
+   - Test toolbar and tool selection
+   - Test shape creation with each tool
    - Test all selection methods
    - Test all transform operations
    - Test locking mechanism
    - Test multi-user scenarios
    - Test edge cases
 
-2. Test selection:
-   - Single click
+2. Test toolbar:
+   - Tool selection
+   - Visual feedback
+   - Tool state persistence
+   - Auto-revert to select after creation
+
+3. Test shape creation:
+   - Rectangle tool
+   - Circle tool
+   - Line tool
+   - Default properties
+   - Firestore persistence
+
+4. Test selection:
+   - Single click (tool === 'select')
    - Shift+click
    - Marquee (various sizes)
    - Max 100 objects
    - Selection across users
+   - No selection when tool !== 'select'
 
-3. Test transforms:
+5. Test transforms:
    - Translation (drag)
    - Rotation (knob)
    - Scale (knob)
    - Canvas boundary constraints
    - Scale constraints (0.1-10.0)
 
-4. Test locking:
+6. Test locking:
    - Lock acquisition
    - Lock conflicts
    - Lock release
    - Lock timeout
    - Lock heartbeat
+   - Lock release on tool change
 
-5. Test visual indicators:
+7. Test visual indicators:
    - Collection AABB
    - Individual OBBs
    - Transform modal
    - Knob visuals
+   - Modal visibility with tool changes
 
-6. Test performance:
+8. Test performance:
    - 100+ objects
    - Continuous transforms
    - Multiple users
 
-7. Test persistence:
+9. Test persistence:
    - All properties persist
    - Disconnect/reconnect
    - No data loss
 
-8. Fix identified bugs:
-   - Document each bug
-   - Implement fix
-   - Verify with test case
+10. Fix identified bugs:
+    - Document each bug
+    - Implement fix
+    - Verify with test case
 
-9. Code cleanup:
-   - Remove console.logs (except intentional)
-   - Remove unused code
-   - Add missing comments
-   - Format consistently
+11. Code cleanup:
+    - Remove console.logs (except intentional)
+    - Remove unused code
+    - Add missing comments
+    - Format consistently
 
 **Verification**:
 - [ ] All Stage 3 acceptance criteria pass
+- [ ] Toolbar works correctly
+- [ ] All tools create shapes correctly
+- [ ] Tool auto-reverts to select
 - [ ] No critical bugs
 - [ ] Performance targets met (60 FPS)
 - [ ] Multi-user collaboration works
@@ -1092,7 +1695,7 @@ const throttledUpdateCursor = useCallback(
 
 ---
 
-## Stage 4: Text Objects & Object-Specific Editing (8 Tasks)
+## Stage 4: Text Objects & Object-Specific Editing (9 Tasks)
 
 ### STAGE4-1: Text Display Object Data Model
 
@@ -1158,13 +1761,22 @@ const throttledUpdateCursor = useCallback(
 
 ---
 
-### STAGE4-2: Text Object Creation
+### STAGE4-2: Text Tool & Text Object Creation
 
-**Objective**: Implement text tool and text object placement
+**Objective**: Add text tool to toolbar and implement text object placement
 
 **Actions**:
-1. Add "Text" tool to toolbar
-2. Create useTextCreation hook:
+1. Add "Text" tool to DisplayObjectToolbar:
+   - Add button with text icon (T or "Text")
+   - Same styling as other tool buttons
+   - Tool value: 'text'
+
+2. Update tool store:
+   ```typescript
+   currentTool: 'select' | 'rectangle' | 'circle' | 'line' | 'text';
+   ```
+
+3. Create useTextCreation hook:
    ```typescript
    // displayObjects/texts/hooks/useTextCreation.ts
    - Handle click on canvas when text tool selected
@@ -1173,7 +1785,7 @@ const throttledUpdateCursor = useCallback(
    - Default content: "Double-click to edit"
    ```
 
-3. Create TextObject component:
+4. Create TextObject component:
    ```typescript
    // displayObjects/texts/components/TextObject.tsx
    - Render Konva.Text
@@ -1181,13 +1793,13 @@ const throttledUpdateCursor = useCallback(
    - Handle text wrapping
    ```
 
-4. Create TextRenderer component:
+5. Create TextRenderer component:
    ```typescript
    // displayObjects/texts/components/TextRenderer.tsx
    - Map over texts and render TextObject
    ```
 
-5. Default properties:
+6. Default properties:
    - Font: Arial
    - Font size: 16px
    - Font weight: 400
@@ -1196,19 +1808,22 @@ const throttledUpdateCursor = useCallback(
    - Line height: 1.2
    - Opacity: 1.0
 
-6. Integrate into Canvas:
+7. Integrate into Canvas:
    - Add TextRenderer layer
    - Wire up text tool selection
+   - Auto-revert to 'select' after creation
 
 **Verification**:
 - [ ] Text tool in toolbar
-- [ ] Click creates text box
+- [ ] Text tool button styled correctly
+- [ ] Click creates text box (when tool === 'text')
 - [ ] Default size: 200px × 100px
 - [ ] Default text: "Double-click to edit"
 - [ ] Text renders correctly
 - [ ] Text wraps within bounds
 - [ ] Text persists to Firestore
 - [ ] Text visible to other users
+- [ ] Tool reverts to 'select' after creation
 
 **Files to Create**:
 - `src/features/displayObjects/texts/hooks/useTextCreation.ts`
@@ -1216,8 +1831,9 @@ const throttledUpdateCursor = useCallback(
 - `src/features/displayObjects/texts/components/TextRenderer.tsx`
 
 **Files to Modify**:
+- `src/features/displayObjects/common/components/DisplayObjectToolbar.tsx`
+- `src/features/displayObjects/common/store/toolStore.tsx`
 - `src/features/canvas/components/Canvas.tsx`
-- Toolbar component (add text tool)
 
 ---
 
@@ -1245,6 +1861,7 @@ const throttledUpdateCursor = useCallback(
      - Click empty canvas
      - Click different object
      - Press Escape key
+     - Tool change to non-select
 
 4. Update visual indicators:
    - Same OBB highlight (for now)
@@ -1271,11 +1888,13 @@ const throttledUpdateCursor = useCallback(
 - [ ] Escape exits mode
 - [ ] Click empty canvas exits mode
 - [ ] Click different object switches to that object
+- [ ] Tool change exits object-specific mode
 - [ ] Mode tracked correctly in state
 
 **Files to Modify**:
 - `src/features/displayObjects/common/store/selectionStore.tsx`
 - `src/features/displayObjects/common/hooks/useSelection.ts`
+- `src/features/displayObjects/common/hooks/useTool.ts` (exit on tool change)
 - `src/features/displayObjects/shapes/components/Rectangle.tsx` (add double-click)
 - `src/features/displayObjects/shapes/components/Circle.tsx`
 - `src/features/displayObjects/shapes/components/Line.tsx`
@@ -1532,57 +2151,109 @@ const throttledUpdateCursor = useCallback(
 
 ---
 
-### STAGE4-8: Testing & Integration
+### STAGE4-8: Text in Multi-Selection & Transforms
+
+**Objective**: Ensure text objects work correctly with display-level selection and transforms
+
+**Actions**:
+1. Test text with selection:
+   - Text selectable with single click (tool === 'select')
+   - Text included in shift+click multi-select
+   - Text included in marquee selection
+
+2. Test text with transforms:
+   - Translation: text moves with collection
+   - Rotation: text rotates around collection center
+   - Scale: text scales from collection center
+
+3. Test mixed selections:
+   - Mix of shapes and text in same selection
+   - All objects transform together
+   - Collection bounds include text objects
+
+4. Update bounding box calculations:
+   - Include text objects in collection AABB
+   - Calculate text object OBB correctly
+
+5. Test text locking:
+   - Text objects lock/unlock with collection
+   - Text conflicts prevent selection
+
+**Verification**:
+- [ ] Text selectable (tool === 'select')
+- [ ] Text in multi-select works
+- [ ] Text in marquee works
+- [ ] Text translates with collection
+- [ ] Text rotates with collection
+- [ ] Text scales with collection
+- [ ] Mixed selections work (shapes + text)
+- [ ] Collection bounds include text
+- [ ] Text OBB renders correctly
+- [ ] Text locking works
+
+**Files to Modify**:
+- `src/features/displayObjects/common/utils/boundingBoxUtils.ts`
+- `src/features/displayObjects/texts/components/TextObject.tsx`
+
+---
+
+### STAGE4-9: Testing & Integration
 
 **Objective**: Test all Stage 4 features and integrate with Stage 3
 
 **Actions**:
-1. Test text objects:
+1. Test text tool:
+   - Tool selection
+   - Text creation
+   - Auto-revert to select
+
+2. Test text objects:
    - Creation
    - Selection (display-level)
    - Transforms (translate, rotate, scale)
    - Persistence
 
-2. Test object-specific editing:
+3. Test object-specific editing:
    - Double-click entry
-   - Exit methods (Escape, click away)
+   - Exit methods (Escape, click away, tool change)
    - Switching between objects
 
-3. Test properties panels:
+4. Test properties panels:
    - Shape properties
    - Text properties
    - Panel switching
    - Property updates
    - Sync across users
 
-4. Test cross-type functionality:
+5. Test cross-type functionality:
    - Mix shapes and text in selections
    - Transform mixed collections
    - Lock mixed collections
 
-5. Test edge cases:
+6. Test edge cases:
    - Empty text content
    - Very long text
    - Special characters
    - Extreme property values
 
-6. Test performance:
+7. Test performance:
    - Mixed object types (100+ total)
    - Rapid property changes
    - Multiple users editing
 
-7. Fix bugs:
+8. Fix bugs:
    - Document issues
    - Implement fixes
    - Verify fixes
 
-8. Code cleanup:
+9. Code cleanup:
    - Remove debug code
    - Add comments
    - Format code
 
 **Verification**:
 - [ ] All Stage 4 acceptance criteria pass
+- [ ] Text tool works correctly
 - [ ] Text objects work correctly
 - [ ] Object-specific editing works
 - [ ] Properties panels work

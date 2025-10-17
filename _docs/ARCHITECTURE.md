@@ -195,15 +195,17 @@ src/
 │   │   ├── services/              # presenceService (Realtime Database)
 │   │   └── store/                 # presenceStore (Context + useReducer)
 │   │
-│   └── displayObjects/            # Display objects domain (NEW)
+│   └── displayObjects/            # Display objects domain
 │       ├── common/                # Shared across all object types
 │       │   ├── components/
+│       │   │   ├── DisplayObjectToolbar.tsx  # Tool selection UI
 │       │   │   ├── CollectionBoundingBox.tsx
 │       │   │   ├── ObjectHighlight.tsx (OBB)
 │       │   │   ├── TransformModal.tsx
 │       │   │   ├── RotationKnob.tsx
 │       │   │   └── ScaleKnob.tsx
 │       │   ├── hooks/
+│       │   │   ├── useTool.ts               # Tool state access
 │       │   │   ├── useSelection.ts
 │       │   │   ├── useMultiSelection.ts
 │       │   │   ├── useTransform.ts
@@ -216,8 +218,9 @@ src/
 │       │   │   ├── transformService.ts
 │       │   │   └── lockService.ts
 │       │   ├── store/
-│       │   │   ├── selectionStore.ts
-│       │   │   └── transformStore.ts
+│       │   │   ├── toolStore.tsx            # Tool state management
+│       │   │   ├── selectionStore.tsx
+│       │   │   └── transformStore.tsx
 │       │   ├── utils/
 │       │   │   ├── boundingBoxUtils.ts
 │       │   │   ├── geometryUtils.ts
@@ -279,6 +282,164 @@ src/
 │   └── performanceMonitor.ts
 │
 └── App.tsx              # Root component with providers
+```
+
+---
+
+## Tool System Architecture
+
+### Overview
+
+The tool system controls user interaction modes with the canvas. Only one tool can be active at a time, and the active tool determines how canvas clicks and interactions behave.
+
+### Tool Types
+
+```
+'select'    → Default tool, enables selection and transforms
+'rectangle' → Creates rectangle shapes on canvas click
+'circle'    → Creates circle shapes on canvas click  
+'line'      → Creates line shapes on canvas click
+'text'      → Creates text objects on canvas click (Stage 4)
+```
+
+### Tool State Management
+
+```typescript
+// displayObjects/common/store/toolStore.tsx
+interface ToolState {
+  currentTool: 'select' | 'rectangle' | 'circle' | 'line' | 'text';
+}
+
+type ToolAction = 
+  | { type: 'SET_TOOL'; payload: ToolState['currentTool'] };
+
+function toolReducer(state: ToolState, action: ToolAction): ToolState {
+  switch (action.type) {
+    case 'SET_TOOL':
+      return { ...state, currentTool: action.payload };
+    default:
+      return state;
+  }
+}
+```
+
+### Tool Behavior Matrix
+
+```
+┌──────────────┬─────────────────────┬──────────────────────────────┐
+│ Tool         │ Canvas Click        │ Object Interaction           │
+├──────────────┼─────────────────────┼──────────────────────────────┤
+│ 'select'     │ Deselect all        │ - Single click: Select       │
+│              │ (or start marquee)  │ - Shift+click: Multi-select  │
+│              │                     │ - Drag: Translate            │
+│              │                     │ - Knobs: Rotate/Scale        │
+├──────────────┼─────────────────────┼──────────────────────────────┤
+│ 'rectangle'  │ Create rectangle    │ No interaction               │
+│              │ → Auto-revert       │ (tool ≠ 'select')            │
+├──────────────┼─────────────────────┼──────────────────────────────┤
+│ 'circle'     │ Create circle       │ No interaction               │
+│              │ → Auto-revert       │ (tool ≠ 'select')            │
+├──────────────┼─────────────────────┼──────────────────────────────┤
+│ 'line'       │ Create line         │ No interaction               │
+│              │ → Auto-revert       │ (tool ≠ 'select')            │
+├──────────────┼─────────────────────┼──────────────────────────────┤
+│ 'text'       │ Create text box     │ No interaction               │
+│ (Stage 4)    │ → Auto-revert       │ (tool ≠ 'select')            │
+└──────────────┴─────────────────────┴──────────────────────────────┘
+```
+
+### Tool Lifecycle
+
+```
+User clicks tool button
+  ↓
+Tool state updates (currentTool = clicked tool)
+  ↓
+Canvas behavior changes based on new tool
+  ↓
+[If creation tool selected]
+  ↓
+User clicks canvas
+  ↓
+Display object created at click position
+  ↓
+Tool auto-reverts to 'select'
+  ↓
+Object can now be selected and transformed
+```
+
+### Tool Integration Points
+
+**With Selection System:**
+```typescript
+// Selection only works when tool === 'select'
+function handleObjectClick(objectId: string) {
+  const { currentTool } = useTool();
+  if (currentTool !== 'select') return; // Ignore clicks when not in select mode
+  
+  // Proceed with selection logic...
+}
+```
+
+**With Transform System:**
+```typescript
+// Transforms only work when tool === 'select'
+function handleObjectDrag(objectId: string) {
+  const { currentTool } = useTool();
+  if (currentTool !== 'select') return; // Ignore drags when not in select mode
+  
+  // Proceed with translation logic...
+}
+```
+
+**With Creation System:**
+```typescript
+// Creation only works when tool is a creation tool
+function handleCanvasClick(position: Point) {
+  const { currentTool, setTool } = useTool();
+  
+  switch (currentTool) {
+    case 'rectangle':
+      createRectangle(position);
+      setTool('select'); // Auto-revert
+      break;
+    case 'circle':
+      createCircle(position);
+      setTool('select'); // Auto-revert
+      break;
+    // ... other creation tools
+    case 'select':
+      // Handle deselection or marquee start
+      break;
+  }
+}
+```
+
+**With Locking System:**
+```typescript
+// Locks release when tool changes from 'select'
+useEffect(() => {
+  if (currentTool !== 'select' && hasSelection) {
+    releaseAllLocks();
+    clearSelection();
+  }
+}, [currentTool]);
+```
+
+### Display Object Toolbar Component
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  [🖱️ Select]  [▭ Rectangle]  [○ Circle]  [/ Line]  [T Text]  │
+│     ^^^^^^                                                      │
+│   (highlighted when selected)                                  │
+└────────────────────────────────────────────────────────────────┘
+
+Position: Fixed at top of canvas area
+Background: rgba(30, 30, 30, 0.95)
+Button Size: 44px × 44px
+Spacing: 8px between buttons, 8px padding
+Selected State: Blue background (#4A90E2)
 ```
 
 ---
@@ -372,13 +533,22 @@ The system supports two selection levels:
 1. **Display-Level Selection** (Stage 3): Select one or more display objects as a collection
 2. **Object-Specific Selection** (Stage 4): Edit individual object properties
 
-### Display-Level Selection (Stage 3)
+### Tool-Aware Selection
+
+**Critical Constraint**: Selection only works when `currentTool === 'select'`
 
 ```
-Single Click → Select object (display-level)
-Shift + Click → Add/remove from collection
-Marquee Drag → Select multiple objects
+IF currentTool === 'select':
+  Single Click → Select object (display-level)
+  Shift + Click → Add/remove from collection
+  Marquee Drag → Select multiple objects
+  
+ELSE (currentTool is creation tool):
+  All selection interactions disabled
+  Objects cannot be selected or interacted with
 ```
+
+### Display-Level Selection (Stage 3)
 
 #### Selection State
 
@@ -427,19 +597,22 @@ interface OrientedBoundingBox {
 
 All transforms operate relative to the **collection centerpoint** (geometric center of collection AABB).
 
+**Critical Constraint**: Transforms only work when `currentTool === 'select'`
+
 #### 1. Translation (Drag)
 
 ```
-User Action: Click and drag any object in collection
+User Action: Click and drag any object in collection (when tool === 'select')
 Result: All objects translate together, maintaining relative positions
 Constraint: Collection cannot move beyond canvas boundaries (0,0 to 10000,10000)
 Update: Optimistic local update, debounced Firestore write (300ms)
+Availability: Only when currentTool === 'select'
 ```
 
 #### 2. Rotation (Knob)
 
 ```
-User Action: Click and drag rotation knob
+User Action: Click and drag rotation knob (when tool === 'select')
 Knob Behavior: 
   - Circular button that spins in place (like volume knob)
   - 1px drag = 1° rotation
@@ -449,12 +622,13 @@ Result: All objects rotate around collection center
   - Object positions rotate around center
   - Each object's rotation property increases/decreases
 Update: Real-time local update, debounced Firestore write (300ms)
+Availability: Only when currentTool === 'select'
 ```
 
 #### 3. Scale (Knob)
 
 ```
-User Action: Click and drag scale knob
+User Action: Click and drag scale knob (when tool === 'select')
 Knob Behavior:
   - Circular button that spins in place
   - 1px drag = 0.01 scale delta
@@ -467,6 +641,7 @@ Constraints:
   - Minimum scale: 0.1 (10%)
   - Maximum scale: 10.0 (1000%)
 Update: Real-time local update, debounced Firestore write (300ms)
+Availability: Only when currentTool === 'select'
 ```
 
 ### Transform Modal Architecture
@@ -493,16 +668,17 @@ Update: Real-time local update, debounced Firestore write (300ms)
 │        └─────────────┘                                         │
 │   └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘                 │
 │                                                                 │
+│   Visibility: Only when currentTool === 'select' AND selected  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 #### Modal Behavior
 
 - **Position**: Fixed at collection centerpoint in canvas coordinates
-- **Persistence**: Visible when collection is selected, hidden when deselected
+- **Persistence**: Visible when collection is selected AND tool === 'select'
 - **Pan/Zoom**: Modal position transforms with canvas (stays at centerpoint in canvas coords)
 - **During Transform**: Modal remains at centerpoint even as objects transform
-- **Dismissal**: Only dismissed when user deselects collection (click empty canvas)
+- **Dismissal**: Hidden when user deselects collection OR changes tool
 
 ---
 
@@ -516,12 +692,14 @@ Collection Bounding Box: AABB (Axis-Aligned Bounding Box)
   - Recalculates as objects transform
   - Used for: modal positioning, collection operations
   - Visual: Dashed outline around entire collection
+  - Visibility: Only when currentTool === 'select' AND objects selected
 
 Individual Object Highlight: OBB (Oriented Bounding Box)
   - Rotates with object
   - Maintains object's actual oriented shape
   - Used for: visual feedback, precise selection indication
   - Visual: Solid outline around each object
+  - Visibility: Only when currentTool === 'select' AND objects selected
 ```
 
 ---
@@ -536,6 +714,7 @@ User selects object(s) → Attempt to lock ALL objects in collection
   - If ALL objects available → Lock all, proceed with selection
   
 User deselects → Release ALL locks for current user
+User changes tool to non-'select' → Release ALL locks for current user
 
 Timeout → Automatically release locks after 60 seconds of inactivity
 ```
@@ -547,7 +726,7 @@ Timeout → Automatically release locks after 60 seconds of inactivity
    - Log: `"Cannot select: Object [id] is locked by [displayName]"`
    - Abort selection entirely
    - Do not partial-select available objects
-3. **Lock Release**: On deselection, timeout, or sign-out
+3. **Lock Release**: On deselection, timeout, sign-out, OR tool change to non-'select'
 4. **Lock Heartbeat**: Update `lockedAt` timestamp every 5s while selected
 5. **Stale Lock Cleanup**: Background service releases locks >60s old
 
@@ -610,6 +789,7 @@ Rotation Knob  → Optimistic local + Debounce 300ms → FIRESTORE
 Scale Knob     → Optimistic local + Debounce 300ms → FIRESTORE
 Object Create  → Immediate write → FIRESTORE
 Lock Heartbeat → Interval 5000ms → FIRESTORE
+Tool Change    → Immediate local state update → LOCAL ONLY
 ```
 
 ---
@@ -617,11 +797,12 @@ Lock Heartbeat → Interval 5000ms → FIRESTORE
 ## End of Architecture Document
 
 This architecture document provides comprehensive system design for CollabCanvas display objects with:
+- Tool system (select and creation tools)
 - Display object type hierarchy (Shape/Text/Image)
-- Selection system (collection and individual)
-- Transform system (translate, rotate, scale with knobs)
+- Selection system (collection and individual, tool-aware)
+- Transform system (translate, rotate, scale with knobs, tool-aware)
 - Bounding box system (hybrid AABB/OBB)
-- Collection-level locking
+- Collection-level locking (with tool change handling)
 - Updated Firebase schema
 - Updated module structure
 

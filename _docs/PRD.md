@@ -309,29 +309,51 @@ Canvas Area:
 
 ### Functional Requirements
 
+#### FR-3.0: Display Object Toolbar
+- **Location**: Fixed at top of screen (below any app header)
+- **Size**: 44px height, auto width based on tools
+- **Tools**: Select, Rectangle, Circle, Line
+- **Default Tool**: 'select'
+- **Behavior**:
+  - Click tool button to select tool
+  - Selected tool highlighted with background color
+  - Canvas click behavior depends on selected tool:
+    - 'select': Enables selection and transforms
+    - 'rectangle'/'circle'/'line': Creates shape at click position
+  - After shape creation, tool auto-reverts to 'select'
+- **Visual**:
+  - Background: rgba(30, 30, 30, 0.95)
+  - Tool buttons: 44px × 44px with icons
+  - Selected: Blue highlight (#4A90E2)
+  - Unselected: Subtle hover effect
+  - Spacing: 8px between buttons, 8px padding
+
 #### FR-3.1: Display Object Type System
 - **Type Hierarchy**: DisplayObject → Shape → Rectangle/Circle/Line
 - **Universal Properties**: x, y, rotation, scaleX, scaleY, opacity, zIndex
 - **Shape Properties**: dimensions, fillColor, strokeColor, strokeWidth, borderRadius
 
 #### FR-3.2: Multi-Selection
-- **Single Click**: Select object (replace selection)
-- **Shift+Click**: Add/remove from collection
-- **Marquee**: Drag on empty canvas, select intersecting objects
+- **Single Click**: Select object (replace selection) - **only when tool === 'select'**
+- **Shift+Click**: Add/remove from collection - **only when tool === 'select'**
+- **Marquee**: Drag on empty canvas, select intersecting objects - **only when tool === 'select'**
 - **Limit**: 100 objects max
+- **Tool Interaction**: Selection disabled when tool !== 'select'
 
 #### FR-3.3: Collection Bounding Box (AABB)
 - **Visual**: Dashed blue outline, 50% opacity
 - **Behavior**: Axis-aligned, recalculates during transforms
+- **Visibility**: Only shown when tool === 'select' and objects selected
 
 #### FR-3.4: Individual Object Highlights (OBB)
 - **Visual**: Solid blue outline, 100% opacity
 - **Behavior**: Rotates with object
+- **Visibility**: Only shown when tool === 'select' and objects selected
 
 #### FR-3.5: Collection-Level Locking
 - **Atomic**: All objects lock or none lock
 - **Conflict**: Log error, abort selection
-- **Release**: On deselect, timeout (60s), or sign-out
+- **Release**: On deselect, timeout (60s), sign-out, or tool change to non-select
 - **Heartbeat**: Every 5 seconds
 
 #### FR-3.6: Transform Modal
@@ -339,30 +361,54 @@ Canvas Area:
 - **Size**: 120px × 60px
 - **Contents**: Rotation knob (left), Scale knob (right)
 - **Behavior**: Fixed at centerpoint, visible when selected
+- **Visibility**: Only shown when tool === 'select' and objects selected
 
 #### FR-3.7: Rotation Knob
 - **Sensitivity**: 1px = 1°
 - **Direction**: Up/left = CCW, down/right = CW
 - **Transform**: Rotate around collection center
 - **Update**: Optimistic local + debounce 300ms
+- **Availability**: Only active when tool === 'select'
 
 #### FR-3.8: Scale Knob
 - **Sensitivity**: 1px = 0.01 scale delta
 - **Direction**: Clockwise = grow, CCW = shrink
 - **Constraints**: 0.1 to 10.0
 - **Transform**: Scale from collection center
+- **Availability**: Only active when tool === 'select'
 
 #### FR-3.9: Translation
 - **Interaction**: Drag any object in collection
 - **Constraint**: Canvas boundaries (0,0 to 10000,10000)
 - **Update**: Optimistic + debounce 300ms
+- **Availability**: Only active when tool === 'select'
 
-#### FR-3.10: Shape Persistence
+#### FR-3.10: Shape Creation
+- **Trigger**: Click canvas when tool === 'rectangle'/'circle'/'line'
+- **Behavior**: Create shape at click position with default properties
+- **Default Properties**:
+  - Rectangle: 100px × 100px
+  - Circle: 50px radius
+  - Line: 100px horizontal line
+  - Fill: #CCCCCC
+  - Stroke: #000000
+  - Stroke width: 2px
+  - Opacity: 1.0
+- **Post-Creation**: Tool automatically reverts to 'select'
+
+#### FR-3.11: Shape Persistence
 - Objects persist across sessions with all transform properties
 
 ### Technical Requirements
 
-#### TR-3.1: Data Model
+#### TR-3.1: Tool State Management
+```typescript
+interface ToolState {
+  currentTool: 'select' | 'rectangle' | 'circle' | 'line';
+}
+```
+
+#### TR-3.2: Data Model
 ```typescript
 interface BaseDisplayObject {
   id: string;
@@ -396,54 +442,75 @@ interface ShapeDisplayObject extends BaseDisplayObject {
 }
 ```
 
-#### TR-3.2: Firestore Schema
+#### TR-3.3: Firestore Schema
 - Path: `/documents/main/shapes/{shapeId}`
 - Transactions for atomic locks
 - Batch writes for transforms
 
-#### TR-3.3: Transform Math
+#### TR-3.4: Transform Math
 - Rotation: 2D rotation matrix around centerpoint
 - Scaling: Proportional from centerpoint
 - Constraints: Boundary checking, scale limits
 
-#### TR-3.4: Performance
+#### TR-3.5: Performance
 - 60 FPS with 100+ objects
 - Viewport culling
 - Debounced Firestore writes (300ms)
 
 ### Acceptance Criteria
 
+#### Toolbar
+- [ ] Toolbar visible at top of screen
+- [ ] Four tool buttons: Select, Rectangle, Circle, Line
+- [ ] Selected tool highlighted (blue background)
+- [ ] Tool selection persists until changed
+- [ ] Clicking tool changes currentTool state
+- [ ] Toolbar styled correctly (44px height, proper spacing)
+
+#### Shape Creation
+- [ ] Rectangle tool creates rectangles on canvas click
+- [ ] Circle tool creates circles on canvas click
+- [ ] Line tool creates lines on canvas click
+- [ ] Shapes created with default properties
+- [ ] Tool reverts to 'select' after shape creation
+- [ ] Created shapes persist to Firestore
+- [ ] Created shapes visible to other users
+
 #### Selection
-- [ ] Single click selects object
-- [ ] Shift+click adds/removes from collection
-- [ ] Marquee selection works
+- [ ] Single click selects object (when tool === 'select')
+- [ ] Shift+click adds/removes from collection (when tool === 'select')
+- [ ] Marquee selection works (when tool === 'select')
 - [ ] Max 100 objects enforced
+- [ ] Selection disabled when tool !== 'select'
 - [ ] Selection syncs across users
 
 #### Visual Indicators
-- [ ] Collection AABB displays (dashed)
-- [ ] Individual OBBs display (solid)
+- [ ] Collection AABB displays (dashed) when tool === 'select'
+- [ ] Individual OBBs display (solid) when tool === 'select'
 - [ ] Both visible simultaneously
 - [ ] Update smoothly during transforms
+- [ ] Hidden when tool !== 'select'
 
 #### Locking
 - [ ] Atomic lock acquisition
 - [ ] Conflicts logged and abort selection
 - [ ] Locks release on deselect
+- [ ] Locks release on tool change to non-select
 - [ ] Auto-release after 60s
 - [ ] Heartbeat every 5s
 
 #### Transform Modal
-- [ ] Appears at collection center
+- [ ] Appears at collection center when tool === 'select'
 - [ ] Contains rotation and scale knobs
 - [ ] Position updates during transforms
 - [ ] Fixed size (120px × 60px)
-- [ ] Dismissed on deselection
+- [ ] Dismissed on deselection or tool change
 
 #### Rotation
 - [ ] 1px = 1° verified
 - [ ] Up/left = CCW, down/right = CW
 - [ ] Rotates around collection center
+- [ ] Only active when tool === 'select'
 - [ ] 60 FPS performance
 - [ ] Syncs within 300ms
 
@@ -452,11 +519,13 @@ interface ShapeDisplayObject extends BaseDisplayObject {
 - [ ] Clockwise grows, CCW shrinks
 - [ ] Constraints enforced (0.1-10.0)
 - [ ] Scales from collection center
+- [ ] Only active when tool === 'select'
 - [ ] 60 FPS performance
 
 #### Translation
-- [ ] Drag moves entire collection
+- [ ] Drag moves entire collection (when tool === 'select')
 - [ ] Boundary constraints work
+- [ ] Only active when tool === 'select'
 - [ ] 60 FPS performance
 - [ ] Syncs within 300ms
 
@@ -470,8 +539,16 @@ interface ShapeDisplayObject extends BaseDisplayObject {
 
 ### Functional Requirements
 
-#### FR-4.1: Text Display Objects
-- **Creation**: Click "Text" tool, click canvas to place
+#### FR-4.1: Text Tool
+- **Location**: Added to Display Object Toolbar
+- **Icon**: "T" or text icon
+- **Behavior**: Same as shape tools
+  - Click text tool to select
+  - Click canvas to create text box
+  - Tool auto-reverts to 'select' after creation
+
+#### FR-4.2: Text Display Objects
+- **Creation**: Click canvas when tool === 'text'
 - **Default**: 200px × 100px, "Double-click to edit"
 - **Properties**:
   - Content (string)
@@ -483,15 +560,15 @@ interface ShapeDisplayObject extends BaseDisplayObject {
   - Line height (0.8-3.0)
   - Opacity (0-100%)
 
-#### FR-4.2: Object-Specific Editing Mode
+#### FR-4.3: Object-Specific Editing Mode
 - **Trigger**: Double-click any display object
 - **Behavior**: 
   - Deselects all other objects
   - Locks the single object
   - Shows object-specific properties panel
-- **Exit**: Click empty canvas, click different object, or press Escape
+- **Exit**: Click empty canvas, click different object, press Escape, or tool change
 
-#### FR-4.3: Shape Properties Panel
+#### FR-4.4: Shape Properties Panel
 - **Location**: Left side, 280px wide
 - **Properties**:
   - Fill Color (color picker + hex)
@@ -501,7 +578,7 @@ interface ShapeDisplayObject extends BaseDisplayObject {
   - Border Radius (0-50px slider, rectangles only)
 - **Update**: Optimistic + debounce 300ms
 
-#### FR-4.4: Text Properties Panel
+#### FR-4.5: Text Properties Panel
 - **Location**: Left side, 280px wide
 - **Properties**:
   - Content (multi-line input)
@@ -514,13 +591,20 @@ interface ShapeDisplayObject extends BaseDisplayObject {
   - Opacity (0-100% slider)
 - **Update**: Content debounce 500ms, styles 300ms
 
-#### FR-4.5: Visual Indicator
+#### FR-4.6: Visual Indicator
 - **Initial**: Same as display-level (OBB highlight)
 - **Future**: Differentiate with color/style
 
 ### Technical Requirements
 
-#### TR-4.1: Text Data Model
+#### TR-4.1: Tool State Update
+```typescript
+interface ToolState {
+  currentTool: 'select' | 'rectangle' | 'circle' | 'line' | 'text';
+}
+```
+
+#### TR-4.2: Text Data Model
 ```typescript
 interface TextDisplayObject extends BaseDisplayObject {
   category: 'text';
@@ -536,19 +620,26 @@ interface TextDisplayObject extends BaseDisplayObject {
 }
 ```
 
-#### TR-4.2: Firestore Schema
+#### TR-4.3: Firestore Schema
 - Path: `/documents/main/texts/{textId}`
 - Same metadata as shapes
 
-#### TR-4.3: Selection Mode State
+#### TR-4.4: Selection Mode State
 ```typescript
 type SelectionMode = 'display-level' | 'object-specific';
 ```
 
 ### Acceptance Criteria
 
+#### Text Tool
+- [ ] Text tool in toolbar
+- [ ] Text tool button styled like other tools
+- [ ] Text tool selection works
+- [ ] Tool reverts to 'select' after text creation
+
 #### Text Objects
-- [ ] Text tool creates text box
+- [ ] Text tool creates text box on canvas click
+- [ ] Default size: 200px × 100px
 - [ ] Default text displays
 - [ ] Text wraps within bounds
 - [ ] Text renders at all zoom levels
@@ -561,6 +652,7 @@ type SelectionMode = 'display-level' | 'object-specific';
 - [ ] Object locks successfully
 - [ ] Properties panel displays
 - [ ] Escape exits mode
+- [ ] Tool change exits mode
 
 #### Shape Properties Panel
 - [ ] Panel displays for shapes
@@ -592,7 +684,7 @@ Not in Stages 3-4:
 - Undo/redo
 - Copy/paste/duplicate
 - Delete key
-- Keyboard shortcuts
+- Keyboard shortcuts (beyond Escape)
 - Snapping/guides
 - Grouping
 - Layer panel
@@ -698,6 +790,8 @@ function calculateCollectionAABB(objects: DisplayObject[]): AABB {
 - Individual OBB: `#4A90E2` at 100%
 - Transform Modal BG: `rgba(30, 30, 30, 0.9)`
 - Properties Panel BG: `rgba(30, 30, 30, 0.95)`
+- Toolbar BG: `rgba(30, 30, 30, 0.95)`
+- Selected Tool: `#4A90E2`
 
 ### Typography
 - Modal Labels: 12px, 500 weight
@@ -705,6 +799,7 @@ function calculateCollectionAABB(objects: DisplayObject[]): AABB {
 - Panel Labels: 14px, 500 weight
 
 ### Spacing
+- Toolbar: 44px height, 8px padding, 8px between buttons
 - Transform Modal: 120px × 60px, knobs 60px apart
 - Properties Panel: 280px wide, 20px padding
 
@@ -718,6 +813,7 @@ function calculateCollectionAABB(objects: DisplayObject[]): AABB {
 - Transforms: <300ms (debounced)
 - Properties: <500ms (debounced)
 - Lock: <200ms (transaction)
+- Tool Change: <50ms (local state)
 
 ### Scalability
 - Max objects: 1000+ without degradation
