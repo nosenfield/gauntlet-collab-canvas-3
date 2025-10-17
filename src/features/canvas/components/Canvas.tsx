@@ -16,9 +16,8 @@ import { usePan } from '../hooks/usePan';
 import { useZoom } from '../hooks/useZoom';
 import { useViewportConstraints } from '../hooks/useViewportConstraints';
 import { GridBackground } from './GridBackground';
-import { useEffect, useState, useRef } from 'react';
-import { startFPSMonitoring, stopFPSMonitoring } from '@/utils/performanceMonitor';
-import type { PerformanceMetrics } from '@/utils/performanceMonitor';
+import { useEffect, useRef } from 'react';
+import { FPSMonitor } from './FPSMonitor';
 import { useCursorTracking } from '@/features/presence/hooks/useCursorTracking';
 import { RemoteCursors } from '@/features/presence/components/RemoteCursors';
 import { ShapeLayer } from '@/features/displayObjects/shapes/components/ShapeLayer';
@@ -42,40 +41,12 @@ import { ObjectHighlight } from '@/features/displayObjects/common/components/Obj
 export function Canvas(): React.ReactElement {
   const { width, height } = useCanvasSize();
   const { viewport, setPosition, setViewport, setDimensions } = useViewport();
-  const [fpsMetrics, setFpsMetrics] = useState<PerformanceMetrics>({ fps: 60, frameTime: 0, timestamp: 0 });
-  const [showFPS, setShowFPS] = useState(true); // Toggle with 'F' key - ON by default
   const stageRef = useRef<any>(null); // Konva Stage ref
 
   // Sync window dimensions to viewport store
   useEffect(() => {
     setDimensions(width, height);
   }, [width, height, setDimensions]);
-
-  // Performance monitoring in development
-  useEffect(() => {
-    // Only enable in development mode
-    if (import.meta.env.DEV) {
-      startFPSMonitoring((metrics) => {
-        setFpsMetrics(metrics);
-      });
-
-      return () => {
-        stopFPSMonitoring();
-      };
-    }
-  }, []);
-
-  // Toggle FPS display with 'F' key
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'f' || e.key === 'F') {
-        setShowFPS((prev) => !prev);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
 
   // Track cursor position and sync to Realtime Database
   useCursorTracking({ stageRef, enabled: true });
@@ -264,32 +235,8 @@ export function Canvas(): React.ReactElement {
         <RemoteCursors />
       </Stage>
 
-      {/* FPS Overlay - Toggle with 'F' key (development only) */}
-      {import.meta.env.DEV && showFPS && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '10px',
-            left: '10px',
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            color: fpsMetrics.fps < 60 ? '#ff6b6b' : '#51cf66',
-            padding: '8px 12px',
-            borderRadius: '4px',
-            fontFamily: 'monospace',
-            fontSize: '14px',
-            zIndex: 1000,
-            pointerEvents: 'none',
-          }}
-        >
-          <div>FPS: {fpsMetrics.fps}</div>
-          <div style={{ fontSize: '11px', opacity: 0.7 }}>
-            Frame: {fpsMetrics.frameTime.toFixed(2)}ms
-          </div>
-          <div style={{ fontSize: '10px', opacity: 0.5, marginTop: '4px' }}>
-            Press F to hide
-          </div>
-        </div>
-      )}
+      {/* FPS Monitor - Development only */}
+      <FPSMonitor />
     </div>
   );
 }
