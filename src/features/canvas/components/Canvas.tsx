@@ -9,7 +9,7 @@
  * - Supports zoom with Cmd/Ctrl + scroll (cursor-centered)
  */
 
-import { Stage, Layer } from 'react-konva';
+import { Stage, Layer, Rect } from 'react-konva';
 import { useCanvasSize } from '../hooks/useCanvasSize';
 import { useViewport } from '../store/viewportStore';
 import { usePan } from '../hooks/usePan';
@@ -21,6 +21,8 @@ import { startFPSMonitoring, stopFPSMonitoring } from '@/utils/performanceMonito
 import type { PerformanceMetrics } from '@/utils/performanceMonitor';
 import { useCursorTracking } from '@/features/presence/hooks/useCursorTracking';
 import { RemoteCursors } from '@/features/presence/components/RemoteCursors';
+import { ShapeRenderer } from '@/features/shapes/components/ShapeRenderer';
+import { useRectangleCreation } from '@/features/shapes/hooks/useRectangleCreation';
 
 /**
  * Canvas Component
@@ -69,6 +71,14 @@ export function Canvas(): React.ReactElement {
 
   // Track cursor position and sync to Realtime Database
   useCursorTracking({ stageRef, enabled: true });
+
+  // Rectangle creation handling
+  const {
+    previewRectangle,
+    handleMouseDown: handleRectMouseDown,
+    handleMouseMove: handleRectMouseMove,
+    handleMouseUp: handleRectMouseUp,
+  } = useRectangleCreation();
 
   // Pan gesture handling via scroll/wheel
   const panHandlers = usePan({
@@ -129,6 +139,9 @@ export function Canvas(): React.ReactElement {
         y={viewport.y}
         scale={{ x: viewport.scale, y: viewport.scale }}
         onWheel={handleWheel}
+        onMouseDown={handleRectMouseDown}
+        onMouseMove={handleRectMouseMove}
+        onMouseUp={handleRectMouseUp}
       >
         <GridBackground
           width={width}
@@ -137,7 +150,27 @@ export function Canvas(): React.ReactElement {
           stageY={viewport.y}
           scale={viewport.scale}
         />
-        <Layer></Layer>
+        
+        {/* Render all persistent shapes */}
+        <ShapeRenderer />
+        
+        {/* Preview layer for shape being created */}
+        {previewRectangle && (
+          <Layer>
+            <Rect
+              x={previewRectangle.x}
+              y={previewRectangle.y}
+              width={previewRectangle.width}
+              height={previewRectangle.height}
+              fill="rgba(255, 255, 255, 0.3)"
+              stroke="#FFFFFF"
+              strokeWidth={2}
+              dash={[5, 5]}
+              listening={false}
+            />
+          </Layer>
+        )}
+        
         <RemoteCursors />
       </Stage>
 
