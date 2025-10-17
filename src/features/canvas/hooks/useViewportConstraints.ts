@@ -7,6 +7,7 @@
 
 import { useEffect } from 'react';
 import { constrainViewport } from '../utils/coordinateTransform';
+import { calculateZoomConstraints } from '../utils/zoomConstraints';
 
 interface UseViewportConstraintsProps {
   viewportWidth: number;
@@ -15,32 +16,6 @@ interface UseViewportConstraintsProps {
   currentY: number;
   currentScale: number;
   onUpdate: (x: number, y: number, scale: number) => void;
-}
-
-/**
- * Calculate zoom scale constraints based on viewport size
- * (Same logic as in useZoom.ts)
- */
-function calculateZoomConstraints(
-  viewportWidth: number,
-  viewportHeight: number
-): { minScale: number; maxScale: number } {
-  const CANVAS_SIZE = 10000;
-  const MIN_VISIBLE_SIZE = 100;
-
-  // Max zoom out: Show entire 10,000px canvas across LARGER viewport dimension
-  const minScale = Math.max(
-    viewportWidth / CANVAS_SIZE,
-    viewportHeight / CANVAS_SIZE
-  );
-
-  // Max zoom in: Show only 100px across SMALLER viewport dimension
-  const maxScale = Math.min(
-    viewportWidth / MIN_VISIBLE_SIZE,
-    viewportHeight / MIN_VISIBLE_SIZE
-  );
-
-  return { minScale, maxScale };
 }
 
 /**

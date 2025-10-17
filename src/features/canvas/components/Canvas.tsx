@@ -16,6 +16,7 @@ import { usePan } from '../hooks/usePan';
 import { useZoom } from '../hooks/useZoom';
 import { useViewportConstraints } from '../hooks/useViewportConstraints';
 import { GridBackground } from './GridBackground';
+import { useEffect } from 'react';
 
 /**
  * Canvas Component
@@ -26,7 +27,12 @@ import { GridBackground } from './GridBackground';
  */
 export function Canvas(): React.ReactElement {
   const { width, height } = useCanvasSize();
-  const { viewport, setPosition, setViewport } = useViewport();
+  const { viewport, setPosition, setViewport, setDimensions } = useViewport();
+
+  // Sync window dimensions to viewport store
+  useEffect(() => {
+    setDimensions(width, height);
+  }, [width, height, setDimensions]);
 
   // Pan gesture handling via scroll/wheel
   const panHandlers = usePan({

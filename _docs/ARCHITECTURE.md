@@ -197,9 +197,10 @@ src/
 │   ├── firebase.ts      # Firebase initialization
 │   └── firebaseConfig.ts # Firebase config (gitignored)
 │
-├── types/               # TypeScript types
+├── types/               # Shared domain types
 │   ├── firebase.ts      # User, UserPresence, Shape
-│   └── canvas.ts        # ViewportState, CanvasConfig
+│   └── canvas.ts        # CanvasConfig, Point, CanvasBounds, ZoomConstraints
+│                        # Note: Store state types are co-located with stores
 │
 ├── utils/               # Utility functions
 │   ├── debounce.ts
@@ -208,6 +209,66 @@ src/
 │
 └── App.tsx              # Root component with providers
 ```
+
+---
+
+## Type Organization Principles
+
+### Co-location vs Shared Types
+
+**Guiding Principle:** Types should be co-located with their owner when possible.
+
+#### Co-located Types (Preferred)
+Store state types and feature-specific types should live with their implementation:
+
+```typescript
+// ✅ GOOD: Store state type co-located
+// src/features/canvas/store/viewportStore.tsx
+interface ViewportState {
+  x: number;
+  y: number;
+  scale: number;
+  width: number;
+  height: number;
+}
+export function ViewportProvider() { ... }
+export function useViewport() { ... }
+```
+
+**Benefits:**
+- Clear ownership - type belongs to the store
+- Easier refactoring - change type and implementation together
+- Better encapsulation - implementation details stay private
+- Follows React/Context best practices
+
+#### Shared Domain Types
+Only put types in `src/types/` when they are:
+1. Used across multiple features
+2. Domain/business concepts (not implementation details)
+3. Geometric primitives or configuration
+
+```typescript
+// ✅ GOOD: Shared domain types
+// src/types/canvas.ts
+export interface Point { x: number; y: number; }
+export interface CanvasBounds { minX, minY, maxX, maxY }
+export const CANVAS_CONSTANTS = { width: 10000, height: 10000 }
+```
+
+**Examples:**
+- ✅ `Point` - geometric primitive used everywhere
+- ✅ `CanvasConfig` - shared configuration
+- ✅ `Shape` - domain entity used across features
+- ❌ `ViewportState` - store implementation detail
+- ❌ `ToolbarState` - component internal state
+
+### Type Organization Rules
+
+1. **Store State Types** → Co-locate in store file
+2. **Component Props** → Co-locate in component file (unless reused)
+3. **Domain Entities** → Shared types (`src/types/`)
+4. **Geometric Types** → Shared types (`src/types/canvas.ts`)
+5. **Firebase Types** → Shared types (`src/types/firebase.ts`)
 
 ---
 

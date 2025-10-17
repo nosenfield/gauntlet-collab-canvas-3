@@ -12,6 +12,7 @@
 import { useCallback } from 'react';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { constrainViewport } from '../utils/coordinateTransform';
+import { calculateZoomConstraints } from '../utils/zoomConstraints';
 
 interface UseZoomProps {
   viewportWidth: number;
@@ -28,41 +29,6 @@ interface UseZoomReturn {
 
 // Zoom settings
 const ZOOM_SPEED = 0.001; // Zoom sensitivity
-
-/**
- * Calculate zoom scale constraints based on viewport size
- * 
- * Per PRD:
- * - Max zoom out: Show full 10,000px canvas across LARGER viewport dimension
- * - Max zoom in: Show only 100px across SMALLER viewport dimension
- * 
- * @param viewportWidth - Current viewport width in pixels
- * @param viewportHeight - Current viewport height in pixels
- * @returns Min and max scale values
- */
-function calculateZoomConstraints(
-  viewportWidth: number,
-  viewportHeight: number
-): { minScale: number; maxScale: number } {
-  const CANVAS_SIZE = 10000;
-  const MIN_VISIBLE_SIZE = 100;
-
-  // Max zoom out: Show entire 10,000px canvas across LARGER viewport dimension
-  // Use Math.max to ensure the canvas fits within the larger dimension
-  const minScale = Math.max(
-    viewportWidth / CANVAS_SIZE,
-    viewportHeight / CANVAS_SIZE
-  );
-
-  // Max zoom in: Show only 100px across SMALLER viewport dimension
-  // Use Math.min to constrain by the smaller dimension
-  const maxScale = Math.min(
-    viewportWidth / MIN_VISIBLE_SIZE,
-    viewportHeight / MIN_VISIBLE_SIZE
-  );
-
-  return { minScale, maxScale };
-}
 
 /**
  * Custom hook for zoom gesture handling

@@ -5,8 +5,10 @@
  * and to constrain viewport to canvas boundaries.
  */
 
-const CANVAS_WIDTH = 10000;
-const CANVAS_HEIGHT = 10000;
+import { CANVAS_CONSTANTS } from '@/types/canvas';
+
+const CANVAS_WIDTH = CANVAS_CONSTANTS.width;
+const CANVAS_HEIGHT = CANVAS_CONSTANTS.height;
 
 /**
  * Convert screen coordinates to canvas coordinates

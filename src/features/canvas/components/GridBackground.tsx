@@ -11,6 +11,7 @@
 
 import { Layer, Line, Rect } from 'react-konva';
 import { calculateVisibleGridLines, isAccentLine, getVisibleCanvasBounds } from '../utils/gridUtils';
+import { CANVAS_CONSTANTS, GRID_CONSTANTS } from '@/types/canvas';
 
 interface GridBackgroundProps {
   width: number;          // Viewport width
@@ -31,13 +32,13 @@ export function GridBackground({
   stageY,
   scale,
 }: GridBackgroundProps): React.ReactElement {
-  // Grid configuration from PRD
-  const PRIMARY_SPACING = 100;
-  const ACCENT_EVERY = 5; // Every 5th line is an accent line
-  const PRIMARY_OPACITY = 0.25;
-  const ACCENT_OPACITY = 0.5;
-  const LINE_COLOR = '#FFFFFF';
-  const CANVAS_SIZE = 10000;
+  // Grid configuration from centralized constants
+  const PRIMARY_SPACING = GRID_CONSTANTS.primarySpacing;
+  const ACCENT_EVERY = CANVAS_CONSTANTS.gridAccent; // Every 5th line is an accent line
+  const PRIMARY_OPACITY = GRID_CONSTANTS.primaryOpacity;
+  const ACCENT_OPACITY = GRID_CONSTANTS.secondaryOpacity;
+  const LINE_COLOR = GRID_CONSTANTS.lineColor;
+  const CANVAS_SIZE = CANVAS_CONSTANTS.width;
 
   // Calculate visible canvas bounds for viewport culling
   const visibleBounds = getVisibleCanvasBounds(
@@ -58,7 +59,7 @@ export function GridBackground({
         y={0}
         width={CANVAS_SIZE}
         height={CANVAS_SIZE}
-        fill="#2A2A2A"
+        fill={GRID_CONSTANTS.backgroundColor}
       />
       {gridLines.vertical.map((x) => {
         const isAccent = isAccentLine(x, PRIMARY_SPACING, ACCENT_EVERY);
