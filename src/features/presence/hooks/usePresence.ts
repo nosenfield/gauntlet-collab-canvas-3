@@ -12,6 +12,7 @@ import { useAuth } from '@/features/auth/store/authStore';
 import {
   createTabPresence,
   updatePresenceHeartbeat,
+  removeTabPresence,
   getCurrentTabId,
 } from '../services/presenceService';
 
@@ -26,6 +27,8 @@ export function usePresence(): void {
   const { user } = useAuth();
   const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isInitializedRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
+  const tabIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -45,6 +48,10 @@ export function usePresence(): void {
         const tabId = getCurrentTabId();
 
         console.log('📝 Creating tab presence:', tabId);
+        
+        // Store for cleanup
+        userIdRef.current = user.userId;
+        tabIdRef.current = tabId;
         
         // Create tab-specific presence with automatic cleanup
         await createTabPresence(user, tabId);
@@ -71,15 +78,25 @@ export function usePresence(): void {
     // Cleanup on unmount
     return () => {
       isMounted = false;
-      isInitializedRef.current = false;
 
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
       }
 
-      // onDisconnect() will automatically remove this tab's presence
-      console.log('🔴 Tab closing - onDisconnect will handle cleanup');
+      // Manually remove presence
+      // This handles both sign-out (component unmount) and tab close
+      if (userIdRef.current && tabIdRef.current) {
+        console.log('🔴 Cleaning up presence on unmount');
+        removeTabPresence(userIdRef.current, tabIdRef.current).catch((error) => {
+          console.error('Failed to remove presence on unmount:', error);
+        });
+      }
+      
+      // Reset state
+      isInitializedRef.current = false;
+      userIdRef.current = null;
+      tabIdRef.current = null;
     };
   }, [user]);
 }

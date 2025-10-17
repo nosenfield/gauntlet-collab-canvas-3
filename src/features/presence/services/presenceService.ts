@@ -101,6 +101,22 @@ export async function updateCursorPosition(
 }
 
 /**
+ * Remove tab presence manually (e.g., on sign-out)
+ * onDisconnect() handles automatic cleanup, but this is for explicit removal
+ */
+export async function removeTabPresence(userId: string, tabId: string): Promise<void> {
+  const tabPresenceRef = ref(database, `presence/${DOCUMENT_ID}/${userId}/${tabId}`);
+
+  try {
+    await set(tabPresenceRef, null);
+    console.log('✅ Tab presence manually removed:', tabId);
+  } catch (error) {
+    console.error('❌ Error removing tab presence:', error);
+    // Don't throw - best effort cleanup
+  }
+}
+
+/**
  * Generate a unique tab ID
  */
 export function generateTabId(): string {
