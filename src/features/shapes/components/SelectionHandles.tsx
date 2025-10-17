@@ -3,10 +3,12 @@
  * 
  * Displays visual handles around selected shapes.
  * Shows corners for future resize functionality (STAGE3-5).
+ * Handles are zoom-independent (constant visual size).
  */
 
 import { Group, Rect, Circle } from 'react-konva';
 import type { Shape } from '../../../types/firebase';
+import { useViewport } from '../../canvas/store/viewportStore';
 
 /**
  * Selection Handles Props
@@ -30,6 +32,14 @@ const SELECTION_STROKE_WIDTH = 2;
  * Currently visual only - drag/resize functionality comes in STAGE3-5.
  */
 export function SelectionHandles({ shape }: SelectionHandlesProps) {
+  const { viewport } = useViewport();
+  
+  // Calculate zoom-independent sizes
+  const handleRadius = (HANDLE_SIZE / 2) / viewport.scale;
+  const strokeWidth = SELECTION_STROKE_WIDTH / viewport.scale;
+  const handleStrokeWidth = 2 / viewport.scale;
+  const dashPattern = [5 / viewport.scale, 5 / viewport.scale];
+  
   // Calculate bounds based on shape type
   let x = shape.x;
   let y = shape.y;
@@ -62,8 +72,8 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
         width={width}
         height={height}
         stroke={SELECTION_STROKE}
-        strokeWidth={SELECTION_STROKE_WIDTH}
-        dash={[5, 5]}
+        strokeWidth={strokeWidth}
+        dash={dashPattern}
         listening={false}
         perfectDrawEnabled={false}
       />
@@ -73,10 +83,10 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
       <Circle
         x={x}
         y={y}
-        radius={HANDLE_SIZE / 2}
+        radius={handleRadius}
         fill="white"
         stroke={HANDLE_COLOR}
-        strokeWidth={2}
+        strokeWidth={handleStrokeWidth}
         listening={false}
         perfectDrawEnabled={false}
       />
@@ -85,10 +95,10 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
       <Circle
         x={x + width}
         y={y}
-        radius={HANDLE_SIZE / 2}
+        radius={handleRadius}
         fill="white"
         stroke={HANDLE_COLOR}
-        strokeWidth={2}
+        strokeWidth={handleStrokeWidth}
         listening={false}
         perfectDrawEnabled={false}
       />
@@ -97,10 +107,10 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
       <Circle
         x={x}
         y={y + height}
-        radius={HANDLE_SIZE / 2}
+        radius={handleRadius}
         fill="white"
         stroke={HANDLE_COLOR}
-        strokeWidth={2}
+        strokeWidth={handleStrokeWidth}
         listening={false}
         perfectDrawEnabled={false}
       />
@@ -109,10 +119,10 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
       <Circle
         x={x + width}
         y={y + height}
-        radius={HANDLE_SIZE / 2}
+        radius={handleRadius}
         fill="white"
         stroke={HANDLE_COLOR}
-        strokeWidth={2}
+        strokeWidth={handleStrokeWidth}
         listening={false}
         perfectDrawEnabled={false}
       />
@@ -120,11 +130,11 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
       {/* Rotation Handle (top-center) - for future use */}
       <Circle
         x={x + width / 2}
-        y={y - 20}
-        radius={HANDLE_SIZE / 2}
+        y={y - 20 / viewport.scale}
+        radius={handleRadius}
         fill="white"
         stroke={HANDLE_COLOR}
-        strokeWidth={2}
+        strokeWidth={handleStrokeWidth}
         listening={false}
         perfectDrawEnabled={false}
       />

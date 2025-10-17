@@ -3,6 +3,7 @@
  * 
  * Renders an individual rectangle shape on the canvas using Konva.
  * Handles click selection and visual feedback for selected state.
+ * Selected stroke is zoom-independent (constant visual size).
  */
 
 import { Rect } from 'react-konva';
@@ -10,6 +11,7 @@ import type Konva from 'konva';
 import type { Shape } from '../../../types/firebase';
 import { useSelection } from '../hooks/useSelection';
 import { useTool } from '../hooks/useTool';
+import { useViewport } from '../../canvas/store/viewportStore';
 
 /**
  * Rectangle Props
@@ -26,7 +28,11 @@ interface RectangleProps {
 export function Rectangle({ shape }: RectangleProps) {
   const { selectShape, isSelected } = useSelection();
   const { currentTool } = useTool();
+  const { viewport } = useViewport();
   const selected = isSelected(shape.id);
+  
+  // Calculate zoom-independent stroke width for selection
+  const selectionStrokeWidth = 3 / viewport.scale;
 
   // Validate shape type
   if (shape.type !== 'rectangle') {
@@ -76,7 +82,7 @@ export function Rectangle({ shape }: RectangleProps) {
       // Visual properties
       fill={shape.fillColor}
       stroke={selected ? '#4A9EFF' : shape.strokeColor}
-      strokeWidth={selected ? 3 : shape.strokeWidth}
+      strokeWidth={selected ? selectionStrokeWidth : shape.strokeWidth}
       opacity={shape.opacity}
       cornerRadius={shape.borderRadius || 0}
       
