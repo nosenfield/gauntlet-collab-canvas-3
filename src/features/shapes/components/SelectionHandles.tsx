@@ -6,7 +6,7 @@
  * Works with center-based rotation system.
  */
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Group, Rect, Circle } from 'react-konva';
 import type Konva from 'konva';
 import type { Shape } from '../../../types/firebase';
@@ -45,6 +45,9 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
   const { viewport } = useViewport();
   const { handleResize, handleResizeEnd, handleRotate, handleRotateEnd } = useShapeTransform();
   const { shapes } = useShapes();
+  
+  // Track live dimensions during resize for real-time visual feedback
+  const [liveDimensions, setLiveDimensions] = useState<{ width: number; height: number } | null>(null);
   
   // Store initial state for resize/rotate operations
   const dragStartRef = useRef<{
@@ -189,6 +192,9 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
       const newX = newCenterX - absWidth / 2;
       const newY = newCenterY - absHeight / 2;
 
+      // Update live dimensions for real-time visual feedback
+      setLiveDimensions({ width: absWidth, height: absHeight });
+
       // Apply resize with new position and dimensions
       handleResize(shape.id, absWidth, absHeight, newX, newY, { current: stage });
     };
@@ -269,6 +275,8 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
         handleResizeEnd(shape.id, absWidth, absHeight, newX, newY);
       }
 
+      // Reset live dimensions
+      setLiveDimensions(null);
       dragStartRef.current = null;
       
       // Remove event listeners
@@ -370,8 +378,10 @@ export function SelectionHandles({ shape }: SelectionHandlesProps) {
 
   // Get current shape data (may be updated during transformations)
   const currentShape = shapes.find((s) => s.id === shape.id) || shape;
-  const currentWidth = currentShape.width || 0;
-  const currentHeight = currentShape.height || 0;
+  
+  // Use live dimensions during resize for real-time feedback, otherwise use shape dimensions
+  const currentWidth = liveDimensions?.width ?? (currentShape.width || 0);
+  const currentHeight = liveDimensions?.height ?? (currentShape.height || 0);
 
   return (
     <Group>
