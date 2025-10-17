@@ -25,6 +25,9 @@ import { ShapeLayer } from '@/features/displayObjects/shapes/components/ShapeLay
 import { useShapeCreation } from '@/features/displayObjects/shapes/hooks/useShapeCreation';
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
 import { useTool } from '@/features/displayObjects/common/store/toolStore';
+import { useMarqueeSelection } from '@/features/displayObjects/common/hooks/useMarqueeSelection';
+import { MarqueeBox } from '@/features/displayObjects/common/components/MarqueeBox';
+import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 
 /**
  * Canvas Component
@@ -78,26 +81,69 @@ export function Canvas(): React.ReactElement {
   const handleShapeCreation = useShapeCreation();
 
   // Selection state from store
-  const { getSelectedShapeId, selectShape, clearSelection } = useSelection();
+  const { selectedIds, selectShape, toggleSelectShape, setSelection, clearSelection } = useSelection();
   const { isSelectMode } = useTool();
+  
+  // Shapes for marquee selection
+  const { shapes } = useShapes();
+  
+  // Marquee selection
+  const {
+    isMarqueeActive,
+    getMarqueeBox,
+    handleMouseDown: marqueeMouseDown,
+    handleMouseMove: marqueeMouseMove,
+    handleMouseUp: marqueeMouseUp,
+  } = useMarqueeSelection(shapes, stageRef, isSelectMode());
 
   // Handle shape click (select when in select mode)
-  const handleShapeClick = (shapeId: string) => {
+  const handleShapeClick = (shapeId: string, isShiftClick: boolean) => {
     if (isSelectMode()) {
-      console.log('[Canvas] Shape clicked in select mode:', shapeId);
-      selectShape(shapeId);
+      if (isShiftClick) {
+        console.log('[Canvas] Shape shift-clicked in select mode:', shapeId);
+        toggleSelectShape(shapeId);
+      } else {
+        console.log('[Canvas] Shape clicked in select mode:', shapeId);
+        selectShape(shapeId);
+      }
     }
   };
 
-  // Handle stage click (clear selection or create shape)
-  const handleStageClick = (e: any) => {
+  // Handle stage mouse down (start marquee or create shape)
+  const handleStageMouseDown = (e: any) => {
     const clickedOnEmpty = e.target === e.currentTarget;
     
     if (clickedOnEmpty && isSelectMode()) {
-      // Clicked on empty canvas in select mode - clear selection
-      clearSelection();
-    } else {
-      // Handle shape creation
+      // Start marquee selection
+      marqueeMouseDown(e);
+    }
+  };
+  
+  // Handle stage mouse move (update marquee)
+  const handleStageMouseMove = (e: any) => {
+    marqueeMouseMove(e);
+  };
+  
+  // Handle stage mouse up (complete marquee or shape creation)
+  const handleStageMouseUp = () => {
+    if (isMarqueeActive) {
+      // Complete marquee selection
+      const selectedShapeIds = marqueeMouseUp();
+      if (selectedShapeIds && selectedShapeIds.length > 0) {
+        setSelection(selectedShapeIds);
+      } else {
+        // Clicked on empty space without dragging - clear selection
+        clearSelection();
+      }
+    }
+  };
+  
+  // Handle stage click (for shape creation)
+  const handleStageClick = (e: any) => {
+    const clickedOnEmpty = e.target === e.currentTarget;
+    
+    if (!clickedOnEmpty || !isSelectMode()) {
+      // Handle shape creation when not in select mode or clicked on a shape
       handleShapeCreation(e);
     }
   };
@@ -162,6 +208,9 @@ export function Canvas(): React.ReactElement {
         scale={{ x: viewport.scale, y: viewport.scale }}
         onWheel={handleWheel}
         onClick={handleStageClick}
+        onMouseDown={handleStageMouseDown}
+        onMouseMove={handleStageMouseMove}
+        onMouseUp={handleStageMouseUp}
       >
         <GridBackground
           width={width}
@@ -171,10 +220,15 @@ export function Canvas(): React.ReactElement {
           scale={viewport.scale}
         />
         <ShapeLayer
-          selectedShapeId={getSelectedShapeId()}
+          selectedIds={selectedIds}
           onShapeClick={handleShapeClick}
         />
-        <Layer></Layer>
+        {/* Marquee Selection Layer */}
+        <Layer listening={false}>
+          {isMarqueeActive && getMarqueeBox() && (
+            <MarqueeBox {...getMarqueeBox()!} />
+          )}
+        </Layer>
         <RemoteCursors />
       </Stage>
 

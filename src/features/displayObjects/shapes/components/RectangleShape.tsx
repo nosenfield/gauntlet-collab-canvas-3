@@ -14,7 +14,7 @@ import type { RectangleShape as RectangleShapeType } from '../types';
 interface RectangleShapeProps {
   shape: RectangleShapeType;
   isSelected?: boolean;
-  onClick?: (shapeId: string) => void;
+  onClick?: (shapeId: string, isShiftClick: boolean) => void;
   onDragEnd?: (shapeId: string, x: number, y: number) => void;
 }
 
@@ -31,9 +31,10 @@ export function RectangleShape({
   onDragEnd,
 }: RectangleShapeProps) {
   
-  const handleClick = () => {
+  const handleClick = (e: KonvaEventObject<MouseEvent>) => {
     if (onClick) {
-      onClick(shape.id);
+      const isShiftClick = e.evt.shiftKey;
+      onClick(shape.id, isShiftClick);
     }
   };
 

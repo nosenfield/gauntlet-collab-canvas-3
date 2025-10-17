@@ -15,10 +15,16 @@ export interface SelectionState {
 }
 
 /**
+ * Selection limit constant
+ */
+const MAX_SELECTION_COUNT = 100;
+
+/**
  * Selection Actions
  */
 type SelectionAction =
   | { type: 'SELECT'; payload: string }
+  | { type: 'TOGGLE_SELECT'; payload: string }
   | { type: 'DESELECT'; payload: string }
   | { type: 'CLEAR_SELECTION' }
   | { type: 'SET_SELECTION'; payload: string[] };
@@ -37,11 +43,31 @@ const initialSelectionState: SelectionState = {
 function selectionReducer(state: SelectionState, action: SelectionAction): SelectionState {
   switch (action.type) {
     case 'SELECT':
-      // Add to selection (single select for now)
+      // Single select - replace selection
       return {
         ...state,
         selectedIds: [action.payload],
       };
+    
+    case 'TOGGLE_SELECT':
+      // Shift-click: toggle selection
+      if (state.selectedIds.includes(action.payload)) {
+        // Already selected - remove from selection
+        return {
+          ...state,
+          selectedIds: state.selectedIds.filter(id => id !== action.payload),
+        };
+      } else {
+        // Not selected - add to selection (if under limit)
+        if (state.selectedIds.length >= MAX_SELECTION_COUNT) {
+          console.warn(`[Selection] Cannot select more than ${MAX_SELECTION_COUNT} objects`);
+          return state;
+        }
+        return {
+          ...state,
+          selectedIds: [...state.selectedIds, action.payload],
+        };
+      }
     
     case 'DESELECT':
       return {
@@ -56,9 +82,14 @@ function selectionReducer(state: SelectionState, action: SelectionAction): Selec
       };
     
     case 'SET_SELECTION':
+      // Apply selection limit
+      const limitedSelection = action.payload.slice(0, MAX_SELECTION_COUNT);
+      if (action.payload.length > MAX_SELECTION_COUNT) {
+        console.warn(`[Selection] Selection limited to ${MAX_SELECTION_COUNT} objects`);
+      }
       return {
         ...state,
-        selectedIds: action.payload,
+        selectedIds: limitedSelection,
       };
     
     default:
@@ -133,11 +164,27 @@ export function useSelection() {
   const { state, dispatch } = context;
 
   /**
-   * Select a single shape
+   * Select a single shape (replaces current selection)
    */
   const selectShape = useCallback((shapeId: string) => {
     console.log('[Selection] Selecting shape:', shapeId);
     dispatch({ type: 'SELECT', payload: shapeId });
+  }, [dispatch]);
+
+  /**
+   * Toggle shape selection (for shift-click multi-select)
+   */
+  const toggleSelectShape = useCallback((shapeId: string) => {
+    console.log('[Selection] Toggling shape:', shapeId);
+    dispatch({ type: 'TOGGLE_SELECT', payload: shapeId });
+  }, [dispatch]);
+
+  /**
+   * Set selection to multiple shapes (for marquee select)
+   */
+  const setSelection = useCallback((shapeIds: string[]) => {
+    console.log('[Selection] Setting selection to', shapeIds.length, 'shapes');
+    dispatch({ type: 'SET_SELECTION', payload: shapeIds });
   }, [dispatch]);
 
   /**
@@ -183,6 +230,8 @@ export function useSelection() {
     
     // Actions
     selectShape,
+    toggleSelectShape,
+    setSelection,
     deselectShape,
     clearSelection,
     

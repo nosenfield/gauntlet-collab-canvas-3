@@ -15,8 +15,8 @@ import { RectangleShape } from './RectangleShape';
  * Shape Layer Props
  */
 interface ShapeLayerProps {
-  selectedShapeId?: string | null;
-  onShapeClick?: (shapeId: string) => void;
+  selectedIds?: string[];
+  onShapeClick?: (shapeId: string, isShiftClick: boolean) => void;
 }
 
 /**
@@ -25,7 +25,7 @@ interface ShapeLayerProps {
  * Renders all shapes in order of z-index
  * Delegates to specific shape components based on type
  */
-export function ShapeLayer({ selectedShapeId, onShapeClick }: ShapeLayerProps) {
+export function ShapeLayer({ selectedIds = [], onShapeClick }: ShapeLayerProps) {
   const { shapes, isLoading } = useShapes();
   const { user } = useAuth();
 
@@ -48,7 +48,7 @@ export function ShapeLayer({ selectedShapeId, onShapeClick }: ShapeLayerProps) {
   return (
     <Layer name="shapes-layer">
       {shapes.map((shape) => {
-        const isSelected = selectedShapeId === shape.id;
+        const isSelected = selectedIds.includes(shape.id);
 
         // Render based on shape type
         switch (shape.type) {
