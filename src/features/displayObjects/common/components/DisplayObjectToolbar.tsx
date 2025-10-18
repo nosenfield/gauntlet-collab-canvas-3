@@ -20,11 +20,22 @@ interface ToolButtonProps {
 }
 
 /**
+ * Tool keyboard shortcuts for display
+ */
+const TOOL_SHORTCUT_KEYS: Record<ToolType, string> = {
+  select: 'V',
+  rectangle: 'R',
+  circle: 'C',
+  line: 'L',
+};
+
+/**
  * Tool Button Component
  * Individual button for each tool in the toolbar
  */
 function ToolButton({ tool, isActive, onClick }: ToolButtonProps) {
   const label = TOOL_LABELS[tool];
+  const shortcut = TOOL_SHORTCUT_KEYS[tool];
   
   // Get icon for each tool
   const getIcon = () => {
@@ -44,12 +55,13 @@ function ToolButton({ tool, isActive, onClick }: ToolButtonProps) {
     <button
       className={`tool-button ${isActive ? 'tool-button--active' : ''}`}
       onClick={onClick}
-      title={label}
-      aria-label={label}
+      title={`${label} (${shortcut})`}
+      aria-label={`${label} (${shortcut})`}
       aria-pressed={isActive}
     >
       <span className="tool-button__icon">{getIcon()}</span>
       <span className="tool-button__label">{label}</span>
+      <span className="tool-button__shortcut">{shortcut}</span>
     </button>
   );
 }

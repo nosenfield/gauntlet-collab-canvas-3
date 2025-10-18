@@ -27,6 +27,7 @@
 
 /* Tool Button Base Styles */
 .tool-button {
+  position: relative; /* For absolute positioning of shortcut */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -62,6 +63,26 @@
   line-height: 1;
   user-select: none;
   text-transform: capitalize;
+}
+
+/* Tool Button Shortcut */
+.tool-button__shortcut {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 4px;
+  background-color: rgba(0, 0, 0, 0.4);
+  border-radius: 3px;
+  opacity: 0.7;
+  user-select: none;
+}
+
+.tool-button--active .tool-button__shortcut {
+  background-color: rgba(0, 0, 0, 0.3);
+  opacity: 0.9;
 }
 
 /* Hover State */

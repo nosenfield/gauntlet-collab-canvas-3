@@ -18,6 +18,7 @@ import { useEffect, useRef } from 'react';
 import { FPSMonitor } from './FPSMonitor';
 import { useCursorTracking } from '@/features/presence/hooks/useCursorTracking';
 import { useLockToolIntegration } from '@/features/displayObjects/common/hooks/useLockToolIntegration';
+import { useToolShortcuts } from '@/features/displayObjects/common/hooks/useToolShortcuts';
 
 /**
  * Canvas Component
@@ -41,6 +42,9 @@ export function Canvas(): React.ReactElement {
 
   // Release locks when switching away from select tool
   useLockToolIntegration();
+
+  // Handle keyboard shortcuts for tool selection
+  useToolShortcuts();
 
   // Consolidated interaction handling
   const {
