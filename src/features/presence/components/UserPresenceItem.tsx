@@ -11,6 +11,7 @@ import './UserPresenceItem.css';
 interface UserPresenceItemProps {
   presence: UserPresence;
   isCurrentUser?: boolean;
+  onClick?: () => void;
 }
 
 /**
@@ -20,9 +21,15 @@ interface UserPresenceItemProps {
 export function UserPresenceItem({
   presence,
   isCurrentUser = false,
+  onClick,
 }: UserPresenceItemProps): React.ReactElement {
   return (
-    <div className={`user-presence-item ${isCurrentUser ? 'current-user' : ''}`}>
+    <div 
+      className={`user-presence-item ${isCurrentUser ? 'current-user' : ''} ${onClick ? 'clickable' : ''}`}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       <div
         className="user-color-swatch"
         style={{ backgroundColor: presence.color }}

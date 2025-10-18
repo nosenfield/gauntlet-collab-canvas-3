@@ -27,14 +27,14 @@
 /* Panel Container */
 .debug-auth-panel {
   position: fixed;
-  bottom: 10px;
-  right: 10px;
+  top: 10px;
+  right: 260px; /* 240px (active users width) + 10px gap + 10px (right margin) */
   width: 320px;
   background: #1e1e1e;
   border: 1px solid #333;
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  z-index: 9998;
+  z-index: 999; /* Below active users panel (1000) */
   font-family: system-ui, -apple-system, sans-serif;
   overflow: hidden;
 }

@@ -2,45 +2,32 @@
  * Debug Authentication Panel
  * 
  * Development-only panel for testing authentication flows.
- * Press 'A' to toggle visibility.
+ * Triggered by clicking on your own user in the Active Users list.
  * Provides quick access to sign-out and user info.
  */
 
-import { useState, useEffect } from 'react';
 import { useAuth } from '../store/authStore';
 import './DebugAuthPanel.css';
+
+interface DebugAuthPanelProps {
+  isVisible: boolean;
+  onClose: () => void;
+}
 
 /**
  * DebugAuthPanel Component
  * Only visible in development mode
  */
-export function DebugAuthPanel(): React.ReactElement | null {
+export function DebugAuthPanel({ isVisible, onClose }: DebugAuthPanelProps): React.ReactElement | null {
   const { user, signOut } = useAuth();
-  const [isVisible, setIsVisible] = useState(true); // ON by default
 
   // Only render in development mode
   if (!import.meta.env.DEV) {
     return null;
   }
 
-  // Toggle visibility with 'A' key
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'a' || e.key === 'A') {
-        setIsVisible((prev) => !prev);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
-
   if (!isVisible) {
-    return (
-      <div className="debug-auth-hint">
-        Press 'A' for Auth Debug
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -49,7 +36,7 @@ export function DebugAuthPanel(): React.ReactElement | null {
         <h3>🔐 Auth Debug Panel</h3>
         <button
           className="debug-close-button"
-          onClick={() => setIsVisible(false)}
+          onClick={onClose}
         >
           ×
         </button>
@@ -86,7 +73,7 @@ export function DebugAuthPanel(): React.ReactElement | null {
               className="debug-signout-button"
               onClick={async () => {
                 await signOut();
-                setIsVisible(false);
+                onClose();
               }}
             >
               Sign Out (Test Auth Modal)
@@ -104,7 +91,7 @@ export function DebugAuthPanel(): React.ReactElement | null {
       </div>
 
       <div className="debug-auth-footer">
-        <small>Development Only • Press 'A' to hide</small>
+        <small>Development Only • Click to close</small>
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { AuthProvider } from '@/features/auth/store/authStore';
 import { AuthModal } from '@/features/auth/components/AuthModal';
-import { DebugAuthPanel } from '@/features/auth/components/DebugAuthPanel';
 import { ViewportProvider } from '@/features/canvas/store/viewportStore';
 import { Canvas } from '@/features/canvas/components/Canvas';
 import { usePresence } from '@/features/presence/hooks/usePresence';
@@ -37,7 +36,6 @@ function AppContent() {
 
   return (
     <>
-      <DebugAuthPanel />
       <UserPresenceSidebar />
       <DisplayObjectToolbar />
       <PropertiesModal />

@@ -8,11 +8,12 @@
  * - Updates in real-time
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/store/authStore';
 import { useAllActiveUsers } from '../hooks/useActiveUsers';
 import { UserPresenceItem } from './UserPresenceItem';
 import { useModalResize } from '@/features/displayObjects/common/components/PropertiesModal/useModalResize';
+import { DebugAuthPanel } from '@/features/auth/components/DebugAuthPanel';
 import './UserPresenceSidebar.css';
 
 /**
@@ -22,6 +23,7 @@ import './UserPresenceSidebar.css';
 export function UserPresenceSidebar(): React.ReactElement | null {
   const { user } = useAuth();
   const allActiveUsers = useAllActiveUsers();
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
   
   // Fixed position (top-right), only resizable vertically
   const { height, isResizing, handleResizeStart } = useModalResize({
@@ -59,45 +61,57 @@ export function UserPresenceSidebar(): React.ReactElement | null {
   }
 
   return (
-    <div 
-      className={`user-presence-sidebar ${isResizing ? 'user-presence-sidebar--resizing' : ''}`}
-      style={{
-        height: `${height}px`,
-      }}
-    >
-      <div className="sidebar-container">
-        <div className="sidebar-header">
-          <h3 className="sidebar-title">Active Users</h3>
-          <span className="user-count">{sortedUsers.length}</span>
-        </div>
+    <>
+      {/* Debug Auth Panel - positioned to the left of sidebar */}
+      <DebugAuthPanel 
+        isVisible={showDebugPanel}
+        onClose={() => setShowDebugPanel(false)}
+      />
+      
+      <div 
+        className={`user-presence-sidebar ${isResizing ? 'user-presence-sidebar--resizing' : ''}`}
+        style={{
+          height: `${height}px`,
+        }}
+      >
+        <div className="sidebar-container">
+          <div className="sidebar-header">
+            <h3 className="sidebar-title">Active Users</h3>
+            <span className="user-count">{sortedUsers.length}</span>
+          </div>
 
-        <div className="sidebar-content">
-        {sortedUsers.length === 0 ? (
-          <div className="no-users-message">
-            <p>No active users</p>
+          <div className="sidebar-content">
+          {sortedUsers.length === 0 ? (
+            <div className="no-users-message">
+              <p>No active users</p>
+            </div>
+          ) : (
+            <div className="users-list">
+              {sortedUsers.map((presence) => {
+                const isCurrentUser = presence.userId === user.userId;
+                return (
+                  <UserPresenceItem
+                    key={presence.userId}
+                    presence={presence}
+                    isCurrentUser={isCurrentUser}
+                    onClick={isCurrentUser ? () => setShowDebugPanel(!showDebugPanel) : undefined}
+                  />
+                );
+              })}
+            </div>
+          )}
           </div>
-        ) : (
-          <div className="users-list">
-            {sortedUsers.map((presence) => (
-              <UserPresenceItem
-                key={presence.userId}
-                presence={presence}
-                isCurrentUser={presence.userId === user.userId}
-              />
-            ))}
+          
+          {/* Resize Handle */}
+          <div 
+            className="sidebar-resize-handle"
+            onMouseDown={handleResizeStart}
+            title="Drag to resize"
+          >
+            <div className="sidebar-resize-indicator">⋮</div>
           </div>
-        )}
-        </div>
-        
-        {/* Resize Handle */}
-        <div 
-          className="sidebar-resize-handle"
-          onMouseDown={handleResizeStart}
-          title="Drag to resize"
-        >
-          <div className="sidebar-resize-indicator">⋮</div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
