@@ -12,6 +12,7 @@ import React, { useCallback } from 'react';
 import type { TransformableObject } from '../../types';
 import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
 import { updateTextsBatch } from '@/features/displayObjects/texts/services/textService';
+import { calculateCollectionAABB, getAABBCenter } from '../../utils/boundingBoxUtils';
 import { NumberInput } from './NumberInput';
 
 interface UniversalPropertiesProps {
@@ -44,35 +45,147 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
   /**
    * Update a universal property for all selected objects
    * Uses batch updates for performance with multiple objects
+   * For scale properties, scales from collection center (like scale knob)
    */
   const updateProperty = useCallback(async (key: keyof TransformableObject, value: number) => {
-    if (!userId) return;
+    if (!userId || selectedObjects.length === 0) return;
     
     try {
-      const updates = { [key]: value };
-      
       // Separate shapes and texts for batch updates
       const shapes = selectedObjects.filter(obj => obj.category === 'shape');
       const texts = selectedObjects.filter(obj => obj.category === 'text');
       
       const promises: Promise<void>[] = [];
       
-      // Batch update shapes
-      if (shapes.length > 0) {
-        const shapeBatchUpdates = shapes.map(shape => ({
-          shapeId: shape.id,
-          updates,
-        }));
-        promises.push(updateShapesBatch(userId, shapeBatchUpdates));
-      }
-      
-      // Batch update texts
-      if (texts.length > 0) {
-        const textBatchUpdates = texts.map(text => ({
-          textId: text.id,
-          updates,
-        }));
-        promises.push(updateTextsBatch(userId, textBatchUpdates));
+      // Special handling for scale properties - scale from collection center
+      if (key === 'scaleX' || key === 'scaleY') {
+        // Calculate collection center as pivot point
+        const collectionBounds = calculateCollectionAABB(selectedObjects);
+        if (!collectionBounds) return;
+        const center = getAABBCenter(collectionBounds);
+        
+        // For each object, calculate new position and scale
+        const shapeUpdates = shapes.map(obj => {
+          // Calculate object's center point (accounting for current scale)
+          const halfWidth = (obj.width * obj.scaleX) / 2;
+          const halfHeight = (obj.height * obj.scaleY) / 2;
+          const objectCenter = {
+            x: obj.x + halfWidth,
+            y: obj.y + halfHeight,
+          };
+          
+          // Calculate distance from collection center
+          const deltaX = objectCenter.x - center.x;
+          const deltaY = objectCenter.y - center.y;
+          
+          // Calculate scale factor (new / old)
+          const oldScale = key === 'scaleX' ? obj.scaleX : obj.scaleY;
+          const scaleFactor = value / oldScale;
+          
+          // Scale the distance from center (only the relevant axis for non-uniform scaling)
+          const newCenterX = key === 'scaleX' ? center.x + (deltaX * scaleFactor) : objectCenter.x;
+          const newCenterY = key === 'scaleY' ? center.y + (deltaY * scaleFactor) : objectCenter.y;
+          
+          // Apply new scale
+          const newScaleX = key === 'scaleX' ? value : obj.scaleX;
+          const newScaleY = key === 'scaleY' ? value : obj.scaleY;
+          
+          // Constrain scale (0.1 to 100.0)
+          const constrainedScaleX = Math.max(0.1, Math.min(100.0, newScaleX));
+          const constrainedScaleY = Math.max(0.1, Math.min(100.0, newScaleY));
+          
+          // Calculate new half dimensions with constrained scale
+          const newHalfWidth = (obj.width * constrainedScaleX) / 2;
+          const newHalfHeight = (obj.height * constrainedScaleY) / 2;
+          
+          // Convert back to top-left coordinates
+          const newX = newCenterX - newHalfWidth;
+          const newY = newCenterY - newHalfHeight;
+          
+          return {
+            shapeId: obj.id,
+            updates: {
+              x: newX,
+              y: newY,
+              scaleX: constrainedScaleX,
+              scaleY: constrainedScaleY,
+            },
+          };
+        });
+        
+        const textUpdates = texts.map(obj => {
+          // Calculate object's center point (accounting for current scale)
+          const halfWidth = (obj.width * obj.scaleX) / 2;
+          const halfHeight = (obj.height * obj.scaleY) / 2;
+          const objectCenter = {
+            x: obj.x + halfWidth,
+            y: obj.y + halfHeight,
+          };
+          
+          // Calculate distance from collection center
+          const deltaX = objectCenter.x - center.x;
+          const deltaY = objectCenter.y - center.y;
+          
+          // Calculate scale factor (new / old)
+          const oldScale = key === 'scaleX' ? obj.scaleX : obj.scaleY;
+          const scaleFactor = value / oldScale;
+          
+          // Scale the distance from center (only the relevant axis for non-uniform scaling)
+          const newCenterX = key === 'scaleX' ? center.x + (deltaX * scaleFactor) : objectCenter.x;
+          const newCenterY = key === 'scaleY' ? center.y + (deltaY * scaleFactor) : objectCenter.y;
+          
+          // Apply new scale
+          const newScaleX = key === 'scaleX' ? value : obj.scaleX;
+          const newScaleY = key === 'scaleY' ? value : obj.scaleY;
+          
+          // Constrain scale (0.1 to 100.0)
+          const constrainedScaleX = Math.max(0.1, Math.min(100.0, newScaleX));
+          const constrainedScaleY = Math.max(0.1, Math.min(100.0, newScaleY));
+          
+          // Calculate new half dimensions with constrained scale
+          const newHalfWidth = (obj.width * constrainedScaleX) / 2;
+          const newHalfHeight = (obj.height * constrainedScaleY) / 2;
+          
+          // Convert back to top-left coordinates
+          const newX = newCenterX - newHalfWidth;
+          const newY = newCenterY - newHalfHeight;
+          
+          return {
+            textId: obj.id,
+            updates: {
+              x: newX,
+              y: newY,
+              scaleX: constrainedScaleX,
+              scaleY: constrainedScaleY,
+            },
+          };
+        });
+        
+        if (shapeUpdates.length > 0) {
+          promises.push(updateShapesBatch(userId, shapeUpdates));
+        }
+        if (textUpdates.length > 0) {
+          promises.push(updateTextsBatch(userId, textUpdates));
+        }
+      } else {
+        // For non-scale properties, simple batch update
+        const updates = { [key]: value };
+        
+        if (shapes.length > 0) {
+          const shapeBatchUpdates = shapes.map(shape => ({
+            shapeId: shape.id,
+            updates,
+          }));
+          promises.push(updateShapesBatch(userId, shapeBatchUpdates));
+        }
+        
+        if (texts.length > 0) {
+          const textBatchUpdates = texts.map(text => ({
+            textId: text.id,
+            updates,
+          }));
+          promises.push(updateTextsBatch(userId, textBatchUpdates));
+        }
       }
       
       await Promise.all(promises);
