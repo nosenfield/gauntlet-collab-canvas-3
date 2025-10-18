@@ -4,7 +4,6 @@
  * Type definitions for shape-based display objects (rectangles, circles, lines)
  */
 
-import type { Timestamp } from 'firebase/firestore';
 import type { BaseDisplayObject } from '../common/types';
 
 /**
@@ -108,10 +107,6 @@ export interface UpdateShapeData {
   
   // Layer
   zIndex?: number;
-  
-  // Lock state
-  lockedBy?: string | null;
-  lockedAt?: Timestamp | null;
 }
 
 /**

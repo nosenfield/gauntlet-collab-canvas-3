@@ -68,7 +68,7 @@ export function useLocking() {
       }
 
       // Attempt to acquire locks (transaction will catch conflicts)
-      const success = await lockCollection(objectIds, user.userId);
+      const success = await lockCollection(objectIds, user.userId, user.displayName);
       
       if (!success) {
         console.warn('[useLocking] Failed to acquire locks');

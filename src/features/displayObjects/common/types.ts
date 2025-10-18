@@ -84,10 +84,6 @@ export interface BaseDisplayObject {
   createdAt: Timestamp;                // Creation timestamp
   lastModifiedBy: string;              // User ID
   lastModifiedAt: Timestamp;           // Last modification timestamp
-  
-  // Collaboration
-  lockedBy: string | null;             // User ID currently editing (null if unlocked)
-  lockedAt: Timestamp | null;          // When lock was acquired
 }
 
 /**

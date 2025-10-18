@@ -92,10 +92,6 @@ export const createShape = async (
       createdAt: serverTimestamp(),
       lastModifiedBy: userId,
       lastModifiedAt: serverTimestamp(),
-      
-      // Lock state
-      lockedBy: null,
-      lockedAt: null,
     };
     
     const docRef = await addDoc(getShapesCollection(), shapeDoc);
@@ -268,43 +264,6 @@ export const subscribeToShapes = (
   );
   
   return unsubscribe;
-};
-
-/**
- * Lock a shape for editing
- * 
- * @param shapeId - ID of shape to lock
- * @param userId - ID of user acquiring lock
- */
-export const lockShape = async (shapeId: string, userId: string): Promise<void> => {
-  try {
-    await updateDoc(getShapeDoc(shapeId), {
-      lockedBy: userId,
-      lockedAt: serverTimestamp(),
-    });
-    console.log('[ShapeService] Shape locked:', shapeId, 'by', userId);
-  } catch (error) {
-    console.error('[ShapeService] Error locking shape:', error);
-    throw error;
-  }
-};
-
-/**
- * Unlock a shape
- * 
- * @param shapeId - ID of shape to unlock
- */
-export const unlockShape = async (shapeId: string): Promise<void> => {
-  try {
-    await updateDoc(getShapeDoc(shapeId), {
-      lockedBy: null,
-      lockedAt: null,
-    });
-    console.log('[ShapeService] Shape unlocked:', shapeId);
-  } catch (error) {
-    console.error('[ShapeService] Error unlocking shape:', error);
-    throw error;
-  }
 };
 
 /**

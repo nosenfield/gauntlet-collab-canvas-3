@@ -57,9 +57,7 @@ firestore/
         │       ├── createdBy: string
         │       ├── createdAt: Timestamp
         │       ├── lastModifiedBy: string
-        │       ├── lastModifiedAt: Timestamp
-        │       ├── lockedBy: string | null
-        │       └── lockedAt: Timestamp | null
+        │       └── lastModifiedAt: Timestamp
         │
         ├── texts/                   # Text display objects (Stage 4)
         │   └── {textId}/
@@ -86,17 +84,24 @@ firestore/
 
 ```
 realtime-database/
-└── presence/
+├── presence/
+│   └── main/                        # Document ID
+│       └── {userId}/
+│           └── {tabId}/             # Per-tab presence
+│               ├── userId: string
+│               ├── displayName: string
+│               ├── color: string
+│               ├── cursorX: number      # Canvas coordinates
+│               ├── cursorY: number      # Canvas coordinates
+│               ├── connectedAt: number  # Unix timestamp (ms)
+│               └── lastUpdate: number   # Unix timestamp (ms)
+│
+└── locks/                           # Object locking (collaborative editing)
     └── main/                        # Document ID
-        └── {userId}/
-            └── {tabId}/             # Per-tab presence
-                ├── userId: string
-                ├── displayName: string
-                ├── color: string
-                ├── cursorX: number      # Canvas coordinates
-                ├── cursorY: number      # Canvas coordinates
-                ├── connectedAt: number  # Unix timestamp (ms)
-                └── lastUpdate: number   # Unix timestamp (ms)
+        └── {objectId}/              # Lock per object
+            ├── userId: string       # User who owns the lock
+            ├── lockedAt: number     # Unix timestamp (ms)
+            └── userName: string     # Optional display name for debugging
 ```
 
 ### Data Storage Strategy
@@ -105,7 +110,6 @@ realtime-database/
 - ✅ User profiles
 - ✅ Display objects (shapes, texts, images) - all properties
 - ✅ Document metadata
-- ✅ Object locks (part of display object document)
 - **Why**: Need complex queries, indexing, transactions
 - **Update frequency**: Low (on create, modify, delete)
 
@@ -113,7 +117,8 @@ realtime-database/
 - ✅ User presence (who's online)
 - ✅ Cursor positions (x, y coordinates)
 - ✅ Connection status (heartbeat)
-- **Why**: Ultra-low latency (<50ms), high-frequency updates
+- ✅ Object locks (collaborative editing)
+- **Why**: Ultra-low latency (<50ms), high-frequency updates, automatic cleanup with onDisconnect
 - **Update frequency**: Very high (every 50ms for cursors, every 5s for heartbeat)
 
 ---
