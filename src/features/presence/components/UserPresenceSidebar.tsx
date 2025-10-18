@@ -27,13 +27,13 @@ export function UserPresenceSidebar(): React.ReactElement | null {
   // Drag and resize functionality (using separate storage keys from properties modal)
   const { position, isDragging, handleMouseDown } = useModalDrag({ 
     initialPosition: { 
-      x: window.innerWidth - 260, // Right side of screen
-      y: 20 
+      x: window.innerWidth - 240 - 10, // 10px from right edge (240px is modal width)
+      y: 10 // 10px from top
     },
     storageKey: 'user-presence-modal-position'
   });
   const { height, isResizing, handleResizeStart } = useModalResize({
-    initialHeight: 400,
+    initialHeight: 150, // Set to min height
     minHeight: 150,
     storageKey: 'user-presence-modal-height'
   });
