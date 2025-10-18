@@ -77,11 +77,14 @@ export function TransformModal({
   } = useRotation(center);
   
   // Expose rotated collection corners to parent
+  // Note: onRotationCornersChange is NOT in deps because it's memoized with useCallback([])
+  // Including it causes infinite loops due to React reconciliation during rapid state updates
   useEffect(() => {
     if (onRotationCornersChange) {
       onRotationCornersChange(rotatedCollectionCorners);
     }
-  }, [rotatedCollectionCorners, onRotationCornersChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rotatedCollectionCorners]);
   
   // Handle global mouse up (release outside knob)
   useEffect(() => {
