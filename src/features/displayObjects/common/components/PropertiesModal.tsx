@@ -17,6 +17,8 @@ import type { TextDisplayObject } from '@/features/displayObjects/texts/types';
 import { UniversalProperties } from './PropertiesModal/UniversalProperties';
 import { ShapeProperties } from './PropertiesModal/ShapeProperties';
 import { TextProperties } from './PropertiesModal/TextProperties';
+import { useModalDrag } from './PropertiesModal/useModalDrag';
+import { useModalResize } from './PropertiesModal/useModalResize';
 import './PropertiesModal.css';
 
 /**
@@ -30,6 +32,13 @@ export function PropertiesModal(): React.ReactElement | null {
   const { shapes } = useShapes();
   const { texts } = useTexts();
   const { user } = useAuth();
+  
+  // Drag and resize functionality
+  const { position, isDragging, handleMouseDown } = useModalDrag({ 
+    x: window.innerWidth - 340 - 260, // Left of presence sidebar
+    y: 20 
+  });
+  const { height, isResizing, handleResizeStart } = useModalResize(600);
   
   // Get selected objects
   const selectedObjects = useMemo((): TransformableObject[] => {
@@ -53,10 +62,21 @@ export function PropertiesModal(): React.ReactElement | null {
   const selectedTexts = selectedObjects.filter(obj => obj.category === 'text') as TextDisplayObject[];
   
   return (
-    <div className="properties-modal">
+    <div 
+      className={`properties-modal ${isDragging ? 'properties-modal--dragging' : ''} ${isResizing ? 'properties-modal--resizing' : ''}`}
+      style={{
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        height: `${height}px`,
+      }}
+    >
       <div className="properties-modal__container">
-        {/* Header */}
-        <div className="properties-modal__header">
+        {/* Header - Draggable */}
+        <div 
+          className="properties-modal__header"
+          onMouseDown={handleMouseDown}
+          style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+        >
           <h3 className="properties-modal__title">
             Properties
           </h3>
@@ -97,6 +117,15 @@ export function PropertiesModal(): React.ReactElement | null {
               </div>
             </div>
           )}
+        </div>
+        
+        {/* Resize Handle */}
+        <div 
+          className="properties-modal__resize-handle"
+          onMouseDown={handleResizeStart}
+          title="Drag to resize"
+        >
+          <div className="properties-modal__resize-indicator">⋮</div>
         </div>
       </div>
     </div>
