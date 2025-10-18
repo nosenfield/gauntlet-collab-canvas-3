@@ -56,7 +56,7 @@ export function FPSMonitor(): React.ReactElement | null {
       style={{
         position: 'fixed',
         bottom: '10px',
-        left: '10px',
+        right: '10px',
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         color: fpsMetrics.fps < 60 ? '#ff6b6b' : '#51cf66',
         padding: '8px 12px',

@@ -4,8 +4,8 @@
 
 .performance-test-panel {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: 10px;
+  right: 10px;
   width: 320px;
   max-height: 80vh;
   background: rgba(0, 0, 0, 0.95);
