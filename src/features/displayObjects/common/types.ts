@@ -146,9 +146,6 @@ export const DISPLAY_OBJECT_CONSTANTS = {
   MIN_SCALE: 0.1,    // 10% minimum
   MAX_SCALE: 10.0,   // 1000% maximum
   
-  // Selection limits
-  MAX_SELECTION: 100, // Maximum objects in selection
-  
   // Lock timeout
   LOCK_TIMEOUT_MS: 60000, // 60 seconds
   LOCK_HEARTBEAT_MS: 5000, // 5 seconds

@@ -15,11 +15,6 @@ export interface SelectionState {
 }
 
 /**
- * Selection limit constant
- */
-const MAX_SELECTION_COUNT = 100;
-
-/**
  * Selection Actions
  */
 type SelectionAction =
@@ -58,11 +53,7 @@ function selectionReducer(state: SelectionState, action: SelectionAction): Selec
           selectedIds: state.selectedIds.filter(id => id !== action.payload),
         };
       } else {
-        // Not selected - add to selection (if under limit)
-        if (state.selectedIds.length >= MAX_SELECTION_COUNT) {
-          console.warn(`[Selection] Cannot select more than ${MAX_SELECTION_COUNT} objects`);
-          return state;
-        }
+        // Not selected - add to selection
         return {
           ...state,
           selectedIds: [...state.selectedIds, action.payload],
@@ -82,14 +73,10 @@ function selectionReducer(state: SelectionState, action: SelectionAction): Selec
       };
     
     case 'SET_SELECTION':
-      // Apply selection limit
-      const limitedSelection = action.payload.slice(0, MAX_SELECTION_COUNT);
-      if (action.payload.length > MAX_SELECTION_COUNT) {
-        console.warn(`[Selection] Selection limited to ${MAX_SELECTION_COUNT} objects`);
-      }
+      // Set selection to provided IDs (no limit)
       return {
         ...state,
-        selectedIds: limitedSelection,
+        selectedIds: action.payload,
       };
     
     default:

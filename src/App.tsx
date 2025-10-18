@@ -9,6 +9,7 @@ import { UserPresenceSidebar } from '@/features/presence/components/UserPresence
 import { ToolProvider } from '@/features/displayObjects/common/store/toolStore';
 import { DisplayObjectToolbar } from '@/features/displayObjects/common/components/DisplayObjectToolbar';
 import { ShapesProvider } from '@/features/displayObjects/shapes/store/shapesStore';
+import { TextsProvider } from '@/features/displayObjects/texts/store/textsStore';
 import { SelectionProvider } from '@/features/displayObjects/common/store/selectionStore';
 import { startLockCleanupService } from '@/features/displayObjects/common/services/lockService';
 import { PerformanceTest } from '@/features/displayObjects/common/components/PerformanceTest';
@@ -55,10 +56,12 @@ function App() {
     <AuthProvider>
       <ToolProvider>
         <ShapesProvider>
-          <SelectionProvider>
-            <AuthModal />
-            <AppContent />
-          </SelectionProvider>
+          <TextsProvider>
+            <SelectionProvider>
+              <AuthModal />
+              <AppContent />
+            </SelectionProvider>
+          </TextsProvider>
         </ShapesProvider>
       </ToolProvider>
     </AuthProvider>
