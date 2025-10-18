@@ -8,7 +8,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
 import { translateAndConstrain } from '../services/transformService';
-import { updateShape } from '@/features/displayObjects/shapes/services/shapeService';
+import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
 
 /**
  * Drag state for collection
@@ -111,15 +111,19 @@ export function useCollectionDrag(
 
     hasPendingUpdateRef.current = true;
     debounceTimerRef.current = setTimeout(() => {
-      // Update all shapes in Firestore
-      Promise.all(
-        constrainedShapes.map(shape =>
-          updateShape(shape.id, userId, { x: shape.x, y: shape.y })
-        )
-      ).catch(error => {
-        console.error('[CollectionDrag] Error updating shapes during drag:', error);
-      });
-      hasPendingUpdateRef.current = false;
+      // Update all shapes in Firestore using batch write (1 snapshot instead of N)
+      const batchUpdates = constrainedShapes.map(shape => ({
+        shapeId: shape.id,
+        updates: { x: shape.x, y: shape.y },
+      }));
+      
+      updateShapesBatch(userId, batchUpdates)
+        .then(() => {
+          hasPendingUpdateRef.current = false;
+        })
+        .catch(error => {
+          console.error('[CollectionDrag] Error updating shapes during drag:', error);
+        });
     }, 300);
   }, [dragState, selectedShapes, userId]);
 
@@ -139,19 +143,22 @@ export function useCollectionDrag(
       debounceTimerRef.current = null;
     }
 
-    // If there's a pending update or we have optimistic shapes, do final update
-    if (hasPendingUpdateRef.current || optimisticShapes) {
+    // Final write ONLY if there are uncommitted changes (debounce timer hasn't fired)
+    if (hasPendingUpdateRef.current && optimisticShapes) {
       try {
-        const shapesToUpdate = optimisticShapes || selectedShapes;
-        await Promise.all(
-          shapesToUpdate.map(shape =>
-            updateShape(shape.id, userId, { x: shape.x, y: shape.y })
-          )
-        );
+        const batchUpdates = optimisticShapes.map(shape => ({
+          shapeId: shape.id,
+          updates: { x: shape.x, y: shape.y },
+        }));
+        
+        await updateShapesBatch(userId, batchUpdates);
         console.log('[CollectionDrag] Final positions updated in Firestore');
+        hasPendingUpdateRef.current = false;
       } catch (error) {
         console.error('[CollectionDrag] Error updating final positions:', error);
       }
+    } else if (!hasPendingUpdateRef.current) {
+      console.log('[CollectionDrag] No uncommitted changes, skipping final write');
     }
 
     // Reset drag state
