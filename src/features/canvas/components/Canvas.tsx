@@ -19,6 +19,9 @@ import { FPSMonitor } from './FPSMonitor';
 import { useCursorTracking } from '@/features/presence/hooks/useCursorTracking';
 import { useLockToolIntegration } from '@/features/displayObjects/common/hooks/useLockToolIntegration';
 import { useToolShortcuts } from '@/features/displayObjects/common/hooks/useToolShortcuts';
+import { TransformModal } from '@/features/displayObjects/common/components/TransformModal';
+import { useTool } from '@/features/displayObjects/common/store/toolStore';
+import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
 
 /**
  * Canvas Component
@@ -31,6 +34,10 @@ export function Canvas(): React.ReactElement {
   const { width, height } = useCanvasSize();
   const { viewport, setPosition, setViewport, setDimensions } = useViewport();
   const stageRef = useRef<any>(null); // Konva Stage ref
+  
+  // Tool and selection state for transform modal
+  const { isSelectMode } = useTool();
+  const { hasSelection } = useSelection();
 
   // Sync window dimensions to viewport store
   useEffect(() => {
@@ -59,6 +66,7 @@ export function Canvas(): React.ReactElement {
     isMarqueeActive,
     getMarqueeBox,
     collectionBounds,
+    collectionCenter,
     objectCorners,
   } = useCanvasInteractions({
     stageRef,
@@ -68,6 +76,9 @@ export function Canvas(): React.ReactElement {
     setPosition,
     setViewport,
   });
+  
+  // Transform modal visibility: show when selection exists AND tool is 'select'
+  const showTransformModal = hasSelection() && isSelectMode();
 
   return (
     <div
@@ -109,6 +120,13 @@ export function Canvas(): React.ReactElement {
           marqueeBox={getMarqueeBox()}
         />
       </Stage>
+
+      {/* Transform Modal - Appears at collection center when objects selected */}
+      <TransformModal
+        center={collectionCenter}
+        viewport={viewport}
+        visible={showTransformModal}
+      />
 
       {/* FPS Monitor - Development only */}
       <FPSMonitor />

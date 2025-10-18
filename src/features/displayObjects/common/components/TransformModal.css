@@ -1,0 +1,121 @@
+/**
+ * TransformModal Styles
+ * 
+ * Styles for the transform modal that appears at collection center
+ */
+
+.transform-modal {
+  /* Positioning */
+  position: fixed;
+  z-index: 1000; /* Always on top */
+  
+  /* Appearance */
+  background: rgba(30, 30, 30, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  
+  /* Interaction */
+  pointer-events: auto;
+  user-select: none;
+  
+  /* Smooth transitions */
+  transition: opacity 0.15s ease-in-out;
+}
+
+.transform-modal__content {
+  /* Layout */
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  box-sizing: border-box;
+  
+  /* Knobs are spaced 60px apart (center to center) */
+  gap: 20px; /* 60px - 40px knob width = 20px gap */
+}
+
+.transform-modal__knob {
+  /* Size */
+  width: 40px;
+  height: 40px;
+  
+  /* Appearance */
+  border-radius: 50%; /* Circular */
+  background: rgba(74, 144, 226, 0.2);
+  border: 2px solid #4A90E2;
+  color: #4A90E2;
+  
+  /* Layout */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Interaction */
+  cursor: pointer;
+  user-select: none;
+  pointer-events: auto;
+  
+  /* Smooth transitions */
+  transition: all 0.15s ease-in-out;
+  
+  /* Remove default button styles */
+  padding: 0;
+  margin: 0;
+  outline: none;
+}
+
+.transform-modal__knob:hover {
+  background: rgba(74, 144, 226, 0.3);
+  border-color: #5BA3F5;
+  transform: scale(1.05);
+}
+
+.transform-modal__knob:active {
+  background: rgba(74, 144, 226, 0.4);
+  transform: scale(0.98);
+}
+
+.transform-modal__knob:focus-visible {
+  outline: 2px solid #4A90E2;
+  outline-offset: 2px;
+}
+
+.transform-modal__knob-icon {
+  /* Icon sizing */
+  font-size: 20px;
+  line-height: 1;
+  
+  /* Center icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Rotation knob specific styles (future: add rotation animation) */
+.transform-modal__knob--rotation {
+  /* No additional styles yet - placeholder for future rotation animation */
+}
+
+/* Scale knob specific styles */
+.transform-modal__knob--scale {
+  /* No additional styles yet */
+}
+
+/* Animation when modal appears */
+@keyframes transform-modal-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.transform-modal {
+  animation: transform-modal-fade-in 0.15s ease-out;
+}
+

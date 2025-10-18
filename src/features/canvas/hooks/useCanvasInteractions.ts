@@ -53,6 +53,7 @@ interface UseCanvasInteractionsReturn {
   isMarqueeActive: boolean;
   getMarqueeBox: () => { x: number; y: number; width: number; height: number } | null;
   collectionBounds: any;
+  collectionCenter: any;
   objectCorners: Map<string, any[]>;
 }
 
@@ -98,7 +99,7 @@ export function useCanvasInteractions({
   const selectedShapes = shapes.filter(shape => selectedIds.includes(shape.id));
   
   // Calculate bounding boxes for selected shapes
-  const { collectionBounds, objectCorners } = useBoundingBox(selectedShapes);
+  const { collectionBounds, collectionCenter, objectCorners } = useBoundingBox(selectedShapes);
   
   // Pan gesture handling via scroll/wheel
   const panHandlers = usePan({
@@ -299,6 +300,7 @@ export function useCanvasInteractions({
     isMarqueeActive,
     getMarqueeBox,
     collectionBounds,
+    collectionCenter,
     objectCorners,
   };
 }
