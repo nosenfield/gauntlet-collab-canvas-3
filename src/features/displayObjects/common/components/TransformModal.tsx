@@ -75,6 +75,7 @@ export function TransformModal({
     isRotating,
     currentAngle,
     rotatedCollectionCorners,
+    rotationPivot,
   } = useRotation(center);
   
   // Scale hook
@@ -84,6 +85,7 @@ export function TransformModal({
     endScale,
     handleGlobalMouseUp: handleGlobalMouseUpScale,
     isScaling,
+    scalePivot,
   } = useScale(center);
   
   // Expose rotated collection corners to parent
@@ -123,19 +125,21 @@ export function TransformModal({
   }, [isScaling, handleGlobalMouseUpScale, updateScale]);
   
   // Calculate screen position from canvas coordinates
+  // Use rotationPivot during rotation or scalePivot during scaling (fixed points), otherwise use dynamic center
   const screenPosition = useMemo(() => {
-    if (!center) return null;
+    const activeCenter = rotationPivot || scalePivot || center;
+    if (!activeCenter) return null;
     
     const screen = canvasToScreen(
-      center.x,
-      center.y,
+      activeCenter.x,
+      activeCenter.y,
       viewport.x,
       viewport.y,
       viewport.scale
     );
     
     return screen;
-  }, [center, viewport.x, viewport.y, viewport.scale]);
+  }, [center, rotationPivot, scalePivot, viewport.x, viewport.y, viewport.scale]);
   
   // Don't render if not visible or no position
   if (!visible || !screenPosition) {

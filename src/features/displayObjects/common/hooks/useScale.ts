@@ -235,6 +235,7 @@ export function useScale(collectionCenter: Point | null) {
     handleGlobalMouseUp,
     isScaling,
     currentScale,
+    scalePivot: initialCenterRef.current, // Fixed pivot point during scaling (null when not scaling)
   };
 }
 

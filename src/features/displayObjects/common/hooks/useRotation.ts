@@ -268,6 +268,7 @@ export function useRotation(collectionCenter: Point | null) {
     isRotating,
     currentAngle,
     rotatedCollectionCorners, // Rotated OBB corners during rotation (null when not rotating)
+    rotationPivot: initialCenterRef.current, // Fixed pivot point during rotation (null when not rotating)
   };
 }
 
