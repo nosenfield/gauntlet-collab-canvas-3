@@ -12,16 +12,23 @@ interface UseModalResizeReturn {
   handleResizeStart: (e: React.MouseEvent) => void;
 }
 
-const STORAGE_KEY = 'properties-modal-height';
-const MIN_HEIGHT = 200;
-const MAX_HEIGHT_OFFSET = 40; // 40px from top/bottom of viewport
+interface UseModalResizeOptions {
+  initialHeight: number;
+  storageKey?: string;
+  minHeight?: number;
+  maxHeight?: number;
+}
+
+const DEFAULT_STORAGE_KEY = 'modal-height';
+const DEFAULT_MIN_HEIGHT = 200;
+const DEFAULT_MAX_HEIGHT_OFFSET = 40; // 40px from top/bottom of viewport
 
 /**
  * Load height from localStorage
  */
-function loadHeight(): number | null {
+function loadHeight(storageKey: string): number | null {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(storageKey);
     if (stored) {
       return parseInt(stored, 10);
     }
@@ -34,18 +41,30 @@ function loadHeight(): number | null {
 /**
  * Save height to localStorage
  */
-function saveHeight(height: number): void {
+function saveHeight(height: number, storageKey: string): void {
   try {
-    localStorage.setItem(STORAGE_KEY, height.toString());
+    localStorage.setItem(storageKey, height.toString());
   } catch (error) {
     console.error('[useModalResize] Error saving height:', error);
   }
 }
 
-export function useModalResize(initialHeight: number): UseModalResizeReturn {
+export function useModalResize(
+  initialHeightOrOptions: number | UseModalResizeOptions
+): UseModalResizeReturn {
+  // Support both old and new API
+  const options: UseModalResizeOptions = typeof initialHeightOrOptions === 'number'
+    ? { initialHeight: initialHeightOrOptions }
+    : initialHeightOrOptions;
+  
+  const storageKey = options.storageKey || DEFAULT_STORAGE_KEY;
+  const minHeight = options.minHeight || DEFAULT_MIN_HEIGHT;
+  const maxHeightOffset = options.maxHeight ? 0 : DEFAULT_MAX_HEIGHT_OFFSET;
+  const maxHeight = options.maxHeight || (window.innerHeight - maxHeightOffset);
+  
   // Load saved height or use initial
   const [height, setHeight] = useState<number>(() => {
-    return loadHeight() || initialHeight;
+    return loadHeight(storageKey) || options.initialHeight;
   });
   
   const [isResizing, setIsResizing] = useState(false);
@@ -71,8 +90,7 @@ export function useModalResize(initialHeight: number): UseModalResizeReturn {
       const newHeight = resizeStartRef.current.initialHeight + deltaY;
       
       // Constrain height
-      const maxHeight = window.innerHeight - MAX_HEIGHT_OFFSET;
-      const constrainedHeight = Math.max(MIN_HEIGHT, Math.min(newHeight, maxHeight));
+      const constrainedHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
       
       setHeight(constrainedHeight);
     };
@@ -81,7 +99,7 @@ export function useModalResize(initialHeight: number): UseModalResizeReturn {
       setIsResizing(false);
       resizeStartRef.current = null;
       // Save height when resizing ends
-      saveHeight(height);
+      saveHeight(height, storageKey);
     };
     
     document.addEventListener('mousemove', handleMouseMove);

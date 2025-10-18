@@ -1,7 +1,7 @@
 /**
  * UserPresenceSidebar Component
  * 
- * Always-visible sidebar showing active users.
+ * Draggable and resizable modal showing active users.
  * - Current user at top (highlighted)
  * - Other users below (alphabetically sorted)
  * - Shows color swatch + display name for each
@@ -12,15 +12,31 @@ import { useMemo } from 'react';
 import { useAuth } from '@/features/auth/store/authStore';
 import { useAllActiveUsers } from '../hooks/useActiveUsers';
 import { UserPresenceItem } from './UserPresenceItem';
+import { useModalDrag } from '@/features/displayObjects/common/components/PropertiesModal/useModalDrag';
+import { useModalResize } from '@/features/displayObjects/common/components/PropertiesModal/useModalResize';
 import './UserPresenceSidebar.css';
 
 /**
  * UserPresenceSidebar Component
- * Fixed position sidebar on right side
+ * Draggable and resizable modal on right side
  */
 export function UserPresenceSidebar(): React.ReactElement | null {
   const { user } = useAuth();
   const allActiveUsers = useAllActiveUsers();
+  
+  // Drag and resize functionality (using separate storage keys from properties modal)
+  const { position, isDragging, handleMouseDown } = useModalDrag({ 
+    initialPosition: { 
+      x: window.innerWidth - 260, // Right side of screen
+      y: 20 
+    },
+    storageKey: 'user-presence-modal-position'
+  });
+  const { height, isResizing, handleResizeStart } = useModalResize({
+    initialHeight: 400,
+    minHeight: 150,
+    storageKey: 'user-presence-modal-height'
+  });
 
   // Sort users: current user first, then others alphabetically
   const sortedUsers = useMemo(() => {
@@ -51,13 +67,25 @@ export function UserPresenceSidebar(): React.ReactElement | null {
   }
 
   return (
-    <div className="user-presence-sidebar">
-      <div className="sidebar-header">
-        <h3 className="sidebar-title">Active Users</h3>
-        <span className="user-count">{sortedUsers.length}</span>
-      </div>
+    <div 
+      className={`user-presence-sidebar ${isDragging ? 'user-presence-sidebar--dragging' : ''} ${isResizing ? 'user-presence-sidebar--resizing' : ''}`}
+      style={{
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        height: `${height}px`,
+      }}
+    >
+      <div className="sidebar-container">
+        <div 
+          className="sidebar-header"
+          onMouseDown={handleMouseDown}
+          style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+        >
+          <h3 className="sidebar-title">Active Users</h3>
+          <span className="user-count">{sortedUsers.length}</span>
+        </div>
 
-      <div className="sidebar-content">
+        <div className="sidebar-content">
         {sortedUsers.length === 0 ? (
           <div className="no-users-message">
             <p>No active users</p>
@@ -73,6 +101,16 @@ export function UserPresenceSidebar(): React.ReactElement | null {
             ))}
           </div>
         )}
+        </div>
+        
+        {/* Resize Handle */}
+        <div 
+          className="sidebar-resize-handle"
+          onMouseDown={handleResizeStart}
+          title="Drag to resize"
+        >
+          <div className="sidebar-resize-indicator">⋮</div>
+        </div>
       </div>
     </div>
   );

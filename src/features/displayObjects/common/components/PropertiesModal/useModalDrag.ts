@@ -17,14 +17,19 @@ interface UseModalDragReturn {
   handleMouseDown: (e: React.MouseEvent) => void;
 }
 
-const STORAGE_KEY = 'properties-modal-position';
+interface UseModalDragOptions {
+  initialPosition: Position;
+  storageKey?: string;
+}
+
+const DEFAULT_STORAGE_KEY = 'modal-position';
 
 /**
  * Load position from localStorage
  */
-function loadPosition(): Position | null {
+function loadPosition(storageKey: string): Position | null {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(storageKey);
     if (stored) {
       return JSON.parse(stored);
     }
@@ -37,18 +42,27 @@ function loadPosition(): Position | null {
 /**
  * Save position to localStorage
  */
-function savePosition(position: Position): void {
+function savePosition(position: Position, storageKey: string): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(position));
+    localStorage.setItem(storageKey, JSON.stringify(position));
   } catch (error) {
     console.error('[useModalDrag] Error saving position:', error);
   }
 }
 
-export function useModalDrag(initialPosition: Position): UseModalDragReturn {
+export function useModalDrag(
+  initialPositionOrOptions: Position | UseModalDragOptions
+): UseModalDragReturn {
+  // Support both old and new API
+  const options: UseModalDragOptions = 'x' in initialPositionOrOptions && 'y' in initialPositionOrOptions
+    ? { initialPosition: initialPositionOrOptions }
+    : initialPositionOrOptions as UseModalDragOptions;
+  
+  const storageKey = options.storageKey || DEFAULT_STORAGE_KEY;
+  
   // Load saved position or use initial
   const [position, setPosition] = useState<Position>(() => {
-    return loadPosition() || initialPosition;
+    return loadPosition(storageKey) || options.initialPosition;
   });
   
   const [isDragging, setIsDragging] = useState(false);
@@ -94,7 +108,7 @@ export function useModalDrag(initialPosition: Position): UseModalDragReturn {
       setIsDragging(false);
       dragStartRef.current = null;
       // Save position when dragging ends
-      savePosition(position);
+      savePosition(position, storageKey);
     };
     
     document.addEventListener('mousemove', handleMouseMove);

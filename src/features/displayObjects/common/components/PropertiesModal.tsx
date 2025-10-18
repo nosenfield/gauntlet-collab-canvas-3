@@ -35,10 +35,16 @@ export function PropertiesModal(): React.ReactElement | null {
   
   // Drag and resize functionality
   const { position, isDragging, handleMouseDown } = useModalDrag({ 
-    x: window.innerWidth - 340 - 260, // Left of presence sidebar
-    y: 20 
+    initialPosition: { 
+      x: window.innerWidth - 340 - 260, // Left of presence sidebar
+      y: 20 
+    },
+    storageKey: 'properties-modal-position'
   });
-  const { height, isResizing, handleResizeStart } = useModalResize(600);
+  const { height, isResizing, handleResizeStart } = useModalResize({
+    initialHeight: 600,
+    storageKey: 'properties-modal-height'
+  });
   
   // Get selected objects
   const selectedObjects = useMemo((): TransformableObject[] => {
