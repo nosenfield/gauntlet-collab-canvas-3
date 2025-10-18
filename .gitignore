@@ -37,3 +37,4 @@ firebase-debug.*.log
 
 # Context docs, consider ignoring if these get outsized
 # context-summaries/SESSION_SUMMARY*.md
+_temp_docs/
