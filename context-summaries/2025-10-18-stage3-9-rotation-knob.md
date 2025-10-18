@@ -240,9 +240,10 @@ rotatedObjects.forEach(obj => {
 ### What Works Now
 ✅ Click and drag rotation knob to rotate objects  
 ✅ 1px = 1° sensitivity verified  
-✅ Right/Down = clockwise, Left/Up = counter-clockwise  
+✅ Right/Up = clockwise, Left/Down = counter-clockwise (fixed Y-axis inversion)  
 ✅ Objects rotate around collection center  
 ✅ Object positions and rotations update correctly  
+✅ Canvas boundary constraints applied (objects cannot rotate outside 0-10000 bounds)  
 ✅ Knob icon spins to match rotation  
 ✅ Smooth 60 FPS rotation (optimistic updates)  
 ✅ Debounced Firestore writes (300ms)  
