@@ -119,7 +119,13 @@
 
 /* Scale knob specific styles */
 .transform-modal__knob--scale {
-  /* No additional styles yet */
+  /* Cursor indicates draggable */
+  cursor: grab;
+}
+
+.transform-modal__knob--scale:active,
+.transform-modal__knob--scale.transform-modal__knob--active {
+  cursor: grabbing;
 }
 
 .transform-modal__knob:disabled {

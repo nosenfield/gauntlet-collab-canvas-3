@@ -139,12 +139,14 @@ export function rotateCollection(
  * Scale a collection of display objects from a center point
  * 
  * This function:
- * 1. Scales each object's position relative to center
- * 2. Updates each object's scale properties
+ * 1. Converts each object's top-left to its center point
+ * 2. Scales each object's center position relative to collection center
+ * 3. Converts back to top-left coordinates
+ * 4. Updates each object's scale properties with constraints (0.1 to 10.0)
  * 
  * @param objects - Array of display objects to scale
- * @param scaleFactor - Scale multiplier (1.0 = no change, 2.0 = double size, 0.5 = half size)
- * @param center - Center point of scaling (usually collection AABB center)
+ * @param scaleFactor - Scale multiplier relative to original (1.0 = original, 2.0 = double, 0.5 = half)
+ * @param center - Center point of scaling (usually collection center)
  * @returns Updated objects with new positions and scales
  * 
  * @example
@@ -168,23 +170,61 @@ export function scaleCollection(
   }
   
   return objects.map(obj => {
-    // Scale position relative to center
-    const deltaX = obj.x - center.x;
-    const deltaY = obj.y - center.y;
+    // Calculate object's center point (accounting for ORIGINAL scale)
+    // Handle different shape types - MVP currently only has rectangles
+    let halfWidth: number;
+    let halfHeight: number;
     
-    const newX = center.x + (deltaX * scaleFactor);
-    const newY = center.y + (deltaY * scaleFactor);
+    if (obj.type === 'rectangle') {
+      halfWidth = (obj.width * obj.scaleX) / 2;
+      halfHeight = (obj.height * obj.scaleY) / 2;
+    } else if (obj.type === 'circle') {
+      // Circle: treat as square bounding box
+      const diameter = obj.radius * 2;
+      halfWidth = (diameter * obj.scaleX) / 2;
+      halfHeight = (diameter * obj.scaleY) / 2;
+    } else {
+      // Line: use bounding box of points (not yet implemented in MVP)
+      halfWidth = 0;
+      halfHeight = 0;
+    }
     
-    // Scale the object itself
+    const objectCenter = {
+      x: obj.x + halfWidth,
+      y: obj.y + halfHeight,
+    };
+    
+    // Scale object's CENTER position relative to collection center
+    const deltaX = objectCenter.x - center.x;
+    const deltaY = objectCenter.y - center.y;
+    
+    const newCenterX = center.x + (deltaX * scaleFactor);
+    const newCenterY = center.y + (deltaY * scaleFactor);
+    
+    // Apply scale factor to object's scale properties
     const newScaleX = obj.scaleX * scaleFactor;
     const newScaleY = obj.scaleY * scaleFactor;
+    
+    // Apply constraints (0.1 to 10.0)
+    const constrainedScaleX = Math.max(0.1, Math.min(10.0, newScaleX));
+    const constrainedScaleY = Math.max(0.1, Math.min(10.0, newScaleY));
+    
+    // Calculate new half dimensions with constrained scale
+    const newHalfWidth = (obj.type === 'rectangle' ? (obj.width * constrainedScaleX) / 2 : 
+                          obj.type === 'circle' ? (obj.radius * 2 * constrainedScaleX) / 2 : 0);
+    const newHalfHeight = (obj.type === 'rectangle' ? (obj.height * constrainedScaleY) / 2 : 
+                           obj.type === 'circle' ? (obj.radius * 2 * constrainedScaleY) / 2 : 0);
+    
+    // Convert back to top-left coordinates
+    const newX = newCenterX - newHalfWidth;
+    const newY = newCenterY - newHalfHeight;
     
     return {
       ...obj,
       x: newX,
       y: newY,
-      scaleX: newScaleX,
-      scaleY: newScaleY,
+      scaleX: constrainedScaleX,
+      scaleY: constrainedScaleY,
     };
   });
 }

@@ -13,6 +13,7 @@
 import { useMemo, useEffect } from 'react';
 import { canvasToScreen } from '@/features/canvas/utils/coordinateTransform';
 import { useRotation } from '../hooks/useRotation';
+import { useScale } from '../hooks/useScale';
 import type { Point } from '../types';
 import './TransformModal.css';
 
@@ -70,11 +71,20 @@ export function TransformModal({
     startRotation,
     updateRotation,
     endRotation,
-    handleGlobalMouseUp,
+    handleGlobalMouseUp: handleGlobalMouseUpRotation,
     isRotating,
     currentAngle,
     rotatedCollectionCorners,
   } = useRotation(center);
+  
+  // Scale hook
+  const {
+    startScale,
+    updateScale,
+    endScale,
+    handleGlobalMouseUp: handleGlobalMouseUpScale,
+    isScaling,
+  } = useScale(center);
   
   // Expose rotated collection corners to parent
   // Note: onRotationCornersChange is NOT in deps because it's memoized with useCallback([])
@@ -86,18 +96,31 @@ export function TransformModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rotatedCollectionCorners]);
   
-  // Handle global mouse up (release outside knob)
+  // Handle global mouse up/move for rotation (release outside knob)
   useEffect(() => {
     if (isRotating) {
-      window.addEventListener('mouseup', handleGlobalMouseUp);
+      window.addEventListener('mouseup', handleGlobalMouseUpRotation);
       window.addEventListener('mousemove', updateRotation as any);
       
       return () => {
-        window.removeEventListener('mouseup', handleGlobalMouseUp);
+        window.removeEventListener('mouseup', handleGlobalMouseUpRotation);
         window.removeEventListener('mousemove', updateRotation as any);
       };
     }
-  }, [isRotating, handleGlobalMouseUp, updateRotation]);
+  }, [isRotating, handleGlobalMouseUpRotation, updateRotation]);
+  
+  // Handle global mouse up/move for scale (release outside knob)
+  useEffect(() => {
+    if (isScaling) {
+      window.addEventListener('mouseup', handleGlobalMouseUpScale);
+      window.addEventListener('mousemove', updateScale as any);
+      
+      return () => {
+        window.removeEventListener('mouseup', handleGlobalMouseUpScale);
+        window.removeEventListener('mousemove', updateScale as any);
+      };
+    }
+  }, [isScaling, handleGlobalMouseUpScale, updateScale]);
   
   // Calculate screen position from canvas coordinates
   const screenPosition = useMemo(() => {
@@ -156,12 +179,15 @@ export function TransformModal({
         
         {/* Scale Knob (Right) */}
         <button
-          className="transform-modal__knob transform-modal__knob--scale"
-          disabled
-          title="Scale (not yet implemented)"
+          className={`transform-modal__knob transform-modal__knob--scale ${isScaling ? 'transform-modal__knob--active' : ''}`}
+          onMouseDown={startScale}
+          onMouseUp={endScale}
+          title="Scale (drag to scale)"
           aria-label="Scale"
         >
-          <span className="transform-modal__knob-icon">⊕</span>
+          <span className="transform-modal__knob-icon">
+            ⊕
+          </span>
         </button>
       </div>
     </div>
