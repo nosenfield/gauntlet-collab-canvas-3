@@ -25,6 +25,15 @@ dist-ssr
 
 # Environment vars
 .env
+.env.prod
+.env.development
+.env.production
+
+# Firebase
+.firebase/
+.firebaserc
+firebase-debug.log
+firebase-debug.*.log
 
 # Context docs, consider ignoring if these get outsized
 # context-summaries/SESSION_SUMMARY*.md

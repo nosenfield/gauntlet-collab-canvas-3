@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:dev": "npm run build && firebase use dev && firebase deploy --only hosting",
+    "deploy:rules:dev": "firebase use dev && firebase deploy --only firestore:rules,database",
+    "deploy:prod": "npm run build && firebase use prod && firebase deploy --only hosting",
+    "deploy:rules:prod": "firebase use prod && firebase deploy --only firestore:rules,database"
   },
   "dependencies": {
     "firebase": "^12.4.0",
