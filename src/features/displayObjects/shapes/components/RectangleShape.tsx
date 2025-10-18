@@ -123,12 +123,6 @@ export function RectangleShape({
       opacity={shape.opacity}
       cornerRadius={shape.borderRadius || 0}
       
-      // Selection state
-      shadowEnabled={isSelected}
-      shadowColor="#4A90E2"
-      shadowBlur={isSelected ? 10 : 0}
-      shadowOpacity={isSelected ? 0.6 : 0}
-      
       // Interaction
       onClick={handleClick}
       onTap={handleClick}

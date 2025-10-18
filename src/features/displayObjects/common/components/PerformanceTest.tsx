@@ -28,7 +28,7 @@ export function PerformanceTest(): React.ReactElement | null {
   
   const { user } = useAuth();
   const { shapes } = useShapes();
-  const { selectedIds, selectMultiple, clearSelection } = useSelection();
+  const { selectedIds, setSelection, clearSelection } = useSelection();
 
   // Toggle panel with 'P' key
   useEffect(() => {
@@ -72,30 +72,33 @@ export function PerformanceTest(): React.ReactElement | null {
       
       const { width, height } = sizes[config.size];
       
+      // Canvas center is at (5000, 5000) in a 10,000 x 10,000 canvas
+      const CANVAS_CENTER = 5000;
+      
       for (let i = 0; i < config.count; i++) {
         let x: number, y: number;
         
         switch (config.pattern) {
           case 'grid':
-            // Grid layout (10 per row)
+            // Grid layout (10 per row) centered around viewport
             const cols = 10;
             const col = i % cols;
             const row = Math.floor(i / cols);
-            x = -2000 + col * 150;
-            y = -2000 + row * 150;
+            x = CANVAS_CENTER - 750 + col * 150; // Center the grid
+            y = CANVAS_CENTER - 750 + row * 150;
             break;
             
           case 'cluster':
-            // Clustered in center
-            x = -500 + (Math.random() * 1000);
-            y = -500 + (Math.random() * 1000);
+            // Clustered around canvas center
+            x = CANVAS_CENTER - 500 + (Math.random() * 1000);
+            y = CANVAS_CENTER - 500 + (Math.random() * 1000);
             break;
             
           case 'random':
           default:
-            // Random across canvas
-            x = -4000 + (Math.random() * 8000);
-            y = -4000 + (Math.random() * 8000);
+            // Random across visible canvas area
+            x = CANVAS_CENTER - 2000 + (Math.random() * 4000);
+            y = CANVAS_CENTER - 2000 + (Math.random() * 4000);
             break;
         }
         
@@ -148,7 +151,7 @@ export function PerformanceTest(): React.ReactElement | null {
    */
   const selectAll = () => {
     const allIds = shapes.map(s => s.id);
-    selectMultiple(allIds);
+    setSelection(allIds);
     setLastTestResults(
       `✅ Selected ${allIds.length} shapes\n` +
       `Watch FPS during drag operations\n` +
