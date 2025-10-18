@@ -116,12 +116,12 @@ export function CanvasLayers({
       <TextLayer
         selectedIds={selectedIds}
         onTextClick={onShapeClick}
-        onCollectionDragStart={startCollectionDrag}
-        onCollectionDragMove={moveCollectionDrag}
-        onDragEnd={endCollectionDrag}
         isCollectionDragging={isCollectionDragging}
         driverTextId={driverShapeId}
         dragOptimisticTexts={dragOptimisticTexts}
+        startCollectionDrag={startCollectionDrag}
+        moveCollectionDrag={moveCollectionDrag}
+        endCollectionDrag={endCollectionDrag}
       />
       
       {/* Layer 3: Bounding Box Layer - Selection highlights */}

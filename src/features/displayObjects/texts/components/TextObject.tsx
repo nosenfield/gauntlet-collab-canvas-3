@@ -15,7 +15,7 @@ import type { TextDisplayObject } from '../types';
 export interface TextObjectProps {
   text: TextDisplayObject;
   isSelected?: boolean;
-  onClick?: (e: any) => void;
+  onClick?: (textId: string, isShiftClick: boolean) => void;
   onCollectionDragStart?: (textId: string) => void;
   onCollectionDragMove?: (textId: string, x: number, y: number) => void;
   onDragEnd?: (textId: string, x: number, y: number) => void;

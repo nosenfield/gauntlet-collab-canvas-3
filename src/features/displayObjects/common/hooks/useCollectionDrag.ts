@@ -17,6 +17,8 @@ interface DragState {
   isDragging: boolean;
   driverShapeId: string; // The shape being actively dragged
   initialPositions: Map<string, { x: number; y: number }>;
+  // Store the objects at drag start to avoid using stale props during drag
+  draggedObjects: TransformableObject[];
 }
 
 /**
@@ -39,6 +41,7 @@ export function useCollectionDrag(
     isDragging: false,
     driverShapeId: '',
     initialPositions: new Map(),
+    draggedObjects: [],
   });
   
   const [optimisticShapes, setOptimisticShapes] = useState<TransformableObject[] | null>(null);
@@ -60,10 +63,14 @@ export function useCollectionDrag(
       initialPositions.set(obj.id, { x: obj.x ?? 0, y: obj.y ?? 0 });
     }
 
+    // Capture the objects at drag start to avoid using stale props during drag
+    const draggedObjects = [...selectedObjects];
+
     setDragState({
       isDragging: true,
       driverShapeId,
       initialPositions,
+      draggedObjects,
     });
     
     // Initialize optimistic objects with current positions
@@ -91,7 +98,8 @@ export function useCollectionDrag(
     const deltaY = newY - driverInitial.y;
 
     // Apply delta to all objects using their initial positions
-    const translatedObjects = selectedObjects.map(obj => {
+    // Use draggedObjects from drag state, not selectedObjects prop (which may have changed)
+    const translatedObjects = dragState.draggedObjects.map(obj => {
       const initial = dragState.initialPositions.get(obj.id);
       if (!initial) return obj;
 
@@ -142,7 +150,7 @@ export function useCollectionDrag(
           console.error('[CollectionDrag] Error updating objects during drag:', error);
         });
     }, 300);
-  }, [dragState, selectedObjects, userId]);
+  }, [dragState, userId]);
 
   /**
    * End dragging
@@ -200,10 +208,11 @@ export function useCollectionDrag(
       isDragging: false,
       driverShapeId: '',
       initialPositions: new Map(),
+      draggedObjects: [],
     });
     setOptimisticShapes(null); // Clear optimistic shapes
     hasPendingUpdateRef.current = false;
-  }, [dragState, userId, optimisticShapes, selectedObjects]);
+  }, [dragState, userId, optimisticShapes]);
 
   /**
    * Cancel dragging (e.g., on escape key)
@@ -218,6 +227,7 @@ export function useCollectionDrag(
       isDragging: false,
       driverShapeId: '',
       initialPositions: new Map(),
+      draggedObjects: [],
     });
     setOptimisticShapes(null); // Clear optimistic shapes
     hasPendingUpdateRef.current = false;

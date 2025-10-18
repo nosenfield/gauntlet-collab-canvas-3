@@ -8,8 +8,9 @@
 import React from 'react';
 import { Layer } from 'react-konva';
 import { useTexts } from '../store/textsStore';
-import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
 import { TextObject } from './TextObject';
+import { useAuth } from '@/features/auth/store/authStore';
+import { updateText } from '../services/textService';
 import type { TextDisplayObject } from '../types';
 
 /**
@@ -18,12 +19,14 @@ import type { TextDisplayObject } from '../types';
 export interface TextLayerProps {
   selectedIds: string[];
   onTextClick: (textId: string, isShiftClick: boolean) => void;
-  onCollectionDragStart?: (textId: string) => void;
-  onCollectionDragMove?: (textId: string, x: number, y: number) => void;
-  onDragEnd?: (textId: string, x: number, y: number) => void;
-  isCollectionDragging?: boolean;
-  driverTextId?: string;
-  dragOptimisticTexts?: TextDisplayObject[] | null;
+  
+  // Collection drag props (from useCanvasInteractions)
+  isCollectionDragging: boolean;
+  driverTextId: string;
+  dragOptimisticTexts: TextDisplayObject[] | null;
+  startCollectionDrag: (driverTextId: string) => void;
+  moveCollectionDrag: (driverTextId: string, x: number, y: number) => void;
+  endCollectionDrag: () => void;
 }
 
 /**
@@ -31,18 +34,54 @@ export interface TextLayerProps {
  * 
  * Konva Layer containing all text objects.
  * Handles rendering and selection state for texts.
+ * Handles collection dragging when multiple objects are selected.
  */
 export function TextLayer({
   selectedIds,
   onTextClick,
-  onCollectionDragStart,
-  onCollectionDragMove,
-  onDragEnd,
-  isCollectionDragging = false,
-  driverTextId = '',
-  dragOptimisticTexts = null,
+  isCollectionDragging,
+  driverTextId,
+  dragOptimisticTexts,
+  startCollectionDrag,
+  moveCollectionDrag,
+  endCollectionDrag,
 }: TextLayerProps): React.ReactElement {
   const { texts } = useTexts();
+  const { user } = useAuth();
+  
+  // Check if multiple objects are selected (could be texts + shapes)
+  const hasMultipleSelected = selectedIds.length > 1;
+  
+  // Handle text drag end
+  const handleTextDragEnd = async (textId: string, x: number, y: number) => {
+    if (!user) return;
+    
+    // If this was a collection drag, end it
+    if (hasMultipleSelected && isCollectionDragging) {
+      await endCollectionDrag();
+      return;
+    }
+    
+    // Otherwise, it's a single text drag
+    try {
+      console.log('[TextLayer] Updating single text position:', textId, { x, y });
+      await updateText(textId, user.userId, { x, y });
+    } catch (error) {
+      console.error('[TextLayer] Error updating text position:', error);
+    }
+  };
+  
+  // Handle collection drag start (when multiple objects selected)
+  const handleCollectionDragStart = (textId: string) => {
+    if (!hasMultipleSelected) return;
+    startCollectionDrag(textId);
+  };
+  
+  // Handle collection drag move (when multiple objects selected)
+  const handleCollectionDragMove = (textId: string, x: number, y: number) => {
+    if (!hasMultipleSelected || !isCollectionDragging) return;
+    moveCollectionDrag(textId, x, y);
+  };
   
   // Merge optimistic texts with regular texts during collection dragging
   // Optimistic texts only contain the selected/dragging texts, we need to include non-selected texts too
@@ -61,7 +100,7 @@ export function TextLayer({
     <Layer name="text-layer">
       {textsToRender.map((text) => {
         const isSelected = selectedIds.includes(text.id);
-        const isDriver = text.id === driverTextId;
+        const isDriver = isCollectionDragging && driverTextId === text.id;
         
         return (
           <TextObject
@@ -69,10 +108,14 @@ export function TextLayer({
             text={text}
             isSelected={isSelected}
             onClick={onTextClick}
-            onCollectionDragStart={onCollectionDragStart}
-            onCollectionDragMove={onCollectionDragMove}
-            onDragEnd={onDragEnd}
+            onDragEnd={handleTextDragEnd}
+            // Keep draggable for all selected texts (use Konva's draggable)
             draggable={isSelected}
+            // Collection drag handlers (only when multiple objects selected)
+            onCollectionDragStart={hasMultipleSelected ? handleCollectionDragStart : undefined}
+            onCollectionDragMove={hasMultipleSelected ? handleCollectionDragMove : undefined}
+            // During collection drag, only the driver text is controlled by Konva
+            // Non-driver texts get their positions from optimistic updates
             listening={!isCollectionDragging || isDriver}
           />
         );

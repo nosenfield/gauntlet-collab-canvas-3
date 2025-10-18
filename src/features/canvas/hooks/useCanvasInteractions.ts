@@ -56,6 +56,7 @@ interface UseCanvasInteractionsReturn {
   isCollectionDragging: boolean;
   driverShapeId: string;
   dragOptimisticShapes: ShapeDisplayObject[] | null;
+  dragOptimisticTexts: TextDisplayObject[] | null;
   startCollectionDrag: (driverShapeId: string) => void;
   moveCollectionDrag: (driverShapeId: string, x: number, y: number) => void;
   endCollectionDrag: () => Promise<void>;
