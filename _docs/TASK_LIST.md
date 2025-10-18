@@ -1066,6 +1066,7 @@ const throttledUpdateCursor = useCallback(
    ```typescript
    console.warn(`Cannot select: Object ${id} is locked by ${displayName}`);
    ```
+8. Locks migrated from Firestore to Realtime Database
 
 **Verification**:
 - [x] Lock acquisition is atomic
@@ -1087,6 +1088,10 @@ const throttledUpdateCursor = useCallback(
 - `src/features/displayObjects/common/hooks/useMultiSelection.ts`
 - `src/features/displayObjects/common/hooks/useTool.ts` (release locks on tool change)
 - `src/features/displayObjects/shapes/services/shapeService.ts`
+**Round 2 Refactor**
+- `src/features/displayObjects/common/services/lockService.ts` (fully replaced with RTDB version)
+- `src/features/displayObjects/common/hooks/useLocking.ts`
+- `src/features/displayObjects/common/types.ts` (removed lock fields from DisplayObject)
 
 ---
 
