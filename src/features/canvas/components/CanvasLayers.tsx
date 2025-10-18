@@ -18,7 +18,7 @@ import { BoundingBoxLayer } from './BoundingBoxLayer';
 import { MarqueeLayer } from './MarqueeLayer';
 import { RemoteCursors } from '@/features/presence/components/RemoteCursors';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
-import type { Point, AxisAlignedBoundingBox } from '@/features/displayObjects/common/types';
+import type { Point } from '@/features/displayObjects/common/types';
 
 interface CanvasLayersProps {
   // Grid props
@@ -35,7 +35,7 @@ interface CanvasLayersProps {
   // Bounding box props
   selectedShapes: ShapeDisplayObject[];
   objectCorners: Map<string, Point[]>;
-  collectionBounds: AxisAlignedBoundingBox | null;
+  collectionCorners: Point[] | null;
   
   // Marquee props
   isMarqueeActive: boolean;
@@ -63,7 +63,7 @@ export function CanvasLayers({
   // Bounding boxes
   selectedShapes,
   objectCorners,
-  collectionBounds,
+  collectionCorners,
   
   // Marquee
   isMarqueeActive,
@@ -90,7 +90,7 @@ export function CanvasLayers({
       <BoundingBoxLayer
         selectedShapes={selectedShapes}
         objectCorners={objectCorners}
-        collectionBounds={collectionBounds}
+        collectionCorners={collectionCorners}
         scale={scale}
       />
       

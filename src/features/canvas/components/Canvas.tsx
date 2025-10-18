@@ -65,8 +65,8 @@ export function Canvas(): React.ReactElement {
     selectedShapes,
     isMarqueeActive,
     getMarqueeBox,
-    collectionBounds,
     collectionCenter,
+    collectionCorners,
     objectCorners,
   } = useCanvasInteractions({
     stageRef,
@@ -115,7 +115,7 @@ export function Canvas(): React.ReactElement {
           onShapeClick={handleShapeClick}
           selectedShapes={selectedShapes}
           objectCorners={objectCorners}
-          collectionBounds={collectionBounds}
+          collectionCorners={collectionCorners}
           isMarqueeActive={isMarqueeActive}
           marqueeBox={getMarqueeBox()}
         />

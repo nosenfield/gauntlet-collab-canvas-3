@@ -10,8 +10,9 @@
  * - Transforms with viewport (pan/zoom)
  */
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { canvasToScreen } from '@/features/canvas/utils/coordinateTransform';
+import { useRotation } from '../hooks/useRotation';
 import type { Point } from '../types';
 import './TransformModal.css';
 
@@ -35,16 +36,6 @@ export interface TransformModalProps {
    * Should be true when selection exists AND tool === 'select'
    */
   visible: boolean;
-  
-  /**
-   * Callback when rotation knob is used (future implementation)
-   */
-  onRotate?: (delta: number) => void;
-  
-  /**
-   * Callback when scale knob is used (future implementation)
-   */
-  onScale?: (delta: number) => void;
 }
 
 /**
@@ -66,9 +57,30 @@ export function TransformModal({
   center,
   viewport,
   visible,
-  onRotate,
-  onScale,
 }: TransformModalProps): React.ReactElement | null {
+  // Rotation hook
+  const {
+    startRotation,
+    updateRotation,
+    endRotation,
+    handleGlobalMouseUp,
+    isRotating,
+    currentAngle,
+  } = useRotation(center);
+  
+  // Handle global mouse up (release outside knob)
+  useEffect(() => {
+    if (isRotating) {
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+      window.addEventListener('mousemove', updateRotation as any);
+      
+      return () => {
+        window.removeEventListener('mouseup', handleGlobalMouseUp);
+        window.removeEventListener('mousemove', updateRotation as any);
+      };
+    }
+  }, [isRotating, handleGlobalMouseUp, updateRotation]);
+  
   // Calculate screen position from canvas coordinates
   const screenPosition = useMemo(() => {
     if (!center) return null;
@@ -110,19 +122,25 @@ export function TransformModal({
       <div className="transform-modal__content">
         {/* Rotation Knob (Left) */}
         <button
-          className="transform-modal__knob transform-modal__knob--rotation"
-          onClick={() => onRotate?.(0)}
-          title="Rotate"
+          className={`transform-modal__knob transform-modal__knob--rotation ${isRotating ? 'transform-modal__knob--active' : ''}`}
+          onMouseDown={startRotation}
+          onMouseUp={endRotation}
+          title="Rotate (drag to rotate)"
           aria-label="Rotate"
         >
-          <span className="transform-modal__knob-icon">⟳</span>
+          <span 
+            className="transform-modal__knob-icon"
+            style={{ transform: `rotate(${currentAngle}deg)` }}
+          >
+            ⟳
+          </span>
         </button>
         
         {/* Scale Knob (Right) */}
         <button
           className="transform-modal__knob transform-modal__knob--scale"
-          onClick={() => onScale?.(0)}
-          title="Scale"
+          disabled
+          title="Scale (not yet implemented)"
           aria-label="Scale"
         >
           <span className="transform-modal__knob-icon">⊕</span>

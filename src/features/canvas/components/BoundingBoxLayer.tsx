@@ -3,22 +3,23 @@
  * 
  * Renders selection highlights for shapes:
  * - Individual OBBs (Oriented Bounding Boxes) - solid blue outlines
- * - Collection AABB (Axis-Aligned Bounding Box) - dashed blue box
+ * - Collection OBB (Oriented Bounding Box) - dashed blue box
  * 
  * OBBs account for rotation and show exact shape bounds.
- * AABB only shows when 2+ shapes selected, encompasses all shapes.
+ * Collection OBB always shown for any selection (1 or more objects).
+ * Unified behavior: single object treated as collection of 1.
  */
 
 import { Layer } from 'react-konva';
 import { ObjectHighlight } from '@/features/displayObjects/common/components/ObjectHighlight';
 import { CollectionBoundingBox } from '@/features/displayObjects/common/components/CollectionBoundingBox';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
-import type { Point, AxisAlignedBoundingBox } from '@/features/displayObjects/common/types';
+import type { Point } from '@/features/displayObjects/common/types';
 
 interface BoundingBoxLayerProps {
   selectedShapes: ShapeDisplayObject[];
   objectCorners: Map<string, Point[]>;
-  collectionBounds: AxisAlignedBoundingBox | null;
+  collectionCorners: Point[] | null;
   scale: number;
 }
 
@@ -31,7 +32,7 @@ interface BoundingBoxLayerProps {
 export function BoundingBoxLayer({ 
   selectedShapes, 
   objectCorners, 
-  collectionBounds,
+  collectionCorners,
   scale 
 }: BoundingBoxLayerProps): React.ReactElement {
   return (
@@ -50,10 +51,10 @@ export function BoundingBoxLayer({
         );
       })}
       
-      {/* Collection bounding box (dashed AABB) - only for 2+ shapes */}
-      {collectionBounds && selectedShapes.length > 1 && (
+      {/* Collection bounding box (dashed OBB) - always shown when selection exists */}
+      {collectionCorners && (
         <CollectionBoundingBox 
-          bounds={collectionBounds}
+          corners={collectionCorners}
           scale={scale}
         />
       )}

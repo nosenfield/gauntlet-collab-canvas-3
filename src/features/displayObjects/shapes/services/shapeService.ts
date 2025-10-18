@@ -267,6 +267,39 @@ export const subscribeToShapes = (
 };
 
 /**
+ * Update multiple shapes atomically using batch write
+ * 
+ * Batch writes trigger only ONE real-time update event instead of N events.
+ * Use this for transform operations (rotation, scale, drag) that affect multiple shapes.
+ * 
+ * @param userId - ID of user making the updates
+ * @param updates - Array of {shapeId, updates} pairs
+ */
+export const updateShapesBatch = async (
+  userId: string,
+  updates: Array<{ shapeId: string; updates: UpdateShapeData }>
+): Promise<void> => {
+  try {
+    const batch = writeBatch(firestore);
+    
+    updates.forEach(({ shapeId, updates: shapeUpdates }) => {
+      const updateData = {
+        ...shapeUpdates,
+        lastModifiedBy: userId,
+        lastModifiedAt: serverTimestamp(),
+      };
+      batch.update(getShapeDoc(shapeId), updateData);
+    });
+    
+    await batch.commit();
+    console.log('[ShapeService] Batch updated', updates.length, 'shapes');
+  } catch (error) {
+    console.error('[ShapeService] Error batch updating shapes:', error);
+    throw error;
+  }
+};
+
+/**
  * Update Z-index for multiple shapes (reordering)
  * 
  * @param updates - Array of {shapeId, zIndex} pairs

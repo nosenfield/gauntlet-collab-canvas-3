@@ -9,7 +9,8 @@ import { useMemo } from 'react';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
 import type { AxisAlignedBoundingBox, Point } from '../types';
 import { 
-  calculateCollectionAABB, 
+  calculateCollectionAABB,
+  calculateCollectionOBB,
   getObjectCorners,
   getAABBCenter 
 } from '../utils/boundingBoxUtils';
@@ -18,9 +19,12 @@ import {
  * Bounding box data for a collection
  */
 export interface BoundingBoxData {
-  // Collection bounds (AABB around all objects)
+  // Collection bounds (AABB around all objects) - deprecated, use collectionCorners
   collectionBounds: AxisAlignedBoundingBox | null;
   collectionCenter: Point | null;
+  
+  // Collection corners (OBB around all objects) - for rendering
+  collectionCorners: Point[] | null;
   
   // Individual object bounds (OBB corners for each)
   objectCorners: Map<string, Point[]>; // shapeId -> corners
@@ -66,13 +70,18 @@ export function useBoundingBox(selectedShapes: ShapeDisplayObject[]): BoundingBo
       return {
         collectionBounds: null,
         collectionCenter: null,
+        collectionCorners: null,
         objectCorners: new Map<string, Point[]>(),
       };
     }
     
-    // Calculate collection AABB
+    // Calculate collection AABB (for backward compatibility)
     const collectionBounds = calculateCollectionAABB(selectedShapes);
     const collectionCenter = collectionBounds ? getAABBCenter(collectionBounds) : null;
+    
+    // Calculate collection OBB (for rendering)
+    const collectionOBB = calculateCollectionOBB(selectedShapes);
+    const collectionCorners = collectionOBB ? collectionOBB.corners : null;
     
     // Calculate OBB corners for each object
     const objectCorners = new Map<string, Point[]>();
@@ -84,6 +93,7 @@ export function useBoundingBox(selectedShapes: ShapeDisplayObject[]): BoundingBo
     return {
       collectionBounds,
       collectionCenter,
+      collectionCorners,
       objectCorners,
     };
   }, [selectedShapes, shapesKey]);

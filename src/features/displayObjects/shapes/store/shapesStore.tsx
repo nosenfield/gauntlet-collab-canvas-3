@@ -205,6 +205,14 @@ export function useShapes() {
   const getRectangles = useCallback(() => {
     return state.shapes.filter(shape => shape.type === 'rectangle');
   }, [state.shapes]);
+  
+  /**
+   * Update shape locally (optimistic update)
+   * Use this for immediate UI feedback before Firestore sync
+   */
+  const updateShapeLocal = useCallback((id: string, updates: Partial<ShapeDisplayObject>) => {
+    dispatch({ type: 'UPDATE_SHAPE', payload: { id, updates } });
+  }, [dispatch]);
 
   return {
     // State
@@ -220,6 +228,7 @@ export function useShapes() {
     getShapeById,
     getShapesCount,
     getRectangles,
+    updateShapeLocal,
   };
 }
 

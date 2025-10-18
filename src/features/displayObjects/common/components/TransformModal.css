@@ -93,14 +93,44 @@
   justify-content: center;
 }
 
-/* Rotation knob specific styles (future: add rotation animation) */
+/* Rotation knob specific styles */
 .transform-modal__knob--rotation {
-  /* No additional styles yet - placeholder for future rotation animation */
+  /* Cursor indicates draggable */
+  cursor: grab;
+}
+
+.transform-modal__knob--rotation:active,
+.transform-modal__knob--rotation.transform-modal__knob--active {
+  cursor: grabbing;
+}
+
+/* Active state while rotating */
+.transform-modal__knob--active {
+  background: rgba(74, 144, 226, 0.5) !important;
+  border-color: #5BA3F5 !important;
+  transform: scale(1.1) !important;
+}
+
+/* Icon rotation animation */
+.transform-modal__knob-icon {
+  transition: transform 0.05s linear;
+  display: inline-block;
 }
 
 /* Scale knob specific styles */
 .transform-modal__knob--scale {
   /* No additional styles yet */
+}
+
+.transform-modal__knob:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.transform-modal__knob:disabled:hover {
+  background: rgba(74, 144, 226, 0.2);
+  border-color: #4A90E2;
+  transform: none;
 }
 
 /* Animation when modal appears */

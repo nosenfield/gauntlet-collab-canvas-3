@@ -56,29 +56,43 @@ export function RectangleShape({
 
   const handleDragMove = (e: KonvaEventObject<DragEvent>) => {
     // If this is part of a collection, notify the collection drag system
+    // Note: Konva reports CENTER position (due to our offset), convert to top-left
     if (onCollectionDragMove && isSelected) {
       const node = e.target;
-      onCollectionDragMove(shape.id, node.x(), node.y());
+      const centerX = node.x();
+      const centerY = node.y();
+      const halfWidth = (shape.width * shape.scaleX) / 2;
+      const halfHeight = (shape.height * shape.scaleY) / 2;
+      const topLeftX = centerX - halfWidth;
+      const topLeftY = centerY - halfHeight;
+      onCollectionDragMove(shape.id, topLeftX, topLeftY);
     }
   };
 
   const handleDragEnd = (e: KonvaEventObject<DragEvent>) => {
+    // Convert from center position to top-left for our data model
     if (onDragEnd) {
       const node = e.target;
-      onDragEnd(shape.id, node.x(), node.y());
+      const centerX = node.x();
+      const centerY = node.y();
+      const halfWidth = (shape.width * shape.scaleX) / 2;
+      const halfHeight = (shape.height * shape.scaleY) / 2;
+      const topLeftX = centerX - halfWidth;
+      const topLeftY = centerY - halfHeight;
+      onDragEnd(shape.id, topLeftX, topLeftY);
     }
   };
 
   // Constrain dragging to canvas boundaries (10,000 x 10,000px)
-  // Note: Position is top-left corner, so constrain to keep shape within bounds
+  // Note: With our offset setup, pos represents the CENTER of the shape
   const dragBoundFunc = (pos: { x: number; y: number }) => {
     const CANVAS_SIZE = 10000;
-    const scaledWidth = shape.width * shape.scaleX;
-    const scaledHeight = shape.height * shape.scaleY;
+    const halfWidth = (shape.width * shape.scaleX) / 2;
+    const halfHeight = (shape.height * shape.scaleY) / 2;
     
     return {
-      x: Math.max(0, Math.min(pos.x, CANVAS_SIZE - scaledWidth)),
-      y: Math.max(0, Math.min(pos.y, CANVAS_SIZE - scaledHeight)),
+      x: Math.max(halfWidth, Math.min(pos.x, CANVAS_SIZE - halfWidth)),
+      y: Math.max(halfHeight, Math.min(pos.y, CANVAS_SIZE - halfHeight)),
     };
   };
 
@@ -88,17 +102,27 @@ export function RectangleShape({
   // Determine if shape should listen to events (can be disabled for non-driver shapes during collection drag)
   const isListening = listening !== undefined ? listening : true;
   
+  // Calculate center position for rendering
+  // Our data model stores x,y as top-left, but we want rotation around center
+  // The offset is in the shape's local coordinate system (before scale)
+  const centerX = shape.x + (shape.width * shape.scaleX) / 2;
+  const centerY = shape.y + (shape.height * shape.scaleY) / 2;
+  
   return (
     <Rect
       // Identity
       id={shape.id}
       name="shape"
       
-      // Position and dimensions
-      x={shape.x}
-      y={shape.y}
+      // Position - center point (rotation pivot)
+      x={centerX}
+      y={centerY}
       width={shape.width}
       height={shape.height}
+      
+      // Offset - in local coordinates (before scale), makes rotation happen around center
+      offsetX={shape.width / 2}
+      offsetY={shape.height / 2}
       
       // Transform
       rotation={shape.rotation}
