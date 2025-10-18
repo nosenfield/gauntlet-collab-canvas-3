@@ -102,6 +102,35 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* Empty State */
+.properties-modal__empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.properties-modal__empty-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.properties-modal__empty-state p:first-child {
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 8px;
+}
+
+.properties-modal__empty-hint {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
 /* ============================================
    Sections
    ============================================ */

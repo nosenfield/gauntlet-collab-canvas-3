@@ -36,13 +36,13 @@ export function PropertiesModal(): React.ReactElement | null {
   // Drag and resize functionality
   const { position, isDragging, handleMouseDown } = useModalDrag({ 
     initialPosition: { 
-      x: window.innerWidth - 340 - 260, // Left of presence sidebar
-      y: 20 
+      x: 10, // 10px from left
+      y: 10  // 10px from top
     },
     storageKey: 'properties-modal-position'
   });
   const { height, isResizing, handleResizeStart } = useModalResize({
-    initialHeight: 600,
+    initialHeight: window.innerHeight - 20, // Full height minus 20px (10px top + 10px bottom)
     storageKey: 'properties-modal-height'
   });
   
@@ -52,11 +52,6 @@ export function PropertiesModal(): React.ReactElement | null {
     const selectedTexts = texts.filter(t => selectedIds.includes(t.id));
     return [...selectedShapes, ...selectedTexts];
   }, [shapes, texts, selectedIds]);
-  
-  // Don't show modal if nothing is selected
-  if (selectedObjects.length === 0) {
-    return null;
-  }
   
   // Determine if all selected objects are of the same category
   const categories = new Set(selectedObjects.map(obj => obj.category));
@@ -86,42 +81,54 @@ export function PropertiesModal(): React.ReactElement | null {
           <h3 className="properties-modal__title">
             Properties
           </h3>
-          <div className="properties-modal__subtitle">
-            {selectedObjects.length} {selectedObjects.length === 1 ? 'object' : 'objects'} selected
-          </div>
+          {selectedObjects.length > 0 && (
+            <div className="properties-modal__subtitle">
+              {selectedObjects.length} {selectedObjects.length === 1 ? 'object' : 'objects'} selected
+            </div>
+          )}
         </div>
         
         {/* Scrollable content */}
         <div className="properties-modal__content">
-          {/* Universal Properties Section */}
-          <UniversalProperties 
-            selectedObjects={selectedObjects}
-            userId={user?.userId}
-          />
-          
-          {/* Object-Specific Properties Section */}
-          {isSingleCategory && category === 'shape' && selectedShapes.length > 0 && (
-            <ShapeProperties 
-              selectedShapes={selectedShapes}
-              userId={user?.userId}
-            />
-          )}
-          
-          {isSingleCategory && category === 'text' && selectedTexts.length > 0 && (
-            <TextProperties 
-              selectedTexts={selectedTexts}
-              userId={user?.userId}
-            />
-          )}
-          
-          {/* Mixed selection message */}
-          {!isSingleCategory && (
-            <div className="properties-modal__section">
-              <div className="properties-modal__section-title">Object-Specific Properties</div>
-              <div className="properties-modal__mixed-message">
-                Mixed selection: Select objects of the same type to edit specific properties.
-              </div>
+          {selectedObjects.length === 0 ? (
+            // No selection - show empty state
+            <div className="properties-modal__empty-state">
+              <p>No objects selected</p>
+              <p className="properties-modal__empty-hint">Select an object on the canvas to view its properties</p>
             </div>
+          ) : (
+            <>
+              {/* Universal Properties Section */}
+              <UniversalProperties 
+                selectedObjects={selectedObjects}
+                userId={user?.userId}
+              />
+              
+              {/* Object-Specific Properties Section */}
+              {isSingleCategory && category === 'shape' && selectedShapes.length > 0 && (
+                <ShapeProperties 
+                  selectedShapes={selectedShapes}
+                  userId={user?.userId}
+                />
+              )}
+              
+              {isSingleCategory && category === 'text' && selectedTexts.length > 0 && (
+                <TextProperties 
+                  selectedTexts={selectedTexts}
+                  userId={user?.userId}
+                />
+              )}
+              
+              {/* Mixed selection message */}
+              {!isSingleCategory && (
+                <div className="properties-modal__section">
+                  <div className="properties-modal__section-title">Object-Specific Properties</div>
+                  <div className="properties-modal__mixed-message">
+                    Mixed selection: Select objects of the same type to edit specific properties.
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
         
