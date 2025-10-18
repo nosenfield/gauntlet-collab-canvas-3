@@ -11,7 +11,6 @@ import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useAuth } from '@/features/auth/store/authStore';
 import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
 import { scaleCollection } from '../utils/transformMath';
-import { constrainToCanvas } from '../services/transformService';
 import type { Point } from '../types';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
 
@@ -121,11 +120,8 @@ export function useScale(collectionCenter: Point | null) {
         initialCenterRef.current
       );
       
-      // Constrain scaled objects to canvas boundaries
-      const constrainedObjects = constrainToCanvas(scaledObjects);
-      
       // Update local state immediately (optimistic)
-      constrainedObjects.forEach(obj => {
+      scaledObjects.forEach(obj => {
         updateShapeLocal(obj.id, {
           x: obj.x,
           y: obj.y,
@@ -145,7 +141,7 @@ export function useScale(collectionCenter: Point | null) {
       debounceTimerRef.current = setTimeout(() => {
         // Write to Firestore using batch update (1 snapshot event instead of N)
         if (user) {
-          const batchUpdates = constrainedObjects.map(obj => ({
+          const batchUpdates = scaledObjects.map(obj => ({
             shapeId: obj.id,
             updates: {
               x: obj.x,
@@ -193,10 +189,7 @@ export function useScale(collectionCenter: Point | null) {
         initialCenterRef.current
       );
       
-      // Constrain to canvas boundaries
-      const constrainedObjects = constrainToCanvas(scaledObjects);
-      
-      const batchUpdates = constrainedObjects.map(obj => ({
+      const batchUpdates = scaledObjects.map(obj => ({
         shapeId: obj.id,
         updates: {
           x: obj.x,

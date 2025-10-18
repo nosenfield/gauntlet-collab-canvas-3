@@ -7,7 +7,6 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
-import { translateAndConstrain } from '../services/transformService';
 import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
 
 /**
@@ -98,11 +97,8 @@ export function useCollectionDrag(
       };
     });
 
-    // Constrain to canvas boundaries
-    const constrainedShapes = translateAndConstrain(translatedShapes, 0, 0);
-
     // Update optimistic state for immediate visual feedback
-    setOptimisticShapes(constrainedShapes);
+    setOptimisticShapes(translatedShapes);
 
     // Debounce Firestore updates (300ms)
     if (debounceTimerRef.current) {
@@ -112,7 +108,7 @@ export function useCollectionDrag(
     hasPendingUpdateRef.current = true;
     debounceTimerRef.current = setTimeout(() => {
       // Update all shapes in Firestore using batch write (1 snapshot instead of N)
-      const batchUpdates = constrainedShapes.map(shape => ({
+      const batchUpdates = translatedShapes.map(shape => ({
         shapeId: shape.id,
         updates: { x: shape.x, y: shape.y },
       }));

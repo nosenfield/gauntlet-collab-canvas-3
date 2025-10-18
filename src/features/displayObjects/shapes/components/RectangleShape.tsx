@@ -83,19 +83,6 @@ export function RectangleShape({
     }
   };
 
-  // Constrain dragging to canvas boundaries (10,000 x 10,000px)
-  // Note: With our offset setup, pos represents the CENTER of the shape
-  const dragBoundFunc = (pos: { x: number; y: number }) => {
-    const CANVAS_SIZE = 10000;
-    const halfWidth = (shape.width * shape.scaleX) / 2;
-    const halfHeight = (shape.height * shape.scaleY) / 2;
-    
-    return {
-      x: Math.max(halfWidth, Math.min(pos.x, CANVAS_SIZE - halfWidth)),
-      y: Math.max(halfHeight, Math.min(pos.y, CANVAS_SIZE - halfHeight)),
-    };
-  };
-
   // Determine if shape should be draggable
   const isDraggable = draggable !== undefined ? draggable : isSelected;
   
@@ -151,7 +138,6 @@ export function RectangleShape({
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
-      dragBoundFunc={isDraggable ? dragBoundFunc : undefined}
       
       // Performance
       perfectDrawEnabled={false}

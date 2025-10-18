@@ -93,7 +93,7 @@ Implemented scale knob functionality in the transform modal, allowing users to s
 - ✅ Scale knob responds to drag
 - ✅ 1px = 0.002 scale delta (5x less sensitive than rotation)
 - ✅ Objects scale from collection center
-- ✅ Canvas boundary constraints applied (objects cannot scale outside 0-10000 bounds)
+- ✅ No canvas boundary constraints (infinite canvas - objects can scale anywhere)
 - ✅ Scale properties (scaleX/scaleY) update correctly
 - ✅ Position updates correctly (objects move outward/inward)
 - ✅ Scale constraints applied (0.1x to 100x per object)

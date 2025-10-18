@@ -12,7 +12,6 @@ import { useAuth } from '@/features/auth/store/authStore';
 import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
 import { rotateCollection, rotatePointAroundCenter } from '../utils/transformMath';
 import { calculateCollectionOBB } from '../utils/boundingBoxUtils';
-import { constrainToCanvas } from '../services/transformService';
 import type { Point } from '../types';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
 
@@ -154,11 +153,8 @@ export function useRotation(collectionCenter: Point | null) {
         initialCenterRef.current
       );
       
-      // Constrain rotated objects to canvas boundaries
-      const constrainedObjects = constrainToCanvas(rotatedObjects);
-      
       // Update local state immediately (optimistic)
-      constrainedObjects.forEach(obj => {
+      rotatedObjects.forEach(obj => {
         updateShapeLocal(obj.id, {
           x: obj.x,
           y: obj.y,
@@ -177,7 +173,7 @@ export function useRotation(collectionCenter: Point | null) {
       debounceTimerRef.current = setTimeout(() => {
         // Write to Firestore using batch update (1 snapshot event instead of N)
         if (user) {
-          const batchUpdates = constrainedObjects.map(obj => ({
+          const batchUpdates = rotatedObjects.map(obj => ({
             shapeId: obj.id,
             updates: {
               x: obj.x,
@@ -224,10 +220,7 @@ export function useRotation(collectionCenter: Point | null) {
         initialCenterRef.current
       );
       
-      // Constrain to canvas boundaries
-      const constrainedObjects = constrainToCanvas(rotatedObjects);
-      
-      const batchUpdates = constrainedObjects.map(obj => ({
+      const batchUpdates = rotatedObjects.map(obj => ({
         shapeId: obj.id,
         updates: {
           x: obj.x,

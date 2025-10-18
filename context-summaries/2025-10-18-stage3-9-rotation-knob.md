@@ -243,7 +243,7 @@ rotatedObjects.forEach(obj => {
 ✅ Right/Up = clockwise, Left/Down = counter-clockwise (fixed Y-axis inversion)  
 ✅ Objects rotate around collection center  
 ✅ Object positions and rotations update correctly  
-✅ Canvas boundary constraints applied (objects cannot rotate outside 0-10000 bounds)  
+✅ No canvas boundary constraints (infinite canvas - objects can rotate anywhere)  
 ✅ Knob icon spins to match rotation  
 ✅ Smooth 60 FPS rotation (optimistic updates)  
 ✅ Debounced Firestore writes (300ms)  
