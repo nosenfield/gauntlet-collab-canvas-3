@@ -2,13 +2,14 @@
  * Display Object Toolbar Styles
  * 
  * Horizontal toolbar for tool selection
- * Position: Fixed top-left of screen
+ * Position: Fixed bottom-center of screen
  */
 
 .display-object-toolbar {
   position: fixed;
-  top: 16px;
-  left: 16px;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 1000;
   
   /* Prevent toolbar from interfering with canvas interactions */
@@ -151,15 +152,13 @@
   background-color: rgba(255, 107, 107, 0.25);
 }
 
-/* Responsive: Stack vertically on small screens */
+/* Responsive: Smaller buttons on small screens */
 @media (max-width: 768px) {
   .display-object-toolbar {
-    top: 8px;
-    left: 8px;
+    bottom: 8px;
   }
   
   .display-object-toolbar__container {
-    flex-direction: column;
     padding: 6px;
     gap: 6px;
   }
@@ -178,9 +177,7 @@
   }
   
   .display-object-toolbar__separator {
-    width: 52px;
-    height: 2px;
-    margin: 2px 0;
+    height: 52px;
   }
 }
 
