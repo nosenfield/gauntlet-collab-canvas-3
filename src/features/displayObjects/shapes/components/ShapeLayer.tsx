@@ -87,16 +87,20 @@ export function ShapeLayer({
   // Merge optimistic shapes with regular shapes during collection dragging
   // Optimistic shapes only contain the selected/dragging shapes, we need to include non-selected shapes too
   // MUST be called before any conditional returns (Rules of Hooks)
+  
+  // Performance optimization: Create optimistic map once, reuse for rendering
+  const optimisticShapesMap = React.useMemo(() => {
+    if (!dragOptimisticShapes) return null;
+    return new Map(dragOptimisticShapes.map(s => [s.id, s]));
+  }, [dragOptimisticShapes]);
+  
   const shapesToRender = React.useMemo(() => {
-    if (isCollectionDragging && dragOptimisticShapes) {
-      // Create a map of optimistic shapes by ID for fast lookup
-      const optimisticMap = new Map(dragOptimisticShapes.map(s => [s.id, s]));
-      
+    if (isCollectionDragging && optimisticShapesMap) {
       // Replace selected shapes with optimistic versions, keep non-selected shapes as-is
-      return shapes.map(shape => optimisticMap.get(shape.id) || shape);
+      return shapes.map(shape => optimisticShapesMap.get(shape.id) || shape);
     }
     return shapes;
-  }, [isCollectionDragging, dragOptimisticShapes, shapes]);
+  }, [isCollectionDragging, optimisticShapesMap, shapes]);
 
   if (isLoading) {
     return <Layer />;

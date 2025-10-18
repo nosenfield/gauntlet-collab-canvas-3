@@ -85,16 +85,20 @@ export function TextLayer({
   
   // Merge optimistic texts with regular texts during collection dragging
   // Optimistic texts only contain the selected/dragging texts, we need to include non-selected texts too
+  
+  // Performance optimization: Create optimistic map once, reuse for rendering
+  const optimisticTextsMap = React.useMemo(() => {
+    if (!dragOptimisticTexts) return null;
+    return new Map(dragOptimisticTexts.map(t => [t.id, t]));
+  }, [dragOptimisticTexts]);
+  
   const textsToRender = React.useMemo(() => {
-    if (isCollectionDragging && dragOptimisticTexts) {
-      // Create a map of optimistic texts by ID for fast lookup
-      const optimisticMap = new Map(dragOptimisticTexts.map(t => [t.id, t]));
-      
+    if (isCollectionDragging && optimisticTextsMap) {
       // Replace selected texts with optimistic versions, keep non-selected texts as-is
-      return texts.map(text => optimisticMap.get(text.id) || text);
+      return texts.map(text => optimisticTextsMap.get(text.id) || text);
     }
     return texts;
-  }, [isCollectionDragging, dragOptimisticTexts, texts]);
+  }, [isCollectionDragging, optimisticTextsMap, texts]);
   
   return (
     <Layer name="text-layer">
