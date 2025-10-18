@@ -22,6 +22,7 @@ import {
 import { firestore } from '@/api/firebase';
 import type { ShapeDisplayObject, CreateShapeData, UpdateShapeData } from '../types';
 import { DEFAULT_SHAPE_PROPERTIES } from '../types';
+import { validateShapeData, validateShapeBatch } from '../../common/utils/dataValidation';
 
 /**
  * Get reference to shapes collection
@@ -197,10 +198,15 @@ export const getShape = async (shapeId: string): Promise<ShapeDisplayObject | nu
       return null;
     }
     
-    return {
-      id: docSnap.id,
-      ...docSnap.data(),
-    } as ShapeDisplayObject;
+    // Validate data before returning
+    const result = validateShapeData(docSnap.id, docSnap.data());
+    
+    if (!result.valid) {
+      console.error('[ShapeService] Invalid shape data:', result.errors);
+      return null; // Return null for invalid data instead of crashing
+    }
+    
+    return result.data;
   } catch (error) {
     console.error('[ShapeService] Error getting shape:', error);
     throw error;
@@ -217,15 +223,22 @@ export const getAllShapes = async (): Promise<ShapeDisplayObject[]> => {
     const q = query(getShapesCollection(), orderBy('zIndex', 'asc'));
     const querySnapshot = await getDocs(q);
     
-    const shapes: ShapeDisplayObject[] = [];
-    querySnapshot.forEach((doc) => {
-      shapes.push({
-        id: doc.id,
-        ...doc.data(),
-      } as ShapeDisplayObject);
-    });
+    // Collect raw data for batch validation
+    const rawShapes = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      data: doc.data(),
+    }));
+    
+    // Validate all shapes (logs errors, returns only valid)
+    const shapes = validateShapeBatch(rawShapes);
     
     console.log('[ShapeService] Fetched shapes:', shapes.length);
+    if (rawShapes.length !== shapes.length) {
+      console.warn(
+        `[ShapeService] Skipped ${rawShapes.length - shapes.length} invalid shapes`
+      );
+    }
+    
     return shapes;
   } catch (error) {
     console.error('[ShapeService] Error getting all shapes:', error);
@@ -247,13 +260,21 @@ export const subscribeToShapes = (
   const unsubscribe = onSnapshot(
     q,
     (querySnapshot) => {
-      const shapes: ShapeDisplayObject[] = [];
-      querySnapshot.forEach((doc) => {
-        shapes.push({
-          id: doc.id,
-          ...doc.data(),
-        } as ShapeDisplayObject);
-      });
+      // Collect raw data for batch validation
+      const rawShapes = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        data: doc.data(),
+      }));
+      
+      // Validate all shapes (logs errors, returns only valid)
+      const shapes = validateShapeBatch(rawShapes);
+      
+      // Warn if any shapes were invalid
+      if (rawShapes.length !== shapes.length) {
+        console.warn(
+          `[ShapeService] Real-time update: Skipped ${rawShapes.length - shapes.length} invalid shapes`
+        );
+      }
       
       // console.log('[ShapeService] Real-time update:', shapes.length, 'shapes'); // Commented to reduce console noise
       callback(shapes);

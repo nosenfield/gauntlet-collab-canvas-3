@@ -16,11 +16,13 @@ import {
   query,
   serverTimestamp,
   writeBatch,
+  Timestamp,
   type Unsubscribe,
 } from 'firebase/firestore';
 import { firestore } from '@/api/firebase';
 import type { TextDisplayObject, CreateTextData, UpdateTextData } from '../types';
 import { DEFAULT_TEXT_PROPERTIES } from '../types';
+import { validateTextBatch } from '../../common/utils/dataValidation';
 
 // Firestore collection paths
 const DOCUMENT_ID = 'main';
@@ -43,13 +45,13 @@ export const createText = async (
     
     const newText = {
       // BaseDisplayObject fields
-      type: 'text',
-      category: 'text',
+      category: 'text' as const,
       x: textData.x,
       y: textData.y,
       rotation: 0,
       scaleX: 1,
       scaleY: 1,
+      zIndex: 0,
       createdBy: userId,
       createdAt: serverTimestamp(),
       lastModifiedBy: userId,
@@ -61,7 +63,7 @@ export const createText = async (
       height: textData.height ?? DEFAULT_TEXT_PROPERTIES.height,
       fontFamily: textData.fontFamily ?? DEFAULT_TEXT_PROPERTIES.fontFamily,
       fontSize: textData.fontSize ?? DEFAULT_TEXT_PROPERTIES.fontSize,
-      fontWeight: textData.fontWeight ?? DEFAULT_TEXT_PROPERTIES.fontWeight,
+      fontWeight: (textData.fontWeight ?? DEFAULT_TEXT_PROPERTIES.fontWeight) as 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900,
       textAlign: textData.textAlign ?? DEFAULT_TEXT_PROPERTIES.textAlign,
       lineHeight: textData.lineHeight ?? DEFAULT_TEXT_PROPERTIES.lineHeight,
       color: textData.color ?? DEFAULT_TEXT_PROPERTIES.color,
@@ -72,12 +74,18 @@ export const createText = async (
     
     console.log('[TextService] Text created:', docRef.id);
     
-    return {
+    // Construct properly typed return value
+    // Note: createdAt/lastModifiedAt are placeholder timestamps since serverTimestamp() 
+    // doesn't return the actual timestamp until Firestore processes it
+    const now = Timestamp.fromDate(new Date());
+    const createdText: TextDisplayObject = {
       ...newText,
       id: docRef.id,
-      createdAt: new Date(),
-      lastModifiedAt: new Date(),
-    } as TextDisplayObject;
+      createdAt: now,
+      lastModifiedAt: now,
+    };
+    
+    return createdText;
   } catch (error) {
     console.error('[TextService] Error creating text:', error);
     throw error;
@@ -215,35 +223,21 @@ export const subscribeToTexts = (
   const q = query(textsCol);
   
   return onSnapshot(q, (snapshot) => {
-    const texts: TextDisplayObject[] = [];
+    // Collect raw data for batch validation
+    const rawTexts = snapshot.docs.map(doc => ({
+      id: doc.id,
+      data: doc.data(),
+    }));
     
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      texts.push({
-        id: doc.id,
-        type: 'text',
-        category: 'text',
-        x: data.x ?? 0,
-        y: data.y ?? 0,
-        rotation: data.rotation ?? 0,
-        scaleX: data.scaleX ?? 1,
-        scaleY: data.scaleY ?? 1,
-        content: data.content ?? DEFAULT_TEXT_PROPERTIES.content,
-        width: data.width ?? DEFAULT_TEXT_PROPERTIES.width,
-        height: data.height ?? DEFAULT_TEXT_PROPERTIES.height,
-        fontFamily: data.fontFamily ?? DEFAULT_TEXT_PROPERTIES.fontFamily,
-        fontSize: data.fontSize ?? DEFAULT_TEXT_PROPERTIES.fontSize,
-        fontWeight: data.fontWeight ?? DEFAULT_TEXT_PROPERTIES.fontWeight,
-        textAlign: data.textAlign ?? DEFAULT_TEXT_PROPERTIES.textAlign,
-        lineHeight: data.lineHeight ?? DEFAULT_TEXT_PROPERTIES.lineHeight,
-        color: data.color ?? DEFAULT_TEXT_PROPERTIES.color,
-        opacity: data.opacity ?? DEFAULT_TEXT_PROPERTIES.opacity,
-        createdBy: data.createdBy ?? '',
-        createdAt: data.createdAt?.toDate() ?? new Date(),
-        lastModifiedBy: data.lastModifiedBy ?? '',
-        lastModifiedAt: data.lastModifiedAt?.toDate() ?? new Date(),
-      });
-    });
+    // Validate all texts (logs errors, returns only valid)
+    const texts = validateTextBatch(rawTexts);
+    
+    // Warn if any texts were invalid
+    if (rawTexts.length !== texts.length) {
+      console.warn(
+        `[TextService] Real-time update: Skipped ${rawTexts.length - texts.length} invalid texts`
+      );
+    }
     
     console.log('[TextService] Real-time update:', texts.length, 'texts');
     callback(texts);
