@@ -11,8 +11,7 @@ import { useShapes } from '../store/shapesStore';
 import { useAuth } from '@/features/auth/store/authStore';
 import { updateShape } from '../services/shapeService';
 import { RectangleShape } from './RectangleShape';
-import { useCollectionDrag } from '@/features/displayObjects/common/hooks/useCollectionDrag';
-import { useTool } from '@/features/displayObjects/common/store/toolStore';
+import type { ShapeDisplayObject } from '../types';
 
 /**
  * Shape Layer Props
@@ -20,6 +19,14 @@ import { useTool } from '@/features/displayObjects/common/store/toolStore';
 interface ShapeLayerProps {
   selectedIds?: string[];
   onShapeClick?: (shapeId: string, isShiftClick: boolean) => void;
+  
+  // Collection drag props (from useCanvasInteractions)
+  isCollectionDragging: boolean;
+  driverShapeId: string;
+  dragOptimisticShapes: ShapeDisplayObject[] | null;
+  startCollectionDrag: (driverShapeId: string) => void;
+  moveCollectionDrag: (driverShapeId: string, x: number, y: number) => void;
+  endCollectionDrag: () => void;
 }
 
 /**
@@ -29,24 +36,22 @@ interface ShapeLayerProps {
  * Delegates to specific shape components based on type
  * Handles collection dragging when multiple shapes are selected
  */
-export function ShapeLayer({ selectedIds = [], onShapeClick }: ShapeLayerProps) {
+export function ShapeLayer({ 
+  selectedIds = [], 
+  onShapeClick,
+  isCollectionDragging,
+  driverShapeId,
+  dragOptimisticShapes,
+  startCollectionDrag,
+  moveCollectionDrag,
+  endCollectionDrag,
+}: ShapeLayerProps) {
   const { shapes, isLoading } = useShapes();
   const { user } = useAuth();
-  const { isSelectMode } = useTool();
   
-  // Get selected shapes for collection dragging
+  // Get selected shapes for multi-selection checks
   const selectedShapes = shapes.filter(shape => selectedIds.includes(shape.id));
   const hasMultipleSelected = selectedShapes.length > 1;
-  
-  // Collection drag hook
-  const {
-    isDragging: isCollectionDragging,
-    driverShapeId,
-    optimisticShapes,
-    handleDragStart: startCollectionDrag,
-    handleDragMove: moveCollectionDrag,
-    handleDragEnd: endCollectionDrag,
-  } = useCollectionDrag(selectedShapes, user?.userId, isSelectMode());
 
   // Handle shape drag end
   const handleShapeDragEnd = async (shapeId: string, x: number, y: number) => {
@@ -69,7 +74,7 @@ export function ShapeLayer({ selectedIds = [], onShapeClick }: ShapeLayerProps) 
   
   // Handle collection drag start (when multiple shapes selected)
   const handleCollectionDragStart = (shapeId: string) => {
-    if (!hasMultipleSelected || !isSelectMode()) return;
+    if (!hasMultipleSelected) return;
     startCollectionDrag(shapeId);
   };
   
@@ -83,15 +88,15 @@ export function ShapeLayer({ selectedIds = [], onShapeClick }: ShapeLayerProps) 
   // Optimistic shapes only contain the selected/dragging shapes, we need to include non-selected shapes too
   // MUST be called before any conditional returns (Rules of Hooks)
   const shapesToRender = React.useMemo(() => {
-    if (isCollectionDragging && optimisticShapes) {
+    if (isCollectionDragging && dragOptimisticShapes) {
       // Create a map of optimistic shapes by ID for fast lookup
-      const optimisticMap = new Map(optimisticShapes.map(s => [s.id, s]));
+      const optimisticMap = new Map(dragOptimisticShapes.map(s => [s.id, s]));
       
       // Replace selected shapes with optimistic versions, keep non-selected shapes as-is
       return shapes.map(shape => optimisticMap.get(shape.id) || shape);
     }
     return shapes;
-  }, [isCollectionDragging, optimisticShapes, shapes]);
+  }, [isCollectionDragging, dragOptimisticShapes, shapes]);
 
   if (isLoading) {
     return <Layer />;

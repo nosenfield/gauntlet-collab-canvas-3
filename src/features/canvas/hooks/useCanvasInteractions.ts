@@ -23,6 +23,8 @@ import { useMarqueeSelection } from '@/features/displayObjects/common/hooks/useM
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useBoundingBox } from '@/features/displayObjects/common/hooks/useBoundingBox';
 import { useLocking } from '@/features/displayObjects/common/hooks/useLocking';
+import { useCollectionDrag } from '@/features/displayObjects/common/hooks/useCollectionDrag';
+import { useAuth } from '@/features/auth/store/authStore';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
 
 interface UseCanvasInteractionsParams {
@@ -46,6 +48,14 @@ interface UseCanvasInteractionsReturn {
   handleStageMouseMove: (e: any) => void;
   handleStageMouseUp: (e: any) => void;
   handleShapeClick: (shapeId: string, isShiftClick: boolean) => void;
+  
+  // Collection drag handlers
+  isCollectionDragging: boolean;
+  driverShapeId: string;
+  dragOptimisticShapes: ShapeDisplayObject[] | null;
+  startCollectionDrag: (driverShapeId: string) => void;
+  moveCollectionDrag: (driverShapeId: string, x: number, y: number) => void;
+  endCollectionDrag: () => Promise<void>;
   
   // Data for rendering
   selectedIds: string[];
@@ -83,6 +93,7 @@ export function useCanvasInteractions({
   
   // Shapes for selection
   const { shapes } = useShapes();
+  const { user } = useAuth();
   
   // Shape creation handler
   const handleShapeCreation = useShapeCreation();
@@ -96,11 +107,26 @@ export function useCanvasInteractions({
     handleMouseUp: marqueeMouseUp,
   } = useMarqueeSelection(shapes, stageRef, isSelectMode());
   
-  // Get selected shapes for bounding box calculation
+  // Get selected shapes for bounding box calculation and drag
   const selectedShapes = shapes.filter(shape => selectedIds.includes(shape.id));
   
-  // Calculate bounding boxes for selected shapes
-  const { collectionBounds, collectionCenter, collectionCorners, objectCorners } = useBoundingBox(selectedShapes);
+  // Collection drag - provides optimistic shapes during drag
+  const {
+    isDragging: isCollectionDragging,
+    driverShapeId,
+    optimisticShapes: dragOptimisticShapes,
+    handleDragStart: startCollectionDrag,
+    handleDragMove: moveCollectionDrag,
+    handleDragEnd: endCollectionDrag,
+  } = useCollectionDrag(selectedShapes, user?.userId, isSelectMode());
+  
+  // Use optimistic shapes for bounding box calculation during drag
+  const shapesForBoundingBox = isCollectionDragging && dragOptimisticShapes 
+    ? dragOptimisticShapes 
+    : selectedShapes;
+  
+  // Calculate bounding boxes for selected shapes (or optimistic shapes during drag)
+  const { collectionBounds, collectionCenter, collectionCorners, objectCorners } = useBoundingBox(shapesForBoundingBox);
   
   // Pan gesture handling via scroll/wheel
   const panHandlers = usePan({
@@ -294,6 +320,14 @@ export function useCanvasInteractions({
     handleStageMouseMove,
     handleStageMouseUp,
     handleShapeClick,
+    
+    // Collection drag handlers
+    isCollectionDragging,
+    driverShapeId,
+    dragOptimisticShapes,
+    startCollectionDrag,
+    moveCollectionDrag,
+    endCollectionDrag,
     
     // Data for rendering
     selectedIds,

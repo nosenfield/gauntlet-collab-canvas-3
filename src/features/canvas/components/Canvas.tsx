@@ -77,6 +77,12 @@ export function Canvas(): React.ReactElement {
     collectionCenter,
     collectionCorners,
     objectCorners,
+    isCollectionDragging,
+    driverShapeId,
+    dragOptimisticShapes,
+    startCollectionDrag,
+    moveCollectionDrag,
+    endCollectionDrag,
   } = useCanvasInteractions({
     stageRef,
     width,
@@ -122,6 +128,12 @@ export function Canvas(): React.ReactElement {
           scale={viewport.scale}
           selectedIds={selectedIds}
           onShapeClick={handleShapeClick}
+          isCollectionDragging={isCollectionDragging}
+          driverShapeId={driverShapeId}
+          dragOptimisticShapes={dragOptimisticShapes}
+          startCollectionDrag={startCollectionDrag}
+          moveCollectionDrag={moveCollectionDrag}
+          endCollectionDrag={endCollectionDrag}
           selectedShapes={selectedShapes}
           objectCorners={objectCorners}
           collectionCorners={rotationCorners || collectionCorners}

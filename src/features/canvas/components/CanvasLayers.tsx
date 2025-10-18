@@ -32,6 +32,14 @@ interface CanvasLayersProps {
   selectedIds: string[];
   onShapeClick: (shapeId: string, isShiftClick: boolean) => void;
   
+  // Collection drag props
+  isCollectionDragging: boolean;
+  driverShapeId: string;
+  dragOptimisticShapes: ShapeDisplayObject[] | null;
+  startCollectionDrag: (driverShapeId: string) => void;
+  moveCollectionDrag: (driverShapeId: string, x: number, y: number) => void;
+  endCollectionDrag: () => void;
+  
   // Bounding box props
   selectedShapes: ShapeDisplayObject[];
   objectCorners: Map<string, Point[]>;
@@ -60,6 +68,14 @@ export function CanvasLayers({
   selectedIds,
   onShapeClick,
   
+  // Collection drag
+  isCollectionDragging,
+  driverShapeId,
+  dragOptimisticShapes,
+  startCollectionDrag,
+  moveCollectionDrag,
+  endCollectionDrag,
+  
   // Bounding boxes
   selectedShapes,
   objectCorners,
@@ -84,6 +100,12 @@ export function CanvasLayers({
       <ShapeLayer
         selectedIds={selectedIds}
         onShapeClick={onShapeClick}
+        isCollectionDragging={isCollectionDragging}
+        driverShapeId={driverShapeId}
+        dragOptimisticShapes={dragOptimisticShapes}
+        startCollectionDrag={startCollectionDrag}
+        moveCollectionDrag={moveCollectionDrag}
+        endCollectionDrag={endCollectionDrag}
       />
       
       {/* Layer 3: Bounding Box Layer - Selection highlights */}
