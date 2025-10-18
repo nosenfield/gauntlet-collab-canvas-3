@@ -22,6 +22,7 @@ import { useToolShortcuts } from '@/features/displayObjects/common/hooks/useTool
 import { TransformModal } from '@/features/displayObjects/common/components/TransformModal';
 import { useTool } from '@/features/displayObjects/common/store/toolStore';
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
+import { useTextCreation } from '@/features/displayObjects/texts/hooks/useTextCreation';
 import type { Point } from '@/features/displayObjects/common/types';
 
 /**
@@ -61,6 +62,9 @@ export function Canvas(): React.ReactElement {
 
   // Handle keyboard shortcuts for tool selection
   useToolShortcuts();
+  
+  // Text creation hook
+  const { handleCanvasClick: handleTextClick, isTextTool } = useTextCreation();
 
   // Consolidated interaction handling
   const {
@@ -94,6 +98,15 @@ export function Canvas(): React.ReactElement {
   
   // Transform modal visibility: show when selection exists AND tool is 'select'
   const showTransformModal = hasSelection() && isSelectMode();
+  
+  // Combined stage click handler - supports both text creation and marquee selection
+  const handleCombinedStageClick = useCallback((e: any) => {
+    if (isTextTool) {
+      handleTextClick(e, viewport);
+    } else {
+      handleStageClick(e);
+    }
+  }, [isTextTool, handleTextClick, viewport, handleStageClick]);
 
   return (
     <div
@@ -115,7 +128,7 @@ export function Canvas(): React.ReactElement {
         y={viewport.y}
         scale={{ x: viewport.scale, y: viewport.scale }}
         onWheel={handleWheel}
-        onClick={handleStageClick}
+        onClick={handleCombinedStageClick}
         onMouseDown={handleStageMouseDown}
         onMouseMove={handleStageMouseMove}
         onMouseUp={handleStageMouseUp}

@@ -27,6 +27,7 @@ const TOOL_SHORTCUT_KEYS: Record<ToolType, string> = {
   rectangle: 'R',
   circle: 'C',
   line: 'L',
+  text: 'T',
 };
 
 /**
@@ -48,6 +49,8 @@ function ToolButton({ tool, isActive, onClick }: ToolButtonProps) {
         return '○'; // Circle
       case 'line':
         return '/'; // Line
+      case 'text':
+        return 'T'; // Text
     }
   };
 
@@ -76,7 +79,7 @@ export function DisplayObjectToolbar() {
   const { setTool, isToolActive } = useTool();
   const { clearSelection } = useSelection();
 
-  const tools: ToolType[] = ['select', 'rectangle', 'circle', 'line'];
+  const tools: ToolType[] = ['select', 'rectangle', 'circle', 'line', 'text'];
 
   const handleToolClick = (tool: ToolType) => {
     setTool(tool);

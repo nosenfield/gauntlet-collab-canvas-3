@@ -14,6 +14,7 @@
 
 import { GridBackground } from './GridBackground';
 import { ShapeLayer } from '@/features/displayObjects/shapes/components/ShapeLayer';
+import { TextLayer } from '@/features/displayObjects/texts/components/TextLayer';
 import { BoundingBoxLayer } from './BoundingBoxLayer';
 import { MarqueeLayer } from './MarqueeLayer';
 import { RemoteCursors } from '@/features/presence/components/RemoteCursors';
@@ -107,6 +108,9 @@ export function CanvasLayers({
         moveCollectionDrag={moveCollectionDrag}
         endCollectionDrag={endCollectionDrag}
       />
+      
+      {/* Layer 2.5: Text Objects (interactive) */}
+      <TextLayer />
       
       {/* Layer 3: Bounding Box Layer - Selection highlights */}
       <BoundingBoxLayer

@@ -11,7 +11,7 @@ import { createContext, useContext, useReducer, type ReactNode } from 'react';
  * Tool Type
  * Available tools for display object creation and manipulation
  */
-export type ToolType = 'select' | 'rectangle' | 'circle' | 'line';
+export type ToolType = 'select' | 'rectangle' | 'circle' | 'line' | 'text';
 
 /**
  * Tool State
@@ -186,6 +186,7 @@ export const TOOL_LABELS: Record<ToolType, string> = {
   rectangle: 'Rectangle',
   circle: 'Circle',
   line: 'Line',
+  text: 'Text',
 };
 
 /**
@@ -196,5 +197,6 @@ export const TOOL_SHORTCUTS: Record<ToolType, string> = {
   rectangle: 'R',
   circle: 'C',
   line: 'L',
+  text: 'T',
 };
 
