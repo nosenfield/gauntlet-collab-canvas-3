@@ -130,7 +130,7 @@ export function ShapesProvider({ children }: ShapesProviderProps) {
     dispatch({ type: 'SET_LOADING', payload: true });
 
     const unsubscribe = subscribeToShapes((shapes: ShapeDisplayObject[]) => {
-      console.log('[ShapesStore] Received shape update:', shapes.length, 'shapes');
+      // console.log('[ShapesStore] Received shape update:', shapes.length, 'shapes'); // Commented to reduce console noise
       dispatch({ type: 'SET_SHAPES', payload: shapes });
     });
 

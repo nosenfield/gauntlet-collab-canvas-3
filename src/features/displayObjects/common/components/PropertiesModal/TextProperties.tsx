@@ -13,7 +13,7 @@
 
 import React, { useState, useCallback } from 'react';
 import type { TextDisplayObject } from '@/features/displayObjects/texts/types';
-import { updateText } from '@/features/displayObjects/texts/services/textService';
+import { updateTextsBatch } from '@/features/displayObjects/texts/services/textService';
 import { NumberInput } from './NumberInput';
 import { ColorInput } from './ColorInput';
 
@@ -52,16 +52,21 @@ export function TextProperties({ selectedTexts, userId }: TextPropertiesProps): 
   
   /**
    * Update a text property for all selected texts
+   * Uses batch updates for performance with multiple texts
    */
   const updateProperty = useCallback(async (key: keyof TextDisplayObject, value: any) => {
     if (!userId) return;
     
     try {
-      const updatePromises = selectedTexts.map(text => {
-        return updateText(userId, text.id, { [key]: value });
-      });
+      if (selectedTexts.length === 0) return;
       
-      await Promise.all(updatePromises);
+      // Batch update all texts
+      const batchUpdates = selectedTexts.map(text => ({
+        textId: text.id,
+        updates: { [key]: value },
+      }));
+      
+      await updateTextsBatch(userId, batchUpdates);
     } catch (error) {
       console.error(`[TextProperties] Error updating ${key}:`, error);
     }

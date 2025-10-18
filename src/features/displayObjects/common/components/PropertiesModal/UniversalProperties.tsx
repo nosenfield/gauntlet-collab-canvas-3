@@ -8,10 +8,10 @@
  * - Opacity
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import type { TransformableObject } from '../../types';
-import { updateShape } from '@/features/displayObjects/shapes/services/shapeService';
-import { updateText } from '@/features/displayObjects/texts/services/textService';
+import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
+import { updateTextsBatch } from '@/features/displayObjects/texts/services/textService';
 import { NumberInput } from './NumberInput';
 
 interface UniversalPropertiesProps {
@@ -43,23 +43,39 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
   
   /**
    * Update a universal property for all selected objects
+   * Uses batch updates for performance with multiple objects
    */
   const updateProperty = useCallback(async (key: keyof TransformableObject, value: number) => {
     if (!userId) return;
     
     try {
-      const updatePromises = selectedObjects.map(obj => {
-        const updates = { [key]: value };
-        
-        if (obj.category === 'shape') {
-          return updateShape(obj.id, userId, updates);
-        } else if (obj.category === 'text') {
-          return updateText(userId, obj.id, updates);
-        }
-        return Promise.resolve();
-      });
+      const updates = { [key]: value };
       
-      await Promise.all(updatePromises);
+      // Separate shapes and texts for batch updates
+      const shapes = selectedObjects.filter(obj => obj.category === 'shape');
+      const texts = selectedObjects.filter(obj => obj.category === 'text');
+      
+      const promises: Promise<void>[] = [];
+      
+      // Batch update shapes
+      if (shapes.length > 0) {
+        const shapeBatchUpdates = shapes.map(shape => ({
+          shapeId: shape.id,
+          updates,
+        }));
+        promises.push(updateShapesBatch(userId, shapeBatchUpdates));
+      }
+      
+      // Batch update texts
+      if (texts.length > 0) {
+        const textBatchUpdates = texts.map(text => ({
+          textId: text.id,
+          updates,
+        }));
+        promises.push(updateTextsBatch(userId, textBatchUpdates));
+      }
+      
+      await Promise.all(promises);
     } catch (error) {
       console.error(`[UniversalProperties] Error updating ${key}:`, error);
     }

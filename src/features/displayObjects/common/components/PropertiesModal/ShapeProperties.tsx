@@ -10,7 +10,7 @@
 
 import React, { useCallback } from 'react';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
-import { updateShape } from '@/features/displayObjects/shapes/services/shapeService';
+import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
 import { NumberInput } from './NumberInput';
 import { ColorInput } from './ColorInput';
 
@@ -46,21 +46,30 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
   
   /**
    * Update a shape property for all selected shapes
+   * Uses batch updates for performance with multiple shapes
    */
   const updateProperty = useCallback(async (key: keyof ShapeDisplayObject, value: any) => {
     if (!userId) return;
     
     try {
-      const updatePromises = selectedShapes.map(shape => {
+      // Filter shapes that should receive the update
+      const shapesToUpdate = selectedShapes.filter(shape => {
         // Only update borderRadius for rectangles
         if (key === 'borderRadius' && shape.type !== 'rectangle') {
-          return Promise.resolve();
+          return false;
         }
-        
-        return updateShape(shape.id, userId, { [key]: value });
+        return true;
       });
       
-      await Promise.all(updatePromises);
+      if (shapesToUpdate.length === 0) return;
+      
+      // Batch update all shapes
+      const batchUpdates = shapesToUpdate.map(shape => ({
+        shapeId: shape.id,
+        updates: { [key]: value },
+      }));
+      
+      await updateShapesBatch(userId, batchUpdates);
     } catch (error) {
       console.error(`[ShapeProperties] Error updating ${key}:`, error);
     }

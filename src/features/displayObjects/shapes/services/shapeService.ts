@@ -123,7 +123,7 @@ export const updateShape = async (
     };
     
     await updateDoc(getShapeDoc(shapeId), updateData);
-    console.log('[ShapeService] Shape updated:', shapeId);
+    // console.log('[ShapeService] Shape updated:', shapeId); // Commented to reduce console noise
   } catch (error) {
     console.error('[ShapeService] Error updating shape:', error);
     throw error;
@@ -255,7 +255,7 @@ export const subscribeToShapes = (
         } as ShapeDisplayObject);
       });
       
-      console.log('[ShapeService] Real-time update:', shapes.length, 'shapes');
+      // console.log('[ShapeService] Real-time update:', shapes.length, 'shapes'); // Commented to reduce console noise
       callback(shapes);
     },
     (error) => {
