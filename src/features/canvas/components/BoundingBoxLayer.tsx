@@ -13,11 +13,11 @@
 import { Layer } from 'react-konva';
 import { ObjectHighlight } from '@/features/displayObjects/common/components/ObjectHighlight';
 import { CollectionBoundingBox } from '@/features/displayObjects/common/components/CollectionBoundingBox';
-import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
+import type { TransformableObject } from '@/features/displayObjects/common/types';
 import type { Point } from '@/features/displayObjects/common/types';
 
 interface BoundingBoxLayerProps {
-  selectedShapes: ShapeDisplayObject[];
+  selectedObjects: TransformableObject[];
   objectCorners: Map<string, Point[]>;
   collectionCorners: Point[] | null;
   scale: number;
@@ -30,7 +30,7 @@ interface BoundingBoxLayerProps {
  * Updates automatically when selection changes.
  */
 export function BoundingBoxLayer({ 
-  selectedShapes, 
+  selectedObjects, 
   objectCorners, 
   collectionCorners,
   scale 
@@ -38,13 +38,13 @@ export function BoundingBoxLayer({
   return (
     <Layer listening={false}>
       {/* Individual object highlights (solid OBB) */}
-      {selectedShapes.map(shape => {
-        const corners = objectCorners.get(shape.id);
+      {selectedObjects.map(obj => {
+        const corners = objectCorners.get(obj.id);
         if (!corners) return null;
         
         return (
           <ObjectHighlight 
-            key={`highlight-${shape.id}`} 
+            key={`highlight-${obj.id}`} 
             corners={corners}
             scale={scale}
           />

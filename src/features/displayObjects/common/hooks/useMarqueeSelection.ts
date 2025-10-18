@@ -6,7 +6,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import type { KonvaEventObject } from 'konva/lib/Node';
-import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
+import type { TransformableObject } from '../types';
 
 /**
  * Marquee state
@@ -32,52 +32,37 @@ function calculateMarqueeBox(startX: number, startY: number, currentX: number, c
 }
 
 /**
- * Get bounding box dimensions for any shape type
+ * Get bounding box dimensions for any transformable object
  */
-function getShapeBounds(shape: ShapeDisplayObject) {
-  let shapeWidth: number;
-  let shapeHeight: number;
-  
-  if (shape.type === 'rectangle') {
-    shapeWidth = shape.width;
-    shapeHeight = shape.height;
-  } else if (shape.type === 'circle') {
-    shapeWidth = shape.radius * 2;
-    shapeHeight = shape.radius * 2;
-  } else if (shape.type === 'line') {
-    // For lines, create a small bounding box
-    shapeWidth = 10;
-    shapeHeight = 10;
-  } else {
-    // Fallback for unknown types
-    shapeWidth = 10;
-    shapeHeight = 10;
-  }
-  
-  return { width: shapeWidth, height: shapeHeight };
+function getObjectBounds(object: TransformableObject) {
+  // All TransformableObjects have width and height properties
+  return { 
+    width: object.width ?? 0, 
+    height: object.height ?? 0 
+  };
 }
 
 /**
- * Check if a shape intersects with the marquee box
+ * Check if an object intersects with the marquee box
  * Simple AABB (Axis-Aligned Bounding Box) intersection test
  * 
- * Note: Shape position is top-left corner (Konva default)
+ * Note: Object position is top-left corner
  */
-function shapeIntersectsMarquee(
-  shape: ShapeDisplayObject,
+function objectIntersectsMarquee(
+  object: TransformableObject,
   marqueeX: number,
   marqueeY: number,
   marqueeWidth: number,
   marqueeHeight: number
 ): boolean {
-  // Get shape bounds (simplified - doesn't account for rotation yet)
-  const { width, height } = getShapeBounds(shape);
+  // Get object bounds (simplified - doesn't account for rotation yet)
+  const { width, height } = getObjectBounds(object);
   
-  // Shape bounds (position is top-left corner)
-  const shapeLeft = shape.x;
-  const shapeRight = shape.x + width;
-  const shapeTop = shape.y;
-  const shapeBottom = shape.y + height;
+  // Object bounds (position is top-left corner)
+  const objectLeft = object.x ?? 0;
+  const objectRight = (object.x ?? 0) + width;
+  const objectTop = object.y ?? 0;
+  const objectBottom = (object.y ?? 0) + height;
   
   const marqueeLeft = marqueeX;
   const marqueeRight = marqueeX + marqueeWidth;
@@ -86,10 +71,10 @@ function shapeIntersectsMarquee(
   
   // AABB intersection test
   return !(
-    shapeRight < marqueeLeft ||
-    shapeLeft > marqueeRight ||
-    shapeBottom < marqueeTop ||
-    shapeTop > marqueeBottom
+    objectRight < marqueeLeft ||
+    objectLeft > marqueeRight ||
+    objectBottom < marqueeTop ||
+    objectTop > marqueeBottom
   );
 }
 
@@ -104,7 +89,7 @@ function shapeIntersectsMarquee(
  * @returns Marquee state, box dimensions, and event handlers
  */
 export function useMarqueeSelection(
-  shapes: ShapeDisplayObject[],
+  objects: TransformableObject[],
   stageRef: React.RefObject<any>,
   enabled: boolean
 ) {
@@ -187,10 +172,10 @@ export function useMarqueeSelection(
       marquee.currentY
     );
     
-    // Find intersecting shapes
-    const selectedShapeIds = shapes
-      .filter(shape => shapeIntersectsMarquee(shape, x, y, width, height))
-      .map(shape => shape.id);
+    // Find intersecting objects
+    const selectedObjectIds = objects
+      .filter(obj => objectIntersectsMarquee(obj, x, y, width, height))
+      .map(obj => obj.id);
     
     // Reset marquee
     setMarquee({
@@ -201,8 +186,8 @@ export function useMarqueeSelection(
       currentY: 0,
     });
     
-    return selectedShapeIds;
-  }, [enabled, marquee, shapes]);
+    return selectedObjectIds;
+  }, [enabled, marquee, objects]);
 
   /**
    * Get marquee box dimensions for rendering

@@ -76,6 +76,7 @@ export function Canvas(): React.ReactElement {
     handleShapeClick,
     selectedIds,
     selectedShapes,
+    selectedObjects,
     isMarqueeActive,
     getMarqueeBox,
     collectionCenter,
@@ -84,6 +85,7 @@ export function Canvas(): React.ReactElement {
     isCollectionDragging,
     driverShapeId,
     dragOptimisticShapes,
+    dragOptimisticTexts,
     startCollectionDrag,
     moveCollectionDrag,
     endCollectionDrag,
@@ -141,13 +143,14 @@ export function Canvas(): React.ReactElement {
           scale={viewport.scale}
           selectedIds={selectedIds}
           onShapeClick={handleShapeClick}
-          isCollectionDragging={isCollectionDragging}
-          driverShapeId={driverShapeId}
-          dragOptimisticShapes={dragOptimisticShapes}
-          startCollectionDrag={startCollectionDrag}
-          moveCollectionDrag={moveCollectionDrag}
-          endCollectionDrag={endCollectionDrag}
-          selectedShapes={selectedShapes}
+        isCollectionDragging={isCollectionDragging}
+        driverShapeId={driverShapeId}
+        dragOptimisticShapes={dragOptimisticShapes}
+        dragOptimisticTexts={dragOptimisticTexts}
+        startCollectionDrag={startCollectionDrag}
+        moveCollectionDrag={moveCollectionDrag}
+        endCollectionDrag={endCollectionDrag}
+          selectedObjects={selectedObjects}
           objectCorners={objectCorners}
           collectionCorners={rotationCorners || collectionCorners}
           isMarqueeActive={isMarqueeActive}

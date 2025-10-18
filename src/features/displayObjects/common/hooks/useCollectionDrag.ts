@@ -6,8 +6,9 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
+import type { TransformableObject } from '../types';
 import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
+import { updateTextsBatch } from '@/features/displayObjects/texts/services/textService';
 
 /**
  * Drag state for collection
@@ -21,16 +22,16 @@ interface DragState {
 /**
  * useCollectionDrag Hook
  * 
- * Manages dragging state for a collection of shapes
+ * Manages dragging state for a collection of objects (shapes or texts)
  * Uses Konva's built-in draggable property for robust event handling
  * 
- * @param selectedShapes - Currently selected shapes
+ * @param selectedObjects - Currently selected objects (shapes, texts, etc.)
  * @param userId - Current user ID
  * @param isSelectMode - Whether select tool is active
  * @returns Drag handlers and state
  */
 export function useCollectionDrag(
-  selectedShapes: ShapeDisplayObject[],
+  selectedObjects: TransformableObject[],
   userId: string | undefined,
   isSelectMode: boolean
 ) {
@@ -40,7 +41,7 @@ export function useCollectionDrag(
     initialPositions: new Map(),
   });
   
-  const [optimisticShapes, setOptimisticShapes] = useState<ShapeDisplayObject[] | null>(null);
+  const [optimisticShapes, setOptimisticShapes] = useState<TransformableObject[] | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasPendingUpdateRef = useRef(false);
 
@@ -49,14 +50,14 @@ export function useCollectionDrag(
    * Called when any selected shape starts dragging
    */
   const handleDragStart = useCallback((driverShapeId: string) => {
-    if (!isSelectMode || selectedShapes.length === 0) {
+    if (!isSelectMode || selectedObjects.length === 0) {
       return;
     }
 
-    // Store initial positions of all selected shapes
+    // Store initial positions of all selected objects
     const initialPositions = new Map<string, { x: number; y: number }>();
-    for (const shape of selectedShapes) {
-      initialPositions.set(shape.id, { x: shape.x, y: shape.y });
+    for (const obj of selectedObjects) {
+      initialPositions.set(obj.id, { x: obj.x ?? 0, y: obj.y ?? 0 });
     }
 
     setDragState({
@@ -65,12 +66,12 @@ export function useCollectionDrag(
       initialPositions,
     });
     
-    // Initialize optimistic shapes with current positions
+    // Initialize optimistic objects with current positions
     // This ensures the bounding box updates immediately when drag starts
-    setOptimisticShapes([...selectedShapes]);
+    setOptimisticShapes([...selectedObjects]);
 
-    console.log('[CollectionDrag] Drag started with', selectedShapes.length, 'shapes (driver:', driverShapeId, ')');
-  }, [isSelectMode, selectedShapes]);
+    console.log('[CollectionDrag] Drag started with', selectedObjects.length, 'objects (driver:', driverShapeId, ')');
+  }, [isSelectMode, selectedObjects]);
 
   /**
    * Update drag position
@@ -89,20 +90,20 @@ export function useCollectionDrag(
     const deltaX = newX - driverInitial.x;
     const deltaY = newY - driverInitial.y;
 
-    // Apply delta to all shapes using their initial positions
-    const translatedShapes = selectedShapes.map(shape => {
-      const initial = dragState.initialPositions.get(shape.id);
-      if (!initial) return shape;
+    // Apply delta to all objects using their initial positions
+    const translatedObjects = selectedObjects.map(obj => {
+      const initial = dragState.initialPositions.get(obj.id);
+      if (!initial) return obj;
 
       return {
-        ...shape,
+        ...obj,
         x: initial.x + deltaX,
         y: initial.y + deltaY,
       };
     });
 
     // Update optimistic state for immediate visual feedback
-    setOptimisticShapes(translatedShapes);
+    setOptimisticShapes(translatedObjects);
 
     // Debounce Firestore updates (300ms)
     if (debounceTimerRef.current) {
@@ -111,21 +112,37 @@ export function useCollectionDrag(
 
     hasPendingUpdateRef.current = true;
     debounceTimerRef.current = setTimeout(() => {
-      // Update all shapes in Firestore using batch write (1 snapshot instead of N)
-      const batchUpdates = translatedShapes.map(shape => ({
-        shapeId: shape.id,
-        updates: { x: shape.x, y: shape.y },
-      }));
+      // Separate shapes and texts for batch updates
+      const shapes = translatedObjects.filter(obj => obj.category === 'shape');
+      const texts = translatedObjects.filter(obj => obj.category === 'text');
       
-      updateShapesBatch(userId, batchUpdates)
+      const promises: Promise<void>[] = [];
+      
+      if (shapes.length > 0) {
+        const shapeBatchUpdates = shapes.map(shape => ({
+          shapeId: shape.id,
+          updates: { x: shape.x, y: shape.y },
+        }));
+        promises.push(updateShapesBatch(userId, shapeBatchUpdates));
+      }
+      
+      if (texts.length > 0) {
+        const textBatchUpdates = texts.map(text => ({
+          textId: text.id,
+          updates: { x: text.x, y: text.y },
+        }));
+        promises.push(updateTextsBatch(userId, textBatchUpdates));
+      }
+      
+      Promise.all(promises)
         .then(() => {
           hasPendingUpdateRef.current = false;
         })
         .catch(error => {
-          console.error('[CollectionDrag] Error updating shapes during drag:', error);
+          console.error('[CollectionDrag] Error updating objects during drag:', error);
         });
     }, 300);
-  }, [dragState, selectedShapes, userId]);
+  }, [dragState, selectedObjects, userId]);
 
   /**
    * End dragging
@@ -146,12 +163,29 @@ export function useCollectionDrag(
     // Final write ONLY if there are uncommitted changes (debounce timer hasn't fired)
     if (hasPendingUpdateRef.current && optimisticShapes) {
       try {
-        const batchUpdates = optimisticShapes.map(shape => ({
-          shapeId: shape.id,
-          updates: { x: shape.x, y: shape.y },
-        }));
+        // Separate shapes and texts for batch updates
+        const shapes = optimisticShapes.filter(obj => obj.category === 'shape');
+        const texts = optimisticShapes.filter(obj => obj.category === 'text');
         
-        await updateShapesBatch(userId, batchUpdates);
+        const promises: Promise<void>[] = [];
+        
+        if (shapes.length > 0) {
+          const shapeBatchUpdates = shapes.map(shape => ({
+            shapeId: shape.id,
+            updates: { x: shape.x, y: shape.y },
+          }));
+          promises.push(updateShapesBatch(userId, shapeBatchUpdates));
+        }
+        
+        if (texts.length > 0) {
+          const textBatchUpdates = texts.map(text => ({
+            textId: text.id,
+            updates: { x: text.x, y: text.y },
+          }));
+          promises.push(updateTextsBatch(userId, textBatchUpdates));
+        }
+        
+        await Promise.all(promises);
         console.log('[CollectionDrag] Final positions updated in Firestore');
         hasPendingUpdateRef.current = false;
       } catch (error) {
@@ -169,7 +203,7 @@ export function useCollectionDrag(
     });
     setOptimisticShapes(null); // Clear optimistic shapes
     hasPendingUpdateRef.current = false;
-  }, [dragState, userId, optimisticShapes, selectedShapes]);
+  }, [dragState, userId, optimisticShapes, selectedObjects]);
 
   /**
    * Cancel dragging (e.g., on escape key)

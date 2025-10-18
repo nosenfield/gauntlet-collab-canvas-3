@@ -5,10 +5,12 @@
  * Maps over texts array and renders individual TextObject components.
  */
 
+import React from 'react';
 import { Layer } from 'react-konva';
 import { useTexts } from '../store/textsStore';
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
 import { TextObject } from './TextObject';
+import type { TextDisplayObject } from '../types';
 
 /**
  * TextLayer Props
@@ -21,6 +23,7 @@ export interface TextLayerProps {
   onDragEnd?: (textId: string, x: number, y: number) => void;
   isCollectionDragging?: boolean;
   driverTextId?: string;
+  dragOptimisticTexts?: TextDisplayObject[] | null;
 }
 
 /**
@@ -37,12 +40,26 @@ export function TextLayer({
   onDragEnd,
   isCollectionDragging = false,
   driverTextId = '',
+  dragOptimisticTexts = null,
 }: TextLayerProps): React.ReactElement {
   const { texts } = useTexts();
   
+  // Merge optimistic texts with regular texts during collection dragging
+  // Optimistic texts only contain the selected/dragging texts, we need to include non-selected texts too
+  const textsToRender = React.useMemo(() => {
+    if (isCollectionDragging && dragOptimisticTexts) {
+      // Create a map of optimistic texts by ID for fast lookup
+      const optimisticMap = new Map(dragOptimisticTexts.map(t => [t.id, t]));
+      
+      // Replace selected texts with optimistic versions, keep non-selected texts as-is
+      return texts.map(text => optimisticMap.get(text.id) || text);
+    }
+    return texts;
+  }, [isCollectionDragging, dragOptimisticTexts, texts]);
+  
   return (
     <Layer name="text-layer">
-      {texts.map((text) => {
+      {textsToRender.map((text) => {
         const isSelected = selectedIds.includes(text.id);
         const isDriver = text.id === driverTextId;
         

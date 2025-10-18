@@ -19,7 +19,8 @@ import { BoundingBoxLayer } from './BoundingBoxLayer';
 import { MarqueeLayer } from './MarqueeLayer';
 import { RemoteCursors } from '@/features/presence/components/RemoteCursors';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
-import type { Point } from '@/features/displayObjects/common/types';
+import type { TextDisplayObject } from '@/features/displayObjects/texts/types';
+import type { Point, TransformableObject } from '@/features/displayObjects/common/types';
 
 interface CanvasLayersProps {
   // Grid props
@@ -37,12 +38,13 @@ interface CanvasLayersProps {
   isCollectionDragging: boolean;
   driverShapeId: string;
   dragOptimisticShapes: ShapeDisplayObject[] | null;
+  dragOptimisticTexts: TextDisplayObject[] | null;
   startCollectionDrag: (driverShapeId: string) => void;
   moveCollectionDrag: (driverShapeId: string, x: number, y: number) => void;
   endCollectionDrag: () => void;
   
   // Bounding box props
-  selectedShapes: ShapeDisplayObject[];
+  selectedObjects: TransformableObject[];
   objectCorners: Map<string, Point[]>;
   collectionCorners: Point[] | null;
   
@@ -73,12 +75,13 @@ export function CanvasLayers({
   isCollectionDragging,
   driverShapeId,
   dragOptimisticShapes,
+  dragOptimisticTexts,
   startCollectionDrag,
   moveCollectionDrag,
   endCollectionDrag,
   
   // Bounding boxes
-  selectedShapes,
+  selectedObjects,
   objectCorners,
   collectionCorners,
   
@@ -118,11 +121,12 @@ export function CanvasLayers({
         onDragEnd={endCollectionDrag}
         isCollectionDragging={isCollectionDragging}
         driverTextId={driverShapeId}
+        dragOptimisticTexts={dragOptimisticTexts}
       />
       
       {/* Layer 3: Bounding Box Layer - Selection highlights */}
       <BoundingBoxLayer
-        selectedShapes={selectedShapes}
+        selectedObjects={selectedObjects}
         objectCorners={objectCorners}
         collectionCorners={collectionCorners}
         scale={scale}

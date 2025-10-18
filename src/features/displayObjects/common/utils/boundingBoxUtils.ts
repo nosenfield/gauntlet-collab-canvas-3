@@ -22,14 +22,15 @@ import { rotatePoint } from './geometryUtils';
  */
 export function calculateObjectOBB(object: TransformableObject): OrientedBoundingBox {
   // Calculate object dimensions (works for any object with width/height)
-  const width = object.width * object.scaleX;
-  const height = object.height * object.scaleY;
+  // Add safety checks to prevent NaN
+  const width = (object.width ?? 0) * (object.scaleX ?? 1);
+  const height = (object.height ?? 0) * (object.scaleY ?? 1);
   
   // Data model: x,y is top-left corner
   // Center is at top-left + half dimensions
   const center: Point = {
-    x: object.x + width / 2,
-    y: object.y + height / 2,
+    x: (object.x ?? 0) + width / 2,
+    y: (object.y ?? 0) + height / 2,
   };
   
   // Calculate local corners relative to center
@@ -44,7 +45,7 @@ export function calculateObjectOBB(object: TransformableObject): OrientedBoundin
   ];
   
   // If no rotation, corners are simply center + local corners
-  if (object.rotation === 0) {
+  if ((object.rotation ?? 0) === 0) {
     const worldCorners = localCorners.map(corner => ({
       x: center.x + corner.x,
       y: center.y + corner.y,

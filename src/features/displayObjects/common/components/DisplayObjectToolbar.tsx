@@ -7,6 +7,7 @@
 
 import { useTool, type ToolType, TOOL_LABELS } from '../store/toolStore';
 import { deleteAllShapes } from '@/features/displayObjects/shapes/services/shapeService';
+import { deleteAllTexts } from '@/features/displayObjects/texts/services/textService';
 import { useSelection } from '../store/selectionStore';
 import './DisplayObjectToolbar.css';
 
@@ -99,9 +100,14 @@ export function DisplayObjectToolbar() {
       // Clear selection first
       clearSelection();
       
-      // Delete all shapes
-      const count = await deleteAllShapes();
-      console.log(`[Toolbar] Cleared ${count} objects from canvas`);
+      // Delete all shapes and texts in parallel
+      const [shapesCount, textsCount] = await Promise.all([
+        deleteAllShapes(),
+        deleteAllTexts(),
+      ]);
+      
+      const totalCount = shapesCount + textsCount;
+      console.log(`[Toolbar] Cleared ${totalCount} objects from canvas (${shapesCount} shapes, ${textsCount} texts)`);
     } catch (error) {
       console.error('[Toolbar] Error clearing canvas:', error);
       alert('Failed to clear canvas. Please try again.');

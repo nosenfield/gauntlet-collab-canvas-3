@@ -11,6 +11,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  getDocs,
   onSnapshot,
   query,
   serverTimestamp,
@@ -164,6 +165,44 @@ export const deleteText = async (textId: string): Promise<void> => {
 };
 
 /**
+ * Delete all text objects
+ * 
+ * Uses batch delete for efficiency
+ * 
+ * @returns Promise resolving to the number of texts deleted
+ */
+export const deleteAllTexts = async (): Promise<number> => {
+  try {
+    console.log('[TextService] Deleting all texts...');
+    
+    // Get all texts
+    const textsSnapshot = await getDocs(getTextsCollection());
+    
+    if (textsSnapshot.empty) {
+      console.log('[TextService] No texts to delete');
+      return 0;
+    }
+    
+    // Use batch delete for efficiency (max 500 operations per batch)
+    const batch = writeBatch(firestore);
+    let count = 0;
+    
+    textsSnapshot.forEach((doc) => {
+      batch.delete(doc.ref);
+      count++;
+    });
+    
+    await batch.commit();
+    console.log(`[TextService] Successfully deleted ${count} texts`);
+    
+    return count;
+  } catch (error) {
+    console.error('[TextService] Error deleting all texts:', error);
+    throw error;
+  }
+};
+
+/**
  * Subscribe to real-time updates for all text objects
  * 
  * @param callback - Callback function called with updated texts array
@@ -184,24 +223,24 @@ export const subscribeToTexts = (
         id: doc.id,
         type: 'text',
         category: 'text',
-        x: data.x,
-        y: data.y,
+        x: data.x ?? 0,
+        y: data.y ?? 0,
         rotation: data.rotation ?? 0,
         scaleX: data.scaleX ?? 1,
         scaleY: data.scaleY ?? 1,
-        content: data.content,
-        width: data.width,
-        height: data.height,
-        fontFamily: data.fontFamily,
-        fontSize: data.fontSize,
-        fontWeight: data.fontWeight,
-        textAlign: data.textAlign,
-        lineHeight: data.lineHeight,
-        color: data.color,
-        opacity: data.opacity,
-        createdBy: data.createdBy,
+        content: data.content ?? DEFAULT_TEXT_PROPERTIES.content,
+        width: data.width ?? DEFAULT_TEXT_PROPERTIES.width,
+        height: data.height ?? DEFAULT_TEXT_PROPERTIES.height,
+        fontFamily: data.fontFamily ?? DEFAULT_TEXT_PROPERTIES.fontFamily,
+        fontSize: data.fontSize ?? DEFAULT_TEXT_PROPERTIES.fontSize,
+        fontWeight: data.fontWeight ?? DEFAULT_TEXT_PROPERTIES.fontWeight,
+        textAlign: data.textAlign ?? DEFAULT_TEXT_PROPERTIES.textAlign,
+        lineHeight: data.lineHeight ?? DEFAULT_TEXT_PROPERTIES.lineHeight,
+        color: data.color ?? DEFAULT_TEXT_PROPERTIES.color,
+        opacity: data.opacity ?? DEFAULT_TEXT_PROPERTIES.opacity,
+        createdBy: data.createdBy ?? '',
         createdAt: data.createdAt?.toDate() ?? new Date(),
-        lastModifiedBy: data.lastModifiedBy,
+        lastModifiedBy: data.lastModifiedBy ?? '',
         lastModifiedAt: data.lastModifiedAt?.toDate() ?? new Date(),
       });
     });

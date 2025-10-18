@@ -27,6 +27,7 @@ import { useLocking } from '@/features/displayObjects/common/hooks/useLocking';
 import { useCollectionDrag } from '@/features/displayObjects/common/hooks/useCollectionDrag';
 import { useAuth } from '@/features/auth/store/authStore';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
+import type { TextDisplayObject } from '@/features/displayObjects/texts/types';
 import type { TransformableObject } from '@/features/displayObjects/common/types';
 
 interface UseCanvasInteractionsParams {
@@ -62,6 +63,7 @@ interface UseCanvasInteractionsReturn {
   // Data for rendering
   selectedIds: string[];
   selectedShapes: ShapeDisplayObject[];
+  selectedObjects: TransformableObject[];
   isMarqueeActive: boolean;
   getMarqueeBox: () => { x: number; y: number; width: number; height: number } | null;
   collectionBounds: any;
@@ -108,27 +110,30 @@ export function useCanvasInteractions({
     handleMouseDown: marqueeMouseDown,
     handleMouseMove: marqueeMouseMove,
     handleMouseUp: marqueeMouseUp,
-  } = useMarqueeSelection(shapes, stageRef, isSelectMode());
+  } = useMarqueeSelection([...shapes, ...texts], stageRef, isSelectMode());
   
   // Get selected objects (both shapes and texts) for bounding box calculation and drag
   const selectedShapes = shapes.filter(shape => selectedIds.includes(shape.id));
   const selectedTexts = texts.filter(text => selectedIds.includes(text.id));
   const selectedObjects: TransformableObject[] = [...selectedShapes, ...selectedTexts];
   
-  // Collection drag - provides optimistic shapes during drag
+  // Collection drag - provides optimistic objects during drag
   const {
     isDragging: isCollectionDragging,
     driverShapeId,
-    optimisticShapes: dragOptimisticShapes,
+    optimisticShapes: dragOptimisticObjects,
     handleDragStart: startCollectionDrag,
     handleDragMove: moveCollectionDrag,
     handleDragEnd: endCollectionDrag,
-  } = useCollectionDrag(selectedShapes, user?.userId, isSelectMode());
+  } = useCollectionDrag(selectedObjects, user?.userId, isSelectMode());
   
-  // Use optimistic shapes for bounding box calculation during drag
-  // TODO: dragOptimisticShapes currently only contains shapes, need to handle texts too
-  const objectsForBoundingBox = isCollectionDragging && dragOptimisticShapes 
-    ? [...dragOptimisticShapes, ...selectedTexts]  // Combine optimistic shapes with selected texts
+  // Separate optimistic objects into shapes and texts for rendering
+  const dragOptimisticShapes = dragOptimisticObjects?.filter(obj => obj.category === 'shape') as ShapeDisplayObject[] | null;
+  const dragOptimisticTexts = dragOptimisticObjects?.filter(obj => obj.category === 'text') as TextDisplayObject[] | null;
+  
+  // Use optimistic objects for bounding box calculation during drag
+  const objectsForBoundingBox = isCollectionDragging && dragOptimisticObjects 
+    ? dragOptimisticObjects
     : selectedObjects;
   
   // Calculate bounding boxes for selected objects (or optimistic objects during drag)
@@ -331,6 +336,7 @@ export function useCanvasInteractions({
     isCollectionDragging,
     driverShapeId,
     dragOptimisticShapes,
+    dragOptimisticTexts,
     startCollectionDrag,
     moveCollectionDrag,
     endCollectionDrag,
@@ -338,6 +344,7 @@ export function useCanvasInteractions({
     // Data for rendering
     selectedIds,
     selectedShapes,
+    selectedObjects,
     isMarqueeActive,
     getMarqueeBox,
     collectionBounds,
