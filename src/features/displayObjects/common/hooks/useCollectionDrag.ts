@@ -64,6 +64,10 @@ export function useCollectionDrag(
       driverShapeId,
       initialPositions,
     });
+    
+    // Initialize optimistic shapes with current positions
+    // This ensures the bounding box updates immediately when drag starts
+    setOptimisticShapes([...selectedShapes]);
 
     console.log('[CollectionDrag] Drag started with', selectedShapes.length, 'shapes (driver:', driverShapeId, ')');
   }, [isSelectMode, selectedShapes]);
