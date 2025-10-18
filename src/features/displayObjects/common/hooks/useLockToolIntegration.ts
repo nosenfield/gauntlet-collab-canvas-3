@@ -23,7 +23,11 @@ export function useLockToolIntegration() {
 
   /**
    * Release locks when switching away from select mode
-   * Only depends on currentTool to avoid infinite loops
+   * 
+   * Dependencies are safe:
+   * - currentTool: primitive value, changes when tool changes
+   * - releaseLocks: memoized with useCallback in useLocking (deps: [user])
+   * - clearSelection: memoized with useCallback in selectionStore (deps: [dispatch])
    */
   useEffect(() => {
     if (currentTool !== 'select') {
@@ -35,7 +39,6 @@ export function useLockToolIntegration() {
       // Clear selection (select tool is not active)
       clearSelection();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTool]); // Only depend on currentTool, not the functions
+  }, [currentTool, releaseLocks, clearSelection]);
 }
 
