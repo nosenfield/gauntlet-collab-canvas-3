@@ -11,6 +11,7 @@ import { DisplayObjectToolbar } from '@/features/displayObjects/common/component
 import { ShapesProvider } from '@/features/displayObjects/shapes/store/shapesStore';
 import { SelectionProvider } from '@/features/displayObjects/common/store/selectionStore';
 import { startLockCleanupService } from '@/features/displayObjects/common/services/lockService';
+import { PerformanceTest } from '@/features/displayObjects/common/components/PerformanceTest';
 import './App.css';
 
 /**
@@ -37,6 +38,7 @@ function AppContent() {
       <DebugAuthPanel />
       <UserPresenceSidebar />
       <DisplayObjectToolbar />
+      <PerformanceTest />
       <ViewportProvider>
         <Canvas />
       </ViewportProvider>

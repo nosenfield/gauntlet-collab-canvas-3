@@ -1,0 +1,199 @@
+/**
+ * Performance Test Panel Styles
+ */
+
+.performance-test-panel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 320px;
+  max-height: 80vh;
+  background: rgba(0, 0, 0, 0.95);
+  color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  overflow-y: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.performance-test-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: sticky;
+  top: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 1;
+}
+
+.performance-test-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.performance-test-header button {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.performance-test-header button:hover {
+  opacity: 1;
+}
+
+.performance-test-content {
+  padding: 16px;
+}
+
+.test-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.test-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.test-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+  font-weight: 600;
+}
+
+.metrics {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.metrics strong {
+  color: #51cf66;
+  font-weight: 600;
+}
+
+.test-button {
+  width: 100%;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.test-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.test-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.test-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.test-instructions {
+  margin-top: 12px;
+  font-size: 12px;
+  opacity: 0.7;
+  line-height: 1.5;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.test-results {
+  margin-top: 16px;
+}
+
+.test-results h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+  font-weight: 600;
+}
+
+.test-results pre {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+  font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+}
+
+.test-help {
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(81, 207, 102, 0.1);
+  border: 1px solid rgba(81, 207, 102, 0.3);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.test-help strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #51cf66;
+}
+
+.test-help ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.test-help li {
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+/* Scrollbar styling */
+.performance-test-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.performance-test-panel::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.performance-test-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.performance-test-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
