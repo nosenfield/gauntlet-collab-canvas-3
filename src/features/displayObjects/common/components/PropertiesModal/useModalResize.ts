@@ -14,40 +14,13 @@ interface UseModalResizeReturn {
 
 interface UseModalResizeOptions {
   initialHeight: number;
-  storageKey?: string;
+  storageKey?: string; // Kept for backwards compatibility, but not used
   minHeight?: number;
   maxHeight?: number;
 }
 
-const DEFAULT_STORAGE_KEY = 'modal-height';
 const DEFAULT_MIN_HEIGHT = 200;
 const DEFAULT_MAX_HEIGHT_OFFSET = 40; // 40px from top/bottom of viewport
-
-/**
- * Load height from localStorage
- */
-function loadHeight(storageKey: string): number | null {
-  try {
-    const stored = localStorage.getItem(storageKey);
-    if (stored) {
-      return parseInt(stored, 10);
-    }
-  } catch (error) {
-    console.error('[useModalResize] Error loading height:', error);
-  }
-  return null;
-}
-
-/**
- * Save height to localStorage
- */
-function saveHeight(height: number, storageKey: string): void {
-  try {
-    localStorage.setItem(storageKey, height.toString());
-  } catch (error) {
-    console.error('[useModalResize] Error saving height:', error);
-  }
-}
 
 export function useModalResize(
   initialHeightOrOptions: number | UseModalResizeOptions
@@ -57,15 +30,12 @@ export function useModalResize(
     ? { initialHeight: initialHeightOrOptions }
     : initialHeightOrOptions;
   
-  const storageKey = options.storageKey || DEFAULT_STORAGE_KEY;
   const minHeight = options.minHeight || DEFAULT_MIN_HEIGHT;
   const maxHeightOffset = options.maxHeight ? 0 : DEFAULT_MAX_HEIGHT_OFFSET;
   const maxHeight = options.maxHeight || (window.innerHeight - maxHeightOffset);
   
-  // Load saved height or use initial
-  const [height, setHeight] = useState<number>(() => {
-    return loadHeight(storageKey) || options.initialHeight;
-  });
+  // Always use initial height (no localStorage persistence)
+  const [height, setHeight] = useState<number>(options.initialHeight);
   
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartRef = useRef<{ y: number; initialHeight: number } | null>(null);
@@ -98,8 +68,7 @@ export function useModalResize(
     const handleMouseUp = () => {
       setIsResizing(false);
       resizeStartRef.current = null;
-      // Save height when resizing ends
-      saveHeight(height, storageKey);
+      // Height not persisted - resets on page reload
     };
     
     document.addEventListener('mousemove', handleMouseMove);
