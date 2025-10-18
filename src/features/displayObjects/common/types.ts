@@ -60,6 +60,28 @@ export type DisplayObjectCategory = 'shape' | 'text' | 'image' | 'group';
  * Common properties shared by all display objects on the canvas
  * 
  * All concrete display object types extend this interface
+ * 
+ * COORDINATE SYSTEM DOCUMENTATION:
+ * --------------------------------
+ * The data model and rendering layer use different coordinate reference points:
+ * 
+ * 1. DATA MODEL (x, y): Represents the TOP-LEFT CORNER of the object
+ *    - Stored in Firestore as top-left coordinates
+ *    - Used for position calculations and bounding boxes
+ *    - This is the "source of truth" for object position
+ * 
+ * 2. KONVA RENDERING: Uses CENTER POINT as the rotation and scale pivot
+ *    - Konva renders objects with their center as the origin
+ *    - Rotation and scale transformations occur around the center point
+ *    - Conversion required: centerX = x + (width * scaleX) / 2
+ *                           centerY = y + (height * scaleY) / 2
+ * 
+ * 3. WHY TWO SYSTEMS:
+ *    - Top-left is intuitive for positioning and layout
+ *    - Center point is required for rotation/scale to feel natural
+ *    - Konva's architecture requires center-based transforms
+ * 
+ * See: transformMath.ts, boundingBoxUtils.ts, RectangleShape.tsx for conversion implementations
  */
 export interface BaseDisplayObject {
   // Identity
@@ -67,11 +89,20 @@ export interface BaseDisplayObject {
   category: DisplayObjectCategory;     // Type discriminator
   
   // Transform
-  x: number;                           // Position X (canvas coordinates)
-  y: number;                           // Position Y (canvas coordinates)
-  rotation: number;                    // Rotation in degrees (default: 0)
-  scaleX: number;                      // Horizontal scale (default: 1.0)
-  scaleY: number;                      // Vertical scale (default: 1.0)
+  // IMPORTANT: (x, y) represents TOP-LEFT CORNER in canvas coordinates
+  // Konva renders using CENTER POINT with offset for rotation pivot
+  // To get center: centerX = x + (width * scaleX) / 2, centerY = y + (height * scaleY) / 2
+  x: number;                           // Position X - Top-left corner (canvas coordinates)
+  y: number;                           // Position Y - Top-left corner (canvas coordinates)
+  
+  // Rotation occurs around the object's CENTER POINT, not the (x, y) corner
+  // When rendering in Konva, use offsetX/offsetY to shift the pivot to center
+  rotation: number;                    // Rotation in degrees (default: 0), pivot = object center
+  
+  // Scale is applied from the object's CENTER POINT
+  // Scale affects the final dimensions: finalWidth = width * scaleX
+  scaleX: number;                      // Horizontal scale (default: 1.0, 1.0 = 100%)
+  scaleY: number;                      // Vertical scale (default: 1.0, 1.0 = 100%)
   
   // Visual properties
   opacity: number;                     // 0-1 (default: 1)
