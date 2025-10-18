@@ -215,8 +215,9 @@ export function useCanvasInteractions({
       const selectedShapeIds = marqueeMouseUp();
       if (selectedShapeIds && selectedShapeIds.length > 0) {
         // Try to acquire locks for marquee selection
-        console.log('[Canvas] Attempting to lock marquee selection:', selectedShapeIds);
-        const success = await tryLockAndSelect(selectedShapeIds);
+        // Skip pre-check for performance (transaction will catch conflicts)
+        console.log('[Canvas] Attempting to lock marquee selection:', selectedShapeIds.length, 'objects');
+        const success = await tryLockAndSelect(selectedShapeIds, true); // skipPreCheck = true
         
         if (success) {
           setSelection(selectedShapeIds);

@@ -132,21 +132,8 @@ export const lockCollection = async (
   }
 
   try {
-    // First check availability (optimization to avoid transaction if conflicts exist)
-    const availability = await checkLockAvailability(objectIds, userId);
-    
-    if (!availability.available) {
-      // Log conflicts
-      for (const conflict of availability.conflicts) {
-        console.warn(
-          `[LockService] Cannot lock object ${conflict.objectId}: ` +
-          `locked by user ${conflict.lockedBy}`
-        );
-      }
-      return false;
-    }
-
     // Use transaction for atomic locking
+    // The transaction provides authoritative conflict detection
     const shapesCollectionPath = 'documents/main/shapes';
     
     await runTransaction(firestore, async (transaction) => {

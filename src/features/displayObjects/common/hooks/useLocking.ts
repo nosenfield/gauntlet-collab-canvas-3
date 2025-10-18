@@ -12,8 +12,7 @@ import {
   lockCollection,
   releaseCollection,
   startLockHeartbeat,
-  checkLockAvailability,
-  type LockAvailability
+  checkLockAvailability
 } from '../services/lockService';
 
 /**
@@ -25,7 +24,7 @@ import {
  * @returns Lock management functions
  */
 export function useLocking() {
-  const { selectedIds, clearSelection } = useSelection();
+  const { selectedIds } = useSelection();
   const { user } = useAuth();
   const heartbeatCleanupRef = useRef<(() => void) | null>(null);
   const lockedIdsRef = useRef<string[]>([]);
@@ -33,9 +32,13 @@ export function useLocking() {
   /**
    * Attempt to lock objects before selecting them
    * Returns true if locks acquired, false if conflicts
+   * 
+   * @param objectIds - IDs of objects to lock
+   * @param skipPreCheck - Skip availability check (for performance with many objects)
    */
   const tryLockAndSelect = useCallback(async (
-    objectIds: string[]
+    objectIds: string[],
+    skipPreCheck = false
   ): Promise<boolean> => {
     if (!user) {
       console.warn('[useLocking] No user - cannot acquire locks');
@@ -47,22 +50,24 @@ export function useLocking() {
     }
 
     try {
-      // Check availability first
-      const availability = await checkLockAvailability(objectIds, user.userId);
-      
-      if (!availability.available) {
-        // Log conflicts for user feedback
-        availability.conflicts.forEach(conflict => {
-          console.warn(
-            `[useLocking] Cannot select object ${conflict.objectId}: ` +
-            `locked by user ${conflict.lockedBy}`
-          );
-          // TODO: Show user-friendly notification
-        });
-        return false;
+      // Pre-check optimization (skip for large selections to avoid double reads)
+      if (!skipPreCheck) {
+        const availability = await checkLockAvailability(objectIds, user.userId);
+        
+        if (!availability.available) {
+          // Log conflicts for user feedback
+          availability.conflicts.forEach(conflict => {
+            console.warn(
+              `[useLocking] Cannot select object ${conflict.objectId}: ` +
+              `locked by user ${conflict.lockedBy}`
+            );
+            // TODO: Show user-friendly notification
+          });
+          return false;
+        }
       }
 
-      // Attempt to acquire locks
+      // Attempt to acquire locks (transaction will catch conflicts)
       const success = await lockCollection(objectIds, user.userId);
       
       if (!success) {
