@@ -128,9 +128,9 @@ export function useRotation(collectionCenter: Point | null) {
     const deltaX = currentMousePos.x - lastMousePosRef.current.x;
     const deltaY = currentMousePos.y - lastMousePosRef.current.y;
     
-    // 1px = 1° sensitivity: sum horizontal and vertical movement
-    // Right/Down = clockwise (+), Left/Up = counter-clockwise (-)
-    const angleDelta = deltaX + deltaY;
+    // 1px = 1° sensitivity: Right/Up = clockwise (+), Left/Down = counter-clockwise (-)
+    // Note: Y-axis is inverted in screen coords (down = positive), so we subtract deltaY
+    const angleDelta = deltaX - deltaY;
     
     // Update cumulative angle
     cumulativeAngleRef.current += angleDelta;

@@ -260,6 +260,9 @@ rotatedObjects.forEach(obj => {
 
 ## Known Issues/Technical Debt
 
+### Fixed Issues:
+- **Y-axis Inversion (FIXED):** Initial implementation had Right/Down = clockwise, but UX requirement is Right/Up = clockwise. Changed from `deltaX + deltaY` to `deltaX - deltaY` to account for screen coordinate system (Y increases downward).
+
 ### No Angle Constraints
 **Issue:** Objects can rotate to any angle (no snap-to-grid)  
 **Future:** Add Shift+drag for 15° snap increments  
@@ -301,8 +304,8 @@ rotatedObjects.forEach(obj => {
    - Create 2-3 shapes
    - Select all shapes (marquee)
    - Click and hold rotation knob (left knob)
-   - Drag right → shapes rotate clockwise
-   - Drag left → shapes rotate counter-clockwise
+   - Drag right or up → shapes rotate clockwise
+   - Drag left or down → shapes rotate counter-clockwise
    - Release mouse → rotation stops
 
 2. **1px = 1° Sensitivity:**

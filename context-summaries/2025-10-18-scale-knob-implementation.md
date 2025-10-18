@@ -13,7 +13,7 @@ Implemented scale knob functionality in the transform modal, allowing users to s
 - `src/features/displayObjects/common/components/TransformModal.css` - Added scale knob styles
 
 ## Technical Decisions Made
-- **Sensitivity:** 1px drag = 0.01 scale delta (as per spec)
+- **Sensitivity:** 1px drag = 0.002 scale delta (adjusted from 0.01 for less sensitivity)
 - **Scale Constraints:** 0.1 to 10.0 (10% to 1000%) per object
 - **Scaling Logic:** Scale both object positions AND scale properties (scaleX/scaleY)
 - **Pivot Point:** Objects scale from collection center
@@ -91,7 +91,7 @@ Implemented scale knob functionality in the transform modal, allowing users to s
 
 ## State of the Application
 - ✅ Scale knob responds to drag
-- ✅ 1px = 0.01 scale delta verified
+- ✅ 1px = 0.002 scale delta (5x less sensitive than rotation)
 - ✅ Objects scale from collection center
 - ✅ Scale properties (scaleX/scaleY) update correctly
 - ✅ Position updates correctly (objects move outward/inward)
@@ -102,12 +102,13 @@ Implemented scale knob functionality in the transform modal, allowing users to s
 - ✅ Visual feedback (active state, cursor change, objects scale in real-time)
 
 ## Known Issues/Technical Debt
-- None
+- **Fixed:** Y-axis inversion - Initial implementation had Right/Down = grow, but UX requirement is Right/Up = grow. Changed from `deltaX + deltaY` to `deltaX - deltaY` to account for screen coordinate system (Y increases downward).
+- **Fixed:** Scale sensitivity reduced from 0.01 to 0.002 (5x less sensitive) per user feedback
 
 ## Testing Notes
 **Test scale behavior:**
 1. Select single or multiple objects
-2. Drag scale knob right/down (grow) or left/up (shrink)
+2. Drag scale knob right/up (grow) or left/down (shrink)
 3. **Expected:** 
    - Objects scale smoothly in real-time
    - Objects move outward when growing, inward when shrinking

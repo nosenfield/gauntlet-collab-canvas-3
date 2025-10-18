@@ -97,11 +97,11 @@ export function useScale(collectionCenter: Point | null) {
     
     // Calculate delta since last update
     const deltaX = currentMousePos.x - lastMousePosRef.current.x;
-    const deltaY = currentMousePos.x - lastMousePosRef.current.y;
+    const deltaY = currentMousePos.y - lastMousePosRef.current.y;
     
-    // 1px = 0.01 scale delta: sum horizontal and vertical movement
-    // Right/Down = grow (+), Left/Up = shrink (-)
-    const scaleDelta = (deltaX + deltaY) * 0.01;
+    // 1px = 0.002 scale delta: Right/Up = grow (+), Left/Down = shrink (-)
+    // Note: Y-axis is inverted in screen coords (down = positive), so we subtract deltaY
+    const scaleDelta = (deltaX - deltaY) * 0.002;
     
     // Update cumulative scale
     cumulativeScaleRef.current += scaleDelta;
