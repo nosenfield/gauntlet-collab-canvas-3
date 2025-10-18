@@ -1,0 +1,398 @@
+/**
+ * Properties Modal Styles
+ * 
+ * Styles for the properties modal and all its sub-components
+ */
+
+/* ============================================
+   Modal Container
+   ============================================ */
+
+.properties-modal {
+  position: fixed;
+  right: 260px; /* Right of presence sidebar (240px + 20px gap) */
+  top: 20px;
+  width: 320px;
+  max-height: calc(100vh - 40px);
+  background: rgba(30, 30, 30, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(10px);
+}
+
+.properties-modal__container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ============================================
+   Header
+   ============================================ */
+
+.properties-modal__header {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.properties-modal__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.properties-modal__subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ============================================
+   Content Area
+   ============================================ */
+
+.properties-modal__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px 20px 20px;
+}
+
+.properties-modal__content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.properties-modal__content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.properties-modal__content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.properties-modal__content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================
+   Sections
+   ============================================ */
+
+.properties-modal__section {
+  margin-top: 20px;
+}
+
+.properties-modal__section:first-child {
+  margin-top: 20px;
+}
+
+.properties-modal__section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+
+/* ============================================
+   Grid Layout
+   ============================================ */
+
+.properties-modal__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.properties-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.properties-modal__field--full {
+  grid-column: 1 / -1;
+}
+
+.properties-modal__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.properties-modal__label-note {
+  font-size: 11px;
+  opacity: 0.6;
+  font-weight: 400;
+}
+
+/* ============================================
+   Number Input
+   ============================================ */
+
+.number-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.number-input__field {
+  width: 100%;
+  padding: 8px 32px 8px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+  transition: all 0.2s;
+}
+
+.number-input__field:focus {
+  outline: none;
+  border-color: #4A90E2;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.number-input__field--mixed {
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+.number-input__suffix {
+  position: absolute;
+  right: 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+
+/* ============================================
+   Color Input
+   ============================================ */
+
+.color-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.color-input__picker {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.color-input__picker:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.color-input__hex {
+  flex: 1;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+  transition: all 0.2s;
+}
+
+.color-input__hex:focus {
+  outline: none;
+  border-color: #4A90E2;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.color-input__hex--mixed {
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+/* ============================================
+   Slider
+   ============================================ */
+
+.properties-modal__slider-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.properties-modal__slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+}
+
+.properties-modal__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #4A90E2;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.properties-modal__slider::-webkit-slider-thumb:hover {
+  background: #5BA0F2;
+  transform: scale(1.1);
+}
+
+.properties-modal__slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #4A90E2;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.properties-modal__slider::-moz-range-thumb:hover {
+  background: #5BA0F2;
+  transform: scale(1.1);
+}
+
+/* ============================================
+   Select Dropdown
+   ============================================ */
+
+.properties-modal__select {
+  width: 100%;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.properties-modal__select:focus {
+  outline: none;
+  border-color: #4A90E2;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.properties-modal__select option {
+  background: #2A2A2A;
+  color: #ffffff;
+}
+
+/* ============================================
+   Textarea
+   ============================================ */
+
+.properties-modal__textarea {
+  width: 100%;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+  transition: all 0.2s;
+}
+
+.properties-modal__textarea:focus {
+  outline: none;
+  border-color: #4A90E2;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.properties-modal__textarea--mixed {
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+/* ============================================
+   Button Group
+   ============================================ */
+
+.properties-modal__button-group {
+  display: flex;
+  gap: 4px;
+}
+
+.properties-modal__button {
+  flex: 1;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.properties-modal__button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.properties-modal__button--active {
+  background: #4A90E2;
+  border-color: #4A90E2;
+  color: #ffffff;
+}
+
+/* ============================================
+   Mixed Selection Message
+   ============================================ */
+
+.properties-modal__mixed-message {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  text-align: center;
+  font-style: italic;
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+
+@media (max-width: 768px) {
+  .properties-modal {
+    right: 10px;
+    width: 280px;
+  }
+}
+
+@media (max-height: 600px) {
+  .properties-modal {
+    max-height: calc(100vh - 20px);
+    top: 10px;
+  }
+}
+

@@ -8,6 +8,7 @@ import { usePresence } from '@/features/presence/hooks/usePresence';
 import { UserPresenceSidebar } from '@/features/presence/components/UserPresenceSidebar';
 import { ToolProvider } from '@/features/displayObjects/common/store/toolStore';
 import { DisplayObjectToolbar } from '@/features/displayObjects/common/components/DisplayObjectToolbar';
+import { PropertiesModal } from '@/features/displayObjects/common/components/PropertiesModal';
 import { ShapesProvider } from '@/features/displayObjects/shapes/store/shapesStore';
 import { TextsProvider } from '@/features/displayObjects/texts/store/textsStore';
 import { SelectionProvider } from '@/features/displayObjects/common/store/selectionStore';
@@ -39,6 +40,7 @@ function AppContent() {
       <DebugAuthPanel />
       <UserPresenceSidebar />
       <DisplayObjectToolbar />
+      <PropertiesModal />
       <PerformanceTest />
       <ViewportProvider>
         <Canvas />
