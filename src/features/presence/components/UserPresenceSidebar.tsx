@@ -12,26 +12,18 @@ import { useMemo } from 'react';
 import { useAuth } from '@/features/auth/store/authStore';
 import { useAllActiveUsers } from '../hooks/useActiveUsers';
 import { UserPresenceItem } from './UserPresenceItem';
-import { useModalDrag } from '@/features/displayObjects/common/components/PropertiesModal/useModalDrag';
 import { useModalResize } from '@/features/displayObjects/common/components/PropertiesModal/useModalResize';
 import './UserPresenceSidebar.css';
 
 /**
  * UserPresenceSidebar Component
- * Draggable and resizable modal on right side
+ * Fixed position (top-right) and vertically resizable modal
  */
 export function UserPresenceSidebar(): React.ReactElement | null {
   const { user } = useAuth();
   const allActiveUsers = useAllActiveUsers();
   
-  // Drag and resize functionality (using separate storage keys from properties modal)
-  const { position, isDragging, handleMouseDown } = useModalDrag({ 
-    initialPosition: { 
-      x: window.innerWidth - 240 - 10, // 10px from right edge (240px is modal width)
-      y: 10 // 10px from top
-    },
-    storageKey: 'user-presence-modal-position'
-  });
+  // Fixed position (top-right), only resizable vertically
   const { height, isResizing, handleResizeStart } = useModalResize({
     initialHeight: 150, // Set to min height
     minHeight: 150,
@@ -68,19 +60,13 @@ export function UserPresenceSidebar(): React.ReactElement | null {
 
   return (
     <div 
-      className={`user-presence-sidebar ${isDragging ? 'user-presence-sidebar--dragging' : ''} ${isResizing ? 'user-presence-sidebar--resizing' : ''}`}
+      className={`user-presence-sidebar ${isResizing ? 'user-presence-sidebar--resizing' : ''}`}
       style={{
-        left: `${position.x}px`,
-        top: `${position.y}px`,
         height: `${height}px`,
       }}
     >
       <div className="sidebar-container">
-        <div 
-          className="sidebar-header"
-          onMouseDown={handleMouseDown}
-          style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
-        >
+        <div className="sidebar-header">
           <h3 className="sidebar-title">Active Users</h3>
           <span className="user-count">{sortedUsers.length}</span>
         </div>

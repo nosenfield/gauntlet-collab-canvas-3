@@ -1,14 +1,15 @@
 /**
  * User Presence Sidebar Styles
- * Now a draggable and resizable modal
+ * Fixed position (top-right) and vertically resizable modal
  */
 
 .user-presence-sidebar {
   position: fixed;
-  /* Position controlled by inline styles (drag functionality) */
+  top: 10px;
+  right: 10px;
   width: 240px;
   min-height: 150px;
-  max-height: calc(100vh - 40px);
+  max-height: calc(100vh - 20px); /* 10px top + 10px bottom */
   background: rgba(30, 30, 30, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -20,13 +21,9 @@
   transition: box-shadow 0.2s;
 }
 
-.user-presence-sidebar--dragging {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  user-select: none;
-}
-
 .user-presence-sidebar--resizing {
   user-select: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 .sidebar-container {
@@ -44,19 +41,8 @@
   padding: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(0, 0, 0, 0.2);
-  cursor: grab;
-  user-select: none;
-  transition: background 0.2s;
   border-radius: 8px 8px 0 0;
   flex-shrink: 0;
-}
-
-.sidebar-header:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.sidebar-header:active {
-  cursor: grabbing;
 }
 
 .sidebar-title {
