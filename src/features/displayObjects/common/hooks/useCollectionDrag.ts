@@ -1,7 +1,7 @@
 /**
  * Collection Drag Hook
  * 
- * Handles dragging multiple selected objects as a collection
+ * Handles dragging multiple selected objects as a collection using Konva's draggable
  * Provides optimistic updates with debounced Firestore writes
  */
 
@@ -15,8 +15,7 @@ import { updateShape } from '@/features/displayObjects/shapes/services/shapeServ
  */
 interface DragState {
   isDragging: boolean;
-  startX: number;
-  startY: number;
+  driverShapeId: string; // The shape being actively dragged
   initialPositions: Map<string, { x: number; y: number }>;
 }
 
@@ -24,6 +23,7 @@ interface DragState {
  * useCollectionDrag Hook
  * 
  * Manages dragging state for a collection of shapes
+ * Uses Konva's built-in draggable property for robust event handling
  * 
  * @param selectedShapes - Currently selected shapes
  * @param userId - Current user ID
@@ -37,8 +37,7 @@ export function useCollectionDrag(
 ) {
   const [dragState, setDragState] = useState<DragState>({
     isDragging: false,
-    startX: 0,
-    startY: 0,
+    driverShapeId: '',
     initialPositions: new Map(),
   });
   
@@ -48,8 +47,9 @@ export function useCollectionDrag(
 
   /**
    * Start dragging a collection
+   * Called when any selected shape starts dragging
    */
-  const handleDragStart = useCallback((startX: number, startY: number) => {
+  const handleDragStart = useCallback((driverShapeId: string) => {
     if (!isSelectMode || selectedShapes.length === 0) {
       return;
     }
@@ -62,27 +62,31 @@ export function useCollectionDrag(
 
     setDragState({
       isDragging: true,
-      startX,
-      startY,
+      driverShapeId,
       initialPositions,
     });
 
-    console.log('[CollectionDrag] Drag started with', selectedShapes.length, 'shapes');
+    console.log('[CollectionDrag] Drag started with', selectedShapes.length, 'shapes (driver:', driverShapeId, ')');
   }, [isSelectMode, selectedShapes]);
 
   /**
-   * Update drag position (mouse move)
+   * Update drag position
+   * Called during Konva drag move - calculates delta from driver shape and applies to all
    */
-  const handleDragMove = useCallback((currentX: number, currentY: number) => {
-    if (!dragState.isDragging || !userId) {
+  const handleDragMove = useCallback((driverShapeId: string, newX: number, newY: number) => {
+    if (!dragState.isDragging || !userId || dragState.driverShapeId !== driverShapeId) {
       return;
     }
 
-    // Calculate delta from start position
-    const deltaX = currentX - dragState.startX;
-    const deltaY = currentY - dragState.startY;
+    // Get the driver shape's initial position
+    const driverInitial = dragState.initialPositions.get(driverShapeId);
+    if (!driverInitial) return;
 
-    // Apply translation to all shapes using initial positions
+    // Calculate delta from driver's movement
+    const deltaX = newX - driverInitial.x;
+    const deltaY = newY - driverInitial.y;
+
+    // Apply delta to all shapes using their initial positions
     const translatedShapes = selectedShapes.map(shape => {
       const initial = dragState.initialPositions.get(shape.id);
       if (!initial) return shape;
@@ -153,8 +157,7 @@ export function useCollectionDrag(
     // Reset drag state
     setDragState({
       isDragging: false,
-      startX: 0,
-      startY: 0,
+      driverShapeId: '',
       initialPositions: new Map(),
     });
     setOptimisticShapes(null); // Clear optimistic shapes
@@ -172,8 +175,7 @@ export function useCollectionDrag(
 
     setDragState({
       isDragging: false,
-      startX: 0,
-      startY: 0,
+      driverShapeId: '',
       initialPositions: new Map(),
     });
     setOptimisticShapes(null); // Clear optimistic shapes
@@ -191,8 +193,9 @@ export function useCollectionDrag(
 
   return {
     isDragging: dragState.isDragging,
-    // Return optimistic shapes if dragging, otherwise return selectedShapes
-    optimisticShapes: optimisticShapes || selectedShapes,
+    driverShapeId: dragState.driverShapeId,
+    // Return optimistic shapes if dragging, otherwise null
+    optimisticShapes: dragState.isDragging ? optimisticShapes : null,
     handleDragStart,
     handleDragMove,
     handleDragEnd,

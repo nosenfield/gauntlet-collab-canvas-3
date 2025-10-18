@@ -43,7 +43,7 @@ interface UseCanvasInteractionsReturn {
   handleStageClick: (e: any) => void;
   handleStageMouseDown: (e: any) => void;
   handleStageMouseMove: (e: any) => void;
-  handleStageMouseUp: () => void;
+  handleStageMouseUp: (e: any) => void;
   handleShapeClick: (shapeId: string, isShiftClick: boolean) => void;
   
   // Data for rendering
@@ -160,11 +160,23 @@ export function useCanvasInteractions({
   
   // Handle stage mouse move (update marquee)
   const handleStageMouseMove = (e: any) => {
+    // Don't interfere if a shape is being dragged by Konva's built-in drag
+    const stage = e.target.getStage();
+    if (stage && stage.isDragging && stage.isDragging()) {
+      return; // Konva is handling the drag internally
+    }
+    
     marqueeMouseMove(e);
   };
   
   // Handle stage mouse up (complete marquee or shape creation)
-  const handleStageMouseUp = () => {
+  const handleStageMouseUp = (e: any) => {
+    // Don't interfere if a shape was being dragged by Konva's built-in drag
+    const stage = e?.target?.getStage?.();
+    if (stage && stage.isDragging && stage.isDragging()) {
+      return; // Konva is handling the drag end internally
+    }
+    
     if (isMarqueeActive) {
       // Complete marquee selection
       const selectedShapeIds = marqueeMouseUp();

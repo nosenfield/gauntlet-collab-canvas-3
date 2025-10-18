@@ -5,6 +5,7 @@
  * Handles shape rendering, click events, and collection dragging
  */
 
+import React from 'react';
 import { Layer } from 'react-konva';
 import { useShapes } from '../store/shapesStore';
 import { useAuth } from '@/features/auth/store/authStore';
@@ -40,16 +41,24 @@ export function ShapeLayer({ selectedIds = [], onShapeClick }: ShapeLayerProps) 
   // Collection drag hook
   const {
     isDragging: isCollectionDragging,
+    driverShapeId,
     optimisticShapes,
     handleDragStart: startCollectionDrag,
     handleDragMove: moveCollectionDrag,
     handleDragEnd: endCollectionDrag,
   } = useCollectionDrag(selectedShapes, user?.userId, isSelectMode());
 
-  // Handle single shape drag end (when only one shape selected)
-  const handleSingleShapeDragEnd = async (shapeId: string, x: number, y: number) => {
-    if (!user || hasMultipleSelected) return;
+  // Handle shape drag end
+  const handleShapeDragEnd = async (shapeId: string, x: number, y: number) => {
+    if (!user) return;
     
+    // If this was a collection drag, end it
+    if (hasMultipleSelected && isCollectionDragging) {
+      await endCollectionDrag();
+      return;
+    }
+    
+    // Otherwise, it's a single shape drag
     try {
       console.log('[ShapeLayer] Updating single shape position:', shapeId, { x, y });
       await updateShape(shapeId, user.userId, { x, y });
@@ -58,61 +67,41 @@ export function ShapeLayer({ selectedIds = [], onShapeClick }: ShapeLayerProps) 
     }
   };
   
-  // Handle collection drag start
-  const handleCollectionDragStart = (e: any, _shapeId: string) => {
+  // Handle collection drag start (when multiple shapes selected)
+  const handleCollectionDragStart = (shapeId: string) => {
     if (!hasMultipleSelected || !isSelectMode()) return;
-    
-    // Get mouse position in canvas coordinates
-    const stage = e.target.getStage();
-    if (!stage) return;
-    
-    const pointerPos = stage.getPointerPosition();
-    if (!pointerPos) return;
-    
-    // Convert to canvas coordinates
-    const transform = stage.getAbsoluteTransform().copy().invert();
-    const canvasPos = transform.point(pointerPos);
-    
-    startCollectionDrag(canvasPos.x, canvasPos.y);
+    startCollectionDrag(shapeId);
   };
+  
+  // Handle collection drag move (when multiple shapes selected)
+  const handleCollectionDragMove = (shapeId: string, x: number, y: number) => {
+    if (!hasMultipleSelected || !isCollectionDragging) return;
+    moveCollectionDrag(shapeId, x, y);
+  };
+  
+  // Merge optimistic shapes with regular shapes during collection dragging
+  // Optimistic shapes only contain the selected/dragging shapes, we need to include non-selected shapes too
+  // MUST be called before any conditional returns (Rules of Hooks)
+  const shapesToRender = React.useMemo(() => {
+    if (isCollectionDragging && optimisticShapes) {
+      // Create a map of optimistic shapes by ID for fast lookup
+      const optimisticMap = new Map(optimisticShapes.map(s => [s.id, s]));
+      
+      // Replace selected shapes with optimistic versions, keep non-selected shapes as-is
+      return shapes.map(shape => optimisticMap.get(shape.id) || shape);
+    }
+    return shapes;
+  }, [isCollectionDragging, optimisticShapes, shapes]);
 
   if (isLoading) {
     return <Layer />;
   }
-  
-  // Use optimistic shapes during collection dragging, otherwise use regular shapes
-  const shapesToRender = isCollectionDragging ? optimisticShapes : shapes;
 
   return (
-    <Layer 
-      name="shapes-layer"
-      onMouseMove={(e) => {
-        if (isCollectionDragging) {
-          const stage = e.target.getStage();
-          if (!stage) return;
-          
-          const pointerPos = stage.getPointerPosition();
-          if (!pointerPos) return;
-          
-          const transform = stage.getAbsoluteTransform().copy().invert();
-          const canvasPos = transform.point(pointerPos);
-          
-          moveCollectionDrag(canvasPos.x, canvasPos.y);
-        }
-      }}
-      onMouseUp={() => {
-        if (isCollectionDragging) {
-          endCollectionDrag();
-        }
-      }}
-      onMouseLeave={() => {
-        if (isCollectionDragging) {
-          endCollectionDrag();
-        }
-      }}
-    >
+    <Layer name="shapes-layer">
       {shapesToRender.map((shape) => {
         const isSelected = selectedIds.includes(shape.id);
+        const isDriver = isCollectionDragging && driverShapeId === shape.id;
 
         // Render based on shape type
         switch (shape.type) {
@@ -123,11 +112,15 @@ export function ShapeLayer({ selectedIds = [], onShapeClick }: ShapeLayerProps) 
                 shape={shape}
                 isSelected={isSelected}
                 onClick={onShapeClick}
-                onDragEnd={handleSingleShapeDragEnd}
-                // Disable individual dragging when in collection mode
-                draggable={isSelected && !hasMultipleSelected}
-                // Collection drag handlers
+                onDragEnd={handleShapeDragEnd}
+                // Keep draggable for all selected shapes (use Konva's draggable)
+                draggable={isSelected}
+                // Collection drag handlers (only when multiple shapes selected)
                 onCollectionDragStart={hasMultipleSelected ? handleCollectionDragStart : undefined}
+                onCollectionDragMove={hasMultipleSelected ? handleCollectionDragMove : undefined}
+                // During collection drag, only the driver shape is controlled by Konva
+                // Non-driver shapes get their positions from optimistic updates
+                listening={!isCollectionDragging || isDriver}
               />
             );
           

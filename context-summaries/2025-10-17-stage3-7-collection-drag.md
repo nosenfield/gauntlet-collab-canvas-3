@@ -1,10 +1,12 @@
 # Context Summary: STAGE3-7 Translation (Collection Drag) Implementation
 **Date:** 2025-10-17  
 **Phase:** Stage 3 - Display Objects (Universal Editing)  
-**Status:** Completed
+**Status:** Completed ✅ (Updated with Konva Draggable Refactor)
 
 ## What Was Built
 Implemented drag-to-translate functionality for collections of selected shapes. When multiple shapes are selected, dragging any one of them moves the entire collection together, with optimistic UI updates and debounced Firestore writes.
+
+**UPDATE:** Refactored to use Konva's built-in `draggable` property instead of custom Layer-level mouse handlers, fixing critical issues with quick mouse movements and event loss.
 
 ## Key Files Modified/Created
 
@@ -17,38 +19,55 @@ Implemented drag-to-translate functionality for collections of selected shapes. 
    - `translateAndConstrain()` - Combined translate + constrain operation
 
 2. **`src/features/displayObjects/common/hooks/useCollectionDrag.ts`** - Drag state management
-   - Manages drag state (isDragging, start position, initial positions)
+   - Manages drag state (isDragging, driverShapeId, initial positions)
+   - **NEW:** Uses driver shape concept - one shape controls the collection movement
    - Provides optimistic shape updates during drag
    - Debounces Firestore writes (300ms)
    - Handles drag start/move/end lifecycle
    - Stores initial positions of all shapes for delta calculation
+   - Calculates deltas from driver shape's movement
 
 ### Modified Files:
 
 1. **`src/features/displayObjects/shapes/components/ShapeLayer.tsx`**
    - Integrated `useCollectionDrag` hook
    - Detects multi-selection (2+ shapes)
-   - Disables individual dragging when multiple shapes selected
-   - Adds Layer-level mouse handlers for collection dragging
+   - **REMOVED:** Layer-level mouse handlers (onMouseMove, onMouseUp, onMouseLeave)
+   - **NEW:** Uses Konva's drag events from individual shapes
+   - **NEW:** Merges optimistic shapes with non-selected shapes (prevents disappearing)
+   - **NEW:** All hooks called before early return (Rules of Hooks compliance)
    - Uses optimistic shapes during drag for immediate visual feedback
    - Separates single-shape vs collection drag logic
 
 2. **`src/features/displayObjects/shapes/components/RectangleShape.tsx`**
    - Added `draggable` prop (boolean override)
-   - Added `onCollectionDragStart` prop
-   - Added `onMouseDown` handler to trigger collection drag
-   - Conditionally enables/disables dragging based on selection state
+   - **NEW:** Added `onCollectionDragStart` prop (shape ID only)
+   - **NEW:** Added `onCollectionDragMove` prop (shape ID + position)
+   - **NEW:** Added `listening` prop (disable events on non-driver shapes)
+   - **NEW:** Uses Konva's `onDragStart`, `onDragMove`, `onDragEnd` events
+   - **REMOVED:** Custom `onMouseDown` handler
+   - **NEW:** All selected shapes keep `draggable={true}` (even in multi-selection)
 
 ## Technical Decisions Made
 
-### 1. Optimistic UI Updates
+### 1. Use Konva's Built-in Draggable (MAJOR REFACTOR)
+- **Decision**: Leverage Konva's `draggable` property instead of custom Layer-level mouse handlers
+- **Rationale**:
+  - Konva attaches listeners at Stage/window level, not Layer level
+  - Prevents drag cancellation when mouse moves quickly
+  - Handles edge cases automatically (mouse leaving canvas, etc.)
+  - More robust and battle-tested
+  - Less custom code to maintain
+- **Impact**: Fixes critical bug where quick mouse movements canceled drag
+
+### 2. Optimistic UI Updates
 - **Decision**: Update shapes locally immediately, sync to Firestore asynchronously
 - **Rationale**: 
   - Provides smooth, responsive dragging experience
   - Prevents lag from network latency
   - Firestore writes are debounced to reduce load
 
-### 2. Debounced Writes (300ms)
+### 3. Debounced Writes (300ms)
 - **Decision**: Write to Firestore every 300ms during drag, plus once on drag end
 - **Rationale**:
   - Balances real-time sync with performance
@@ -56,28 +75,38 @@ Implemented drag-to-translate functionality for collections of selected shapes. 
   - Still provides reasonable sync for other users (~3 updates per second)
   - Final write on drag end ensures accuracy
 
-### 3. Layer-Level Drag Handlers
-- **Decision**: Handle mouse move/up at Layer level, not individual shapes
+### 4. Driver Shape Concept
+- **Decision**: One "driver" shape controls collection movement, others follow
 - **Rationale**:
-  - Prevents loss of drag if mouse moves off shape
-  - More reliable event handling
-  - Matches Figma's behavior
+  - Konva can only actively drag one shape at a time
+  - Driver's movement determines delta for all shapes
+  - Non-driver shapes update via optimistic state
+  - Clean separation: Konva controls driver, we control followers
 
-### 4. Disable Individual Dragging in Multi-Selection
-- **Decision**: When 2+ shapes selected, disable Konva's built-in dragging
+### 5. Disable Listening on Non-Driver Shapes
+- **Decision**: Set `listening={false}` on non-driver shapes during collection drag
 - **Rationale**:
-  - Prevents individual shapes from dragging independently
-  - Collection drag takes precedence
-  - Single-shape dragging still works normally
+  - Prevents accidental interactions with non-driver shapes
+  - Ensures only driver shape receives Konva drag events
+  - Improves performance (fewer event listeners)
+  - Cleaner event flow
 
-### 5. Store Initial Positions
+### 6. Merge Optimistic with Non-Selected Shapes
+- **Decision**: Combine optimistic shapes with non-selected shapes for rendering
+- **Rationale**:
+  - Optimistic shapes only contain selected/dragging shapes
+  - Need to keep non-selected shapes visible
+  - Prevents non-selected shapes from disappearing during drag
+  - O(n) performance with Map lookup
+
+### 7. Store Initial Positions
 - **Decision**: Capture initial positions at drag start, apply deltas from there
 - **Rationale**:
   - Prevents accumulation errors during drag
   - All shapes move exactly the same distance
   - Works correctly with optimistic updates
 
-### 6. Canvas Boundary Constraints
+### 8. Canvas Boundary Constraints
 - **Decision**: Constrain the collection's bounding box, not individual shapes
 - **Rationale**:
   - Keeps entire collection on canvas
@@ -133,6 +162,13 @@ Implemented drag-to-translate functionality for collections of selected shapes. 
    - **Fix**: Could add visual feedback or cursor change
    - **Priority**: Low (edge case)
 
+### Resolved Issues (Session 2):
+- ✅ **Quick mouse movements canceling drag** - FIXED by using Konva's draggable
+- ✅ **Drag ending when mouse leaves Layer** - FIXED by removing onMouseLeave handler
+- ✅ **Event loss outside Layer bounds** - FIXED by using Stage-level Konva events
+- ✅ **Non-selected shapes disappearing during drag** - FIXED by merging optimistic shapes with all shapes
+- ✅ **React "Rendered fewer hooks" error** - FIXED by moving useMemo before early return
+
 ## Code Snippets for Reference
 
 ### Transform Service - Constrain to Canvas
@@ -161,28 +197,39 @@ export function constrainToCanvas(
 }
 ```
 
-### Collection Drag Hook - Optimistic Updates
+### Collection Drag Hook - Optimistic Updates (UPDATED)
 ```typescript
-const handleDragMove = useCallback((currentX: number, currentY: number) => {
-  const deltaX = currentX - dragState.startX;
-  const deltaY = currentY - dragState.startY;
-  
-  // Apply translation using initial positions
+const handleDragMove = useCallback((driverShapeId: string, newX: number, newY: number) => {
+  if (!dragState.isDragging || !userId || dragState.driverShapeId !== driverShapeId) {
+    return;
+  }
+
+  // Get the driver shape's initial position
+  const driverInitial = dragState.initialPositions.get(driverShapeId);
+  if (!driverInitial) return;
+
+  // Calculate delta from driver's movement
+  const deltaX = newX - driverInitial.x;
+  const deltaY = newY - driverInitial.y;
+
+  // Apply delta to all shapes using their initial positions
   const translatedShapes = selectedShapes.map(shape => {
     const initial = dragState.initialPositions.get(shape.id);
+    if (!initial) return shape;
+
     return {
       ...shape,
       x: initial.x + deltaX,
       y: initial.y + deltaY,
     };
   });
-  
+
   // Constrain to canvas
   const constrainedShapes = translateAndConstrain(translatedShapes, 0, 0);
-  
+
   // Update optimistic state
   setOptimisticShapes(constrainedShapes);
-  
+
   // Debounce Firestore updates (300ms)
   debounceTimerRef.current = setTimeout(() => {
     Promise.all(
@@ -194,18 +241,32 @@ const handleDragMove = useCallback((currentX: number, currentY: number) => {
 }, [dragState, selectedShapes, userId]);
 ```
 
-### ShapeLayer - Conditional Dragging
+### ShapeLayer - Merge Optimistic with Non-Selected (UPDATED)
 ```typescript
-// Use optimistic shapes during dragging
-const shapesToRender = isCollectionDragging ? optimisticShapes : shapes;
+// Merge optimistic shapes with regular shapes during collection dragging
+// Optimistic shapes only contain the selected/dragging shapes, we need to include non-selected shapes too
+// MUST be called before any conditional returns (Rules of Hooks)
+const shapesToRender = React.useMemo(() => {
+  if (isCollectionDragging && optimisticShapes) {
+    // Create a map of optimistic shapes by ID for fast lookup
+    const optimisticMap = new Map(optimisticShapes.map(s => [s.id, s]));
+    
+    // Replace selected shapes with optimistic versions, keep non-selected shapes as-is
+    return shapes.map(shape => optimisticMap.get(shape.id) || shape);
+  }
+  return shapes;
+}, [isCollectionDragging, optimisticShapes, shapes]);
 
 <RectangleShape
   shape={shape}
   isSelected={isSelected}
-  // Disable individual dragging when in collection mode
-  draggable={isSelected && !hasMultipleSelected}
-  // Collection drag handlers
+  // All selected shapes keep draggable=true (use Konva's drag system)
+  draggable={isSelected}
+  // Collection drag handlers (only when multiple shapes selected)
   onCollectionDragStart={hasMultipleSelected ? handleCollectionDragStart : undefined}
+  onCollectionDragMove={hasMultipleSelected ? handleCollectionDragMove : undefined}
+  // Only driver listens during collection drag
+  listening={!isCollectionDragging || isDriver}
 />
 ```
 
@@ -244,6 +305,7 @@ const shapesToRender = isCollectionDragging ? optimisticShapes : shapes;
 - **Dragging at canvas boundary**: Collection stops, but individual shapes may have different constraints
 - **Very large collections**: May hit Firestore batch limits (500 operations)
 - **Rapid drag movements**: Debounce may skip some intermediate positions (by design)
+- ~~**Quick mouse movements**: Could cancel drag~~ - **FIXED** by using Konva draggable
 
 ## Performance Considerations
 
@@ -263,6 +325,8 @@ This implementation perfectly aligns with the architecture:
 - ✅ **Separation of Concerns**: Drag state, transform logic, and rendering separated
 - ✅ **Extensibility**: Easy to add rotation/scale transforms later
 - ✅ **Performance**: Debouncing and batch operations
+- ✅ **Leverage Library Features**: Uses Konva's robust draggable system instead of reinventing
+- ✅ **Rules of Hooks**: All hooks called before conditional returns
 
 ## Next Steps
 
@@ -284,7 +348,21 @@ Implement **STAGE3-6** next to prevent users from interfering with each other's 
 
 ## Questions for Next Session
 
-None - implementation is complete and tested. Ready to proceed with STAGE3-6 (Collection-Level Locking).
+None - implementation is complete, tested, and refactored. All critical bugs resolved. Ready to proceed with STAGE3-6 (Collection-Level Locking).
+
+## Refactoring History
+
+**Session 1 (Initial Implementation):**
+- Implemented collection drag with custom Layer-level mouse handlers
+- Working but had issues with quick mouse movements
+
+**Session 2 (Konva Refactor):**
+- Refactored to use Konva's built-in `draggable` property
+- Fixed quick mouse movement cancellation
+- Fixed non-selected shapes disappearing
+- Fixed React Hooks rule violation
+- Cleaner, more maintainable code
+- More robust event handling
 
 ---
 

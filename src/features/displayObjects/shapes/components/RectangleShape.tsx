@@ -17,7 +17,9 @@ interface RectangleShapeProps {
   onClick?: (shapeId: string, isShiftClick: boolean) => void;
   onDragEnd?: (shapeId: string, x: number, y: number) => void;
   draggable?: boolean; // Override draggable state
-  onCollectionDragStart?: (e: any, shapeId: string) => void; // For collection dragging
+  onCollectionDragStart?: (shapeId: string) => void; // For collection dragging start
+  onCollectionDragMove?: (shapeId: string, x: number, y: number) => void; // For collection dragging move
+  listening?: boolean; // Override listening state (disable events on non-driver shapes during collection drag)
 }
 
 /**
@@ -25,7 +27,7 @@ interface RectangleShapeProps {
  * 
  * Renders a rectangle with Konva.js
  * Supports selection, transformation, and styling
- * Supports both individual and collection dragging
+ * Supports both individual and collection dragging using Konva's draggable
  */
 export function RectangleShape({ 
   shape, 
@@ -34,6 +36,8 @@ export function RectangleShape({
   onDragEnd,
   draggable,
   onCollectionDragStart,
+  onCollectionDragMove,
+  listening,
 }: RectangleShapeProps) {
   
   const handleClick = (e: KonvaEventObject<MouseEvent>) => {
@@ -42,10 +46,19 @@ export function RectangleShape({
       onClick(shape.id, isShiftClick);
     }
   };
-  
-  const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
+
+  const handleDragStart = (_e: KonvaEventObject<DragEvent>) => {
+    // If this is part of a collection, notify the collection drag system
     if (onCollectionDragStart && isSelected) {
-      onCollectionDragStart(e, shape.id);
+      onCollectionDragStart(shape.id);
+    }
+  };
+
+  const handleDragMove = (e: KonvaEventObject<DragEvent>) => {
+    // If this is part of a collection, notify the collection drag system
+    if (onCollectionDragMove && isSelected) {
+      const node = e.target;
+      onCollectionDragMove(shape.id, node.x(), node.y());
     }
   };
 
@@ -71,6 +84,9 @@ export function RectangleShape({
 
   // Determine if shape should be draggable
   const isDraggable = draggable !== undefined ? draggable : isSelected;
+  
+  // Determine if shape should listen to events (can be disabled for non-driver shapes during collection drag)
+  const isListening = listening !== undefined ? listening : true;
   
   return (
     <Rect
@@ -105,16 +121,17 @@ export function RectangleShape({
       // Interaction
       onClick={handleClick}
       onTap={handleClick}
-      onMouseDown={handleMouseDown}
       
-      // Dragging
+      // Dragging - use Konva's built-in draggable with collection support
       draggable={isDraggable}
+      onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
       dragBoundFunc={isDraggable ? dragBoundFunc : undefined}
       
       // Performance
       perfectDrawEnabled={false}
-      listening={true}
+      listening={isListening}
       
       // Cursor
       cursor={isSelected ? 'move' : 'pointer'}
