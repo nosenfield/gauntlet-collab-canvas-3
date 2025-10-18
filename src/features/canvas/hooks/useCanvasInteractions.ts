@@ -77,7 +77,7 @@ export function useCanvasInteractions({
   const { selectedIds, selectShape, toggleSelectShape, setSelection, clearSelection } = useSelection();
   
   // Locking management
-  const { tryLockAndSelect } = useLocking();
+  const { tryLockAndSelect, getUnlockedObjects } = useLocking();
   
   // Shapes for selection
   const { shapes } = useShapes();
@@ -161,22 +161,41 @@ export function useCanvasInteractions({
         targetIds = [shapeId];
       }
       
-      // Try to acquire locks for the target selection
+      // Check which objects are available for locking
       console.log('[Canvas] Attempting to lock and select:', targetIds);
-      const success = await tryLockAndSelect(targetIds);
+      const { unlocked, locked, conflicts } = await getUnlockedObjects(targetIds);
       
-      if (success) {
-        // Locks acquired, update selection
-        if (isShiftClick) {
-          console.log('[Canvas] Shape shift-clicked (adding):', shapeId);
-          toggleSelectShape(shapeId);
+      // Log any locked objects
+      if (locked.length > 0) {
+        console.warn(
+          `[Canvas] ${locked.length} object(s) cannot be selected (locked by other users):`,
+          conflicts
+        );
+        // TODO: Show user-friendly notification
+      }
+      
+      // Try to acquire locks for unlocked objects
+      if (unlocked.length > 0) {
+        const success = await tryLockAndSelect(unlocked);
+        
+        if (success) {
+          // Locks acquired, update selection to unlocked objects only
+          if (isShiftClick && unlocked.length < targetIds.length) {
+            // Partial selection - only add unlocked objects
+            console.log(`[Canvas] Partially selected ${unlocked.length} of ${targetIds.length} object(s)`);
+            setSelection(unlocked);
+          } else if (isShiftClick) {
+            console.log('[Canvas] Shape shift-clicked (adding):', shapeId);
+            toggleSelectShape(shapeId);
+          } else {
+            console.log('[Canvas] Shape clicked in select mode:', shapeId);
+            selectShape(shapeId);
+          }
         } else {
-          console.log('[Canvas] Shape clicked in select mode:', shapeId);
-          selectShape(shapeId);
+          console.warn('[Canvas] Failed to acquire locks');
         }
       } else {
-        console.warn('[Canvas] Cannot select shape - locked by another user');
-        // TODO: Show user-friendly notification
+        console.warn('[Canvas] All objects are locked - cannot select');
       }
     }
   };
@@ -214,16 +233,38 @@ export function useCanvasInteractions({
       // Complete marquee selection
       const selectedShapeIds = marqueeMouseUp();
       if (selectedShapeIds && selectedShapeIds.length > 0) {
-        // Try to acquire locks for marquee selection
-        // Skip pre-check for performance (transaction will catch conflicts)
-        console.log('[Canvas] Attempting to lock marquee selection:', selectedShapeIds.length, 'objects');
-        const success = await tryLockAndSelect(selectedShapeIds, true); // skipPreCheck = true
+        console.log('[Canvas] Marquee selection completed:', selectedShapeIds.length, 'objects');
         
-        if (success) {
-          setSelection(selectedShapeIds);
+        // Check which objects are unlocked (available for selection)
+        const { unlocked, locked, conflicts } = await getUnlockedObjects(selectedShapeIds);
+        
+        // Log any locked objects that were excluded
+        if (locked.length > 0) {
+          console.warn(
+            `[Canvas] ${locked.length} object(s) excluded from selection (locked by other users):`,
+            conflicts
+          );
+          // TODO: Show user-friendly notification with locked object count
+        }
+        
+        // Select only unlocked objects
+        if (unlocked.length > 0) {
+          console.log(`[Canvas] Selecting ${unlocked.length} unlocked object(s)`);
+          
+          // Try to acquire locks for unlocked objects
+          // Skip pre-check since we already filtered for unlocked objects
+          const success = await tryLockAndSelect(unlocked, true); // skipPreCheck = true
+          
+          if (success) {
+            setSelection(unlocked);
+            console.log(`[Canvas] Successfully selected ${unlocked.length} object(s)`);
+          } else {
+            console.warn('[Canvas] Failed to acquire locks for unlocked objects');
+            clearSelection();
+          }
         } else {
-          console.warn('[Canvas] Cannot select all shapes - some are locked by other users');
-          // TODO: Show user-friendly notification
+          // All objects were locked - clear selection
+          console.warn('[Canvas] All objects in marquee are locked - cannot select any');
           clearSelection();
         }
       } else {

@@ -134,6 +134,42 @@ export function useLocking() {
   }, [user]);
 
   /**
+   * Get list of unlocked objects from a collection
+   * Returns IDs of objects that can be selected
+   */
+  const getUnlockedObjects = useCallback(async (objectIds: string[]): Promise<{
+    unlocked: string[];
+    locked: string[];
+    conflicts: Array<{ objectId: string; lockedBy: string }>;
+  }> => {
+    if (!user) {
+      return { unlocked: [], locked: objectIds, conflicts: [] };
+    }
+    if (objectIds.length === 0) {
+      return { unlocked: [], locked: [], conflicts: [] };
+    }
+
+    try {
+      const availability = await checkLockAvailability(objectIds, user.userId);
+      
+      const locked = availability.conflicts.map(c => c.objectId);
+      const unlocked = objectIds.filter(id => !locked.includes(id));
+      
+      return {
+        unlocked,
+        locked,
+        conflicts: availability.conflicts.map(c => ({
+          objectId: c.objectId,
+          lockedBy: c.lockedBy,
+        })),
+      };
+    } catch (error) {
+      console.error('[useLocking] Error checking unlocked objects:', error);
+      return { unlocked: [], locked: objectIds, conflicts: [] };
+    }
+  }, [user]);
+
+  /**
    * Release locks when selection changes
    * This effect monitors selectedIds and releases locks when selection is cleared
    */
@@ -167,6 +203,7 @@ export function useLocking() {
     tryLockAndSelect,
     releaseLocks,
     canSelect,
+    getUnlockedObjects,
     lockedIds: lockedIdsRef.current,
   };
 }
