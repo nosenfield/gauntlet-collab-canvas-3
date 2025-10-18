@@ -10,6 +10,7 @@ import { ToolProvider } from '@/features/displayObjects/common/store/toolStore';
 import { DisplayObjectToolbar } from '@/features/displayObjects/common/components/DisplayObjectToolbar';
 import { ShapesProvider } from '@/features/displayObjects/shapes/store/shapesStore';
 import { SelectionProvider } from '@/features/displayObjects/common/store/selectionStore';
+import { startLockCleanupService } from '@/features/displayObjects/common/services/lockService';
 import './App.css';
 
 /**
@@ -19,6 +20,17 @@ import './App.css';
 function AppContent() {
   // Initialize user presence (heartbeat, cleanup, etc.)
   usePresence();
+
+  // Start lock cleanup service (removes stale locks)
+  useEffect(() => {
+    console.log('[App] Starting lock cleanup service');
+    const stopCleanup = startLockCleanupService();
+    
+    return () => {
+      console.log('[App] Stopping lock cleanup service');
+      stopCleanup();
+    };
+  }, []);
 
   return (
     <>

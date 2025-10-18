@@ -22,6 +22,7 @@ import { useTool } from '@/features/displayObjects/common/store/toolStore';
 import { useMarqueeSelection } from '@/features/displayObjects/common/hooks/useMarqueeSelection';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useBoundingBox } from '@/features/displayObjects/common/hooks/useBoundingBox';
+import { useLocking } from '@/features/displayObjects/common/hooks/useLocking';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
 
 interface UseCanvasInteractionsParams {
@@ -74,6 +75,9 @@ export function useCanvasInteractions({
   
   // Selection state
   const { selectedIds, selectShape, toggleSelectShape, setSelection, clearSelection } = useSelection();
+  
+  // Locking management
+  const { tryLockAndSelect } = useLocking();
   
   // Shapes for selection
   const { shapes } = useShapes();
@@ -136,14 +140,43 @@ export function useCanvasInteractions({
   };
   
   // Handle shape click (select when in select mode)
-  const handleShapeClick = (shapeId: string, isShiftClick: boolean) => {
+  const handleShapeClick = async (shapeId: string, isShiftClick: boolean) => {
     if (isSelectMode()) {
+      // Determine which objects will be selected
+      let targetIds: string[];
+      
       if (isShiftClick) {
-        console.log('[Canvas] Shape shift-clicked in select mode:', shapeId);
-        toggleSelectShape(shapeId);
+        // Shift-click: toggle selection
+        if (selectedIds.includes(shapeId)) {
+          // Deselecting - no need to check locks
+          console.log('[Canvas] Shape shift-clicked (deselecting):', shapeId);
+          toggleSelectShape(shapeId);
+          return;
+        } else {
+          // Adding to selection
+          targetIds = [...selectedIds, shapeId];
+        }
       } else {
-        console.log('[Canvas] Shape clicked in select mode:', shapeId);
-        selectShape(shapeId);
+        // Single click: replace selection
+        targetIds = [shapeId];
+      }
+      
+      // Try to acquire locks for the target selection
+      console.log('[Canvas] Attempting to lock and select:', targetIds);
+      const success = await tryLockAndSelect(targetIds);
+      
+      if (success) {
+        // Locks acquired, update selection
+        if (isShiftClick) {
+          console.log('[Canvas] Shape shift-clicked (adding):', shapeId);
+          toggleSelectShape(shapeId);
+        } else {
+          console.log('[Canvas] Shape clicked in select mode:', shapeId);
+          selectShape(shapeId);
+        }
+      } else {
+        console.warn('[Canvas] Cannot select shape - locked by another user');
+        // TODO: Show user-friendly notification
       }
     }
   };
@@ -170,7 +203,7 @@ export function useCanvasInteractions({
   };
   
   // Handle stage mouse up (complete marquee or shape creation)
-  const handleStageMouseUp = (e: any) => {
+  const handleStageMouseUp = async (e: any) => {
     // Don't interfere if a shape was being dragged by Konva's built-in drag
     const stage = e?.target?.getStage?.();
     if (stage && stage.isDragging && stage.isDragging()) {
@@ -181,7 +214,17 @@ export function useCanvasInteractions({
       // Complete marquee selection
       const selectedShapeIds = marqueeMouseUp();
       if (selectedShapeIds && selectedShapeIds.length > 0) {
-        setSelection(selectedShapeIds);
+        // Try to acquire locks for marquee selection
+        console.log('[Canvas] Attempting to lock marquee selection:', selectedShapeIds);
+        const success = await tryLockAndSelect(selectedShapeIds);
+        
+        if (success) {
+          setSelection(selectedShapeIds);
+        } else {
+          console.warn('[Canvas] Cannot select all shapes - some are locked by other users');
+          // TODO: Show user-friendly notification
+          clearSelection();
+        }
       } else {
         // Clicked on empty space without dragging - clear selection
         clearSelection();

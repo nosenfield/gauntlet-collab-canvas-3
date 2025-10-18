@@ -1021,7 +1021,7 @@ const throttledUpdateCursor = useCallback(
 
 ---
 
-### STAGE3-6: Collection-Level Locking
+### STAGE3-6: Collection-Level Locking ✅
 
 **Objective**: Implement atomic locking for selected collections
 
@@ -1068,16 +1068,16 @@ const throttledUpdateCursor = useCallback(
    ```
 
 **Verification**:
-- [ ] Lock acquisition is atomic
-- [ ] Conflicts logged with user info
-- [ ] Conflicts prevent selection
-- [ ] No partial selections on conflict
-- [ ] Locks release on deselect
-- [ ] Locks release on sign-out
-- [ ] Locks release on tool change
-- [ ] Locks auto-release after 60s
-- [ ] Heartbeat updates every 5s
-- [ ] Stale locks cleaned up
+- [x] Lock acquisition is atomic
+- [x] Conflicts logged with user info
+- [x] Conflicts prevent selection
+- [x] No partial selections on conflict
+- [x] Locks release on deselect
+- [x] Locks release on sign-out
+- [x] Locks release on tool change
+- [x] Locks auto-release after 60s
+- [x] Heartbeat updates every 5s
+- [x] Stale locks cleaned up
 
 **Files to Create**:
 - `src/features/displayObjects/common/services/lockService.ts`
@@ -2512,13 +2512,13 @@ const throttledUpdateCursor = useCallback(
 - ✅ STAGE2-4: Real-Time Cursor Tracking
 - ✅ STAGE2-5: Session Persistence & Testing
 
-### Stage 3: Display Objects - Universal Editing (15 tasks) 🚧 IN PROGRESS (6/15 complete)
+### Stage 3: Display Objects - Universal Editing (15 tasks) 🚧 IN PROGRESS (7/15 complete)
 - ✅ STAGE3-1: Refactor Shapes to Display Objects Structure
 - ✅ STAGE3-2: Display Object Toolbar & Tool Selection
 - ✅ STAGE3-3: Multi-Selection Implementation
 - ✅ STAGE3-4: Collection & Individual Bounding Boxes
 - ✅ STAGE3-5: Individual Object Highlights Rendering
-- ⏸️ STAGE3-6: Collection-Level Locking
+- ✅ STAGE3-6: Collection-Level Locking
 - ✅ STAGE3-7: Translation (Drag) Implementation
 - ⏸️ STAGE3-8: Transform Modal UI
 - ⏸️ STAGE3-9: Rotation Knob Implementation
@@ -2539,7 +2539,7 @@ const throttledUpdateCursor = useCallback(
 - FINAL-4: Final Verification & Handoff
 
 **Total Tasks: 30 (Setup: 2, Stage 1: 5, Stage 2: 5, Stage 3: 15, Stage 4: 9, Final: 4)**
-**Completed: 18/30 (60%)**
+**Completed: 19/30 (63%)**
 **Current Focus: Stage 3 - Universal Editing System**
 
 ---

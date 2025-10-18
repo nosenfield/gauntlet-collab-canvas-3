@@ -17,6 +17,7 @@ import { CanvasLayers } from './CanvasLayers';
 import { useEffect, useRef } from 'react';
 import { FPSMonitor } from './FPSMonitor';
 import { useCursorTracking } from '@/features/presence/hooks/useCursorTracking';
+import { useLockToolIntegration } from '@/features/displayObjects/common/hooks/useLockToolIntegration';
 
 /**
  * Canvas Component
@@ -37,6 +38,9 @@ export function Canvas(): React.ReactElement {
 
   // Track cursor position and sync to Realtime Database
   useCursorTracking({ stageRef, enabled: true });
+
+  // Release locks when switching away from select tool
+  useLockToolIntegration();
 
   // Consolidated interaction handling
   const {
