@@ -10,7 +10,8 @@ import { useSelection } from '../store/selectionStore';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useAuth } from '@/features/auth/store/authStore';
 import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
-import { rotateCollection } from '../utils/transformMath';
+import { rotateCollection, rotatePointAroundCenter } from '../utils/transformMath';
+import { calculateCollectionOBB } from '../utils/boundingBoxUtils';
 import type { Point } from '../types';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
 
@@ -63,13 +64,19 @@ export function useRotation(collectionCenter: Point | null) {
   const initialCenterRef = useRef<Point | null>(null);
   
   // Debounce timer for Firestore writes
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Track if there are uncommitted changes that need to be written
   const hasPendingWriteRef = useRef(false);
   
   // Store original object states (for calculating deltas)
   const originalObjectsRef = useRef<ShapeDisplayObject[]>([]);
+  
+  // Store initial collection OBB corners (for rotating the selection box)
+  const initialCollectionCornersRef = useRef<Point[] | null>(null);
+  
+  // Track rotated collection corners during rotation
+  const [rotatedCollectionCorners, setRotatedCollectionCorners] = useState<Point[] | null>(null);
   
   /**
    * Start rotation tracking
@@ -93,6 +100,11 @@ export function useRotation(collectionCenter: Point | null) {
     // Store original object states
     const selectedShapes = shapes.filter(s => selectedIds.includes(s.id));
     originalObjectsRef.current = selectedShapes;
+    
+    // Calculate and store initial collection OBB corners
+    const collectionOBB = calculateCollectionOBB(selectedShapes);
+    initialCollectionCornersRef.current = collectionOBB?.corners || null;
+    setRotatedCollectionCorners(collectionOBB?.corners || null);
     
     // Reset pending write flag
     hasPendingWriteRef.current = false;
@@ -123,6 +135,14 @@ export function useRotation(collectionCenter: Point | null) {
     // Update cumulative angle
     cumulativeAngleRef.current += angleDelta;
     setCurrentAngle(cumulativeAngleRef.current);
+    
+    // Rotate the collection box corners
+    if (initialCollectionCornersRef.current && initialCenterRef.current) {
+      const rotatedCorners = initialCollectionCornersRef.current.map(corner =>
+        rotatePointAroundCenter(corner, cumulativeAngleRef.current, initialCenterRef.current!)
+      );
+      setRotatedCollectionCorners(rotatedCorners);
+    }
     
     // Apply rotation to selected objects (optimistic update)
     // Use INITIAL center as fixed pivot point
@@ -224,6 +244,8 @@ export function useRotation(collectionCenter: Point | null) {
     lastMousePosRef.current = null;
     initialCenterRef.current = null;
     originalObjectsRef.current = [];
+    initialCollectionCornersRef.current = null;
+    setRotatedCollectionCorners(null);
     
     // Don't reset currentAngle immediately - let CSS animation finish
     setTimeout(() => setCurrentAngle(0), 200);
@@ -245,6 +267,7 @@ export function useRotation(collectionCenter: Point | null) {
     handleGlobalMouseUp,
     isRotating,
     currentAngle,
+    rotatedCollectionCorners, // Rotated OBB corners during rotation (null when not rotating)
   };
 }
 

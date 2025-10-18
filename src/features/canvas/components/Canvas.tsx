@@ -14,7 +14,7 @@ import { useCanvasSize } from '../hooks/useCanvasSize';
 import { useViewport } from '../store/viewportStore';
 import { useCanvasInteractions } from '../hooks/useCanvasInteractions';
 import { CanvasLayers } from './CanvasLayers';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { FPSMonitor } from './FPSMonitor';
 import { useCursorTracking } from '@/features/presence/hooks/useCursorTracking';
 import { useLockToolIntegration } from '@/features/displayObjects/common/hooks/useLockToolIntegration';
@@ -22,6 +22,7 @@ import { useToolShortcuts } from '@/features/displayObjects/common/hooks/useTool
 import { TransformModal } from '@/features/displayObjects/common/components/TransformModal';
 import { useTool } from '@/features/displayObjects/common/store/toolStore';
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
+import type { Point } from '@/features/displayObjects/common/types';
 
 /**
  * Canvas Component
@@ -38,6 +39,14 @@ export function Canvas(): React.ReactElement {
   // Tool and selection state for transform modal
   const { isSelectMode } = useTool();
   const { hasSelection } = useSelection();
+  
+  // Track rotated collection corners during rotation (from TransformModal)
+  const [rotationCorners, setRotationCorners] = useState<Point[] | null>(null);
+  
+  // Callback for TransformModal to expose rotated corners
+  const handleRotationCornersChange = useCallback((corners: Point[] | null) => {
+    setRotationCorners(corners);
+  }, []);
 
   // Sync window dimensions to viewport store
   useEffect(() => {
@@ -115,7 +124,7 @@ export function Canvas(): React.ReactElement {
           onShapeClick={handleShapeClick}
           selectedShapes={selectedShapes}
           objectCorners={objectCorners}
-          collectionCorners={collectionCorners}
+          collectionCorners={rotationCorners || collectionCorners}
           isMarqueeActive={isMarqueeActive}
           marqueeBox={getMarqueeBox()}
         />
@@ -126,6 +135,7 @@ export function Canvas(): React.ReactElement {
         center={collectionCenter}
         viewport={viewport}
         visible={showTransformModal}
+        onRotationCornersChange={handleRotationCornersChange}
       />
 
       {/* FPS Monitor - Development only */}

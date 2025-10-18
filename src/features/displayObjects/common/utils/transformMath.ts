@@ -22,6 +22,15 @@ function degreesToRadians(degrees: number): number {
  * @param angleDegrees - Rotation angle in degrees (positive = clockwise)
  * @param center - Center point of rotation
  * @returns Rotated point
+ * 
+ * @example
+ * ```typescript
+ * const rotated = rotatePointAroundCenter(
+ *   { x: 100, y: 100 },
+ *   45,
+ *   { x: 50, y: 50 }
+ * );
+ * ```
  */
 export function rotatePointAroundCenter(
   point: Point,

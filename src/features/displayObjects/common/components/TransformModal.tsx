@@ -36,6 +36,12 @@ export interface TransformModalProps {
    * Should be true when selection exists AND tool === 'select'
    */
   visible: boolean;
+  
+  /**
+   * Callback to expose rotated collection corners during rotation
+   * Used to render a rotating bounding box (instead of recalculating)
+   */
+  onRotationCornersChange?: (corners: Point[] | null) => void;
 }
 
 /**
@@ -57,6 +63,7 @@ export function TransformModal({
   center,
   viewport,
   visible,
+  onRotationCornersChange,
 }: TransformModalProps): React.ReactElement | null {
   // Rotation hook
   const {
@@ -66,7 +73,15 @@ export function TransformModal({
     handleGlobalMouseUp,
     isRotating,
     currentAngle,
+    rotatedCollectionCorners,
   } = useRotation(center);
+  
+  // Expose rotated collection corners to parent
+  useEffect(() => {
+    if (onRotationCornersChange) {
+      onRotationCornersChange(rotatedCollectionCorners);
+    }
+  }, [rotatedCollectionCorners, onRotationCornersChange]);
   
   // Handle global mouse up (release outside knob)
   useEffect(() => {
