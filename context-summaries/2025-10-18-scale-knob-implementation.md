@@ -14,7 +14,7 @@ Implemented scale knob functionality in the transform modal, allowing users to s
 
 ## Technical Decisions Made
 - **Sensitivity:** 1px drag = 0.002 scale delta (adjusted from 0.01 for less sensitivity)
-- **Scale Constraints:** 0.1 to 10.0 (10% to 1000%) per object
+- **Scale Constraints:** 0.1 to 100.0 (10% to 10,000%) per object
 - **Scaling Logic:** Scale both object positions AND scale properties (scaleX/scaleY)
 - **Pivot Point:** Objects scale from collection center
 - **Position Handling:** Convert top-left to center, scale, then convert back (same as rotation)

@@ -106,8 +106,8 @@ export function useScale(collectionCenter: Point | null) {
     // Update cumulative scale
     cumulativeScaleRef.current += scaleDelta;
     
-    // Clamp cumulative scale to reasonable bounds (0.1 to 10.0)
-    cumulativeScaleRef.current = Math.max(0.1, Math.min(10.0, cumulativeScaleRef.current));
+    // Clamp cumulative scale to reasonable bounds (0.1 to 100.0)
+    cumulativeScaleRef.current = Math.max(0.1, Math.min(100.0, cumulativeScaleRef.current));
     
     setCurrentScale(cumulativeScaleRef.current);
     

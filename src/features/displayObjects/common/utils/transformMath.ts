@@ -205,9 +205,9 @@ export function scaleCollection(
     const newScaleX = obj.scaleX * scaleFactor;
     const newScaleY = obj.scaleY * scaleFactor;
     
-    // Apply constraints (0.1 to 10.0)
-    const constrainedScaleX = Math.max(0.1, Math.min(10.0, newScaleX));
-    const constrainedScaleY = Math.max(0.1, Math.min(10.0, newScaleY));
+    // Apply constraints (0.1 to 100.0)
+    const constrainedScaleX = Math.max(0.1, Math.min(100.0, newScaleX));
+    const constrainedScaleY = Math.max(0.1, Math.min(100.0, newScaleY));
     
     // Calculate new half dimensions with constrained scale
     const newHalfWidth = (obj.type === 'rectangle' ? (obj.width * constrainedScaleX) / 2 : 
