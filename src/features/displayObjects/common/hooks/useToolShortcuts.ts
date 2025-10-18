@@ -2,7 +2,7 @@
  * useToolShortcuts Hook
  * 
  * Handles keyboard shortcuts for tool selection
- * V = Select, R = Rectangle, C = Circle, L = Line
+ * V = Select, R = Rectangle, C = Circle, L = Line, T = Text
  */
 
 import { useEffect } from 'react';
@@ -16,6 +16,7 @@ const TOOL_SHORTCUTS: Record<string, ToolType> = {
   'r': 'rectangle',
   'c': 'circle',
   'l': 'line',
+  't': 'text',
 };
 
 /**

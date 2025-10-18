@@ -21,11 +21,13 @@ import { useSelection } from '@/features/displayObjects/common/store/selectionSt
 import { useTool } from '@/features/displayObjects/common/store/toolStore';
 import { useMarqueeSelection } from '@/features/displayObjects/common/hooks/useMarqueeSelection';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
+import { useTexts } from '@/features/displayObjects/texts/store/textsStore';
 import { useBoundingBox } from '@/features/displayObjects/common/hooks/useBoundingBox';
 import { useLocking } from '@/features/displayObjects/common/hooks/useLocking';
 import { useCollectionDrag } from '@/features/displayObjects/common/hooks/useCollectionDrag';
 import { useAuth } from '@/features/auth/store/authStore';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
+import type { TransformableObject } from '@/features/displayObjects/common/types';
 
 interface UseCanvasInteractionsParams {
   stageRef: React.RefObject<any>;
@@ -91,8 +93,9 @@ export function useCanvasInteractions({
   // Locking management
   const { tryLockAndSelect, getUnlockedObjects } = useLocking();
   
-  // Shapes for selection
+  // Shapes and texts for selection
   const { shapes } = useShapes();
+  const { texts } = useTexts();
   const { user } = useAuth();
   
   // Shape creation handler
@@ -107,8 +110,10 @@ export function useCanvasInteractions({
     handleMouseUp: marqueeMouseUp,
   } = useMarqueeSelection(shapes, stageRef, isSelectMode());
   
-  // Get selected shapes for bounding box calculation and drag
+  // Get selected objects (both shapes and texts) for bounding box calculation and drag
   const selectedShapes = shapes.filter(shape => selectedIds.includes(shape.id));
+  const selectedTexts = texts.filter(text => selectedIds.includes(text.id));
+  const selectedObjects: TransformableObject[] = [...selectedShapes, ...selectedTexts];
   
   // Collection drag - provides optimistic shapes during drag
   const {
@@ -121,12 +126,13 @@ export function useCanvasInteractions({
   } = useCollectionDrag(selectedShapes, user?.userId, isSelectMode());
   
   // Use optimistic shapes for bounding box calculation during drag
-  const shapesForBoundingBox = isCollectionDragging && dragOptimisticShapes 
-    ? dragOptimisticShapes 
-    : selectedShapes;
+  // TODO: dragOptimisticShapes currently only contains shapes, need to handle texts too
+  const objectsForBoundingBox = isCollectionDragging && dragOptimisticShapes 
+    ? [...dragOptimisticShapes, ...selectedTexts]  // Combine optimistic shapes with selected texts
+    : selectedObjects;
   
-  // Calculate bounding boxes for selected shapes (or optimistic shapes during drag)
-  const { collectionBounds, collectionCenter, collectionCorners, objectCorners } = useBoundingBox(shapesForBoundingBox);
+  // Calculate bounding boxes for selected objects (or optimistic objects during drag)
+  const { collectionBounds, collectionCenter, collectionCorners, objectCorners } = useBoundingBox(objectsForBoundingBox);
   
   // Pan gesture handling via scroll/wheel
   const panHandlers = usePan({

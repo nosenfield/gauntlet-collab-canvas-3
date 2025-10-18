@@ -40,6 +40,8 @@ export interface CircleShape extends BaseDisplayObject, ShapeVisualProperties {
   category: 'shape';
   type: 'circle';
   radius: number;          // Radius in pixels
+  width: number;           // Diameter (radius * 2) - for TransformableObject compatibility
+  height: number;          // Diameter (radius * 2) - for TransformableObject compatibility
 }
 
 /**

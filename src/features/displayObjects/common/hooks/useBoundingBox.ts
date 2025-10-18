@@ -6,8 +6,7 @@
  */
 
 import { useMemo } from 'react';
-import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
-import type { AxisAlignedBoundingBox, Point } from '../types';
+import type { AxisAlignedBoundingBox, Point, TransformableObject } from '../types';
 import { 
   calculateCollectionAABB,
   calculateCollectionOBB,
@@ -33,40 +32,34 @@ export interface BoundingBoxData {
 /**
  * useBoundingBox Hook
  * 
- * Calculates bounding boxes for a collection of selected shapes
- * Results are memoized based on shape IDs and their properties
+ * Calculates bounding boxes for a collection of selected display objects
+ * Results are memoized based on object IDs and their properties
  * 
- * @param selectedShapes - Array of selected shape objects
+ * @param selectedObjects - Array of selected display objects (shapes, texts, etc.)
  * @returns Bounding box data for rendering
  * 
  * @example
  * ```tsx
- * const { collectionBounds, objectCorners } = useBoundingBox(selectedShapes);
+ * const { collectionBounds, objectCorners } = useBoundingBox(selectedObjects);
  * 
  * if (collectionBounds) {
  *   return <CollectionBoundingBox bounds={collectionBounds} />;
  * }
  * ```
  */
-export function useBoundingBox(selectedShapes: ShapeDisplayObject[]): BoundingBoxData {
-  // Create a stable dependency key from all shape properties
+export function useBoundingBox(selectedObjects: TransformableObject[]): BoundingBoxData {
+  // Create a stable dependency key from all object properties
   // This ensures useMemo recalculates when any relevant property changes
-  const shapesKey = useMemo(() => {
-    return selectedShapes.map(s => {
-      const dimensions = s.type === 'rectangle' 
-        ? `${s.width},${s.height}` 
-        : s.type === 'circle' 
-        ? `r${s.radius}` 
-        : 'other';
-      
-      return `${s.id}:${s.x},${s.y},${s.rotation},${s.scaleX},${s.scaleY},${dimensions}`;
-    }).join('|');
-  }, [selectedShapes]);
+  const objectsKey = useMemo(() => {
+    return selectedObjects.map(obj => 
+      `${obj.id}:${obj.x},${obj.y},${obj.rotation},${obj.scaleX},${obj.scaleY},${obj.width},${obj.height}`
+    ).join('|');
+  }, [selectedObjects]);
   
-  // Calculate bounding boxes when selection or shape properties change
+  // Calculate bounding boxes when selection or object properties change
   const boundingBoxData = useMemo(() => {
     // No selection - return empty data
-    if (selectedShapes.length === 0) {
+    if (selectedObjects.length === 0) {
       return {
         collectionBounds: null,
         collectionCenter: null,
@@ -76,18 +69,18 @@ export function useBoundingBox(selectedShapes: ShapeDisplayObject[]): BoundingBo
     }
     
     // Calculate collection AABB (for backward compatibility)
-    const collectionBounds = calculateCollectionAABB(selectedShapes);
+    const collectionBounds = calculateCollectionAABB(selectedObjects);
     const collectionCenter = collectionBounds ? getAABBCenter(collectionBounds) : null;
     
     // Calculate collection OBB (for rendering)
-    const collectionOBB = calculateCollectionOBB(selectedShapes);
+    const collectionOBB = calculateCollectionOBB(selectedObjects);
     const collectionCorners = collectionOBB ? collectionOBB.corners : null;
     
     // Calculate OBB corners for each object
     const objectCorners = new Map<string, Point[]>();
-    for (const shape of selectedShapes) {
-      const corners = getObjectCorners(shape);
-      objectCorners.set(shape.id, corners);
+    for (const obj of selectedObjects) {
+      const corners = getObjectCorners(obj);
+      objectCorners.set(obj.id, corners);
     }
     
     return {
@@ -96,7 +89,7 @@ export function useBoundingBox(selectedShapes: ShapeDisplayObject[]): BoundingBo
       collectionCorners,
       objectCorners,
     };
-  }, [selectedShapes, shapesKey]);
+  }, [selectedObjects, objectsKey]);
   
   return boundingBoxData;
 }

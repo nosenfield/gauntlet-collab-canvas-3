@@ -6,6 +6,7 @@
  */
 
 import { Text } from 'react-konva';
+import type { KonvaEventObject } from 'konva/lib/Node';
 import type { TextDisplayObject } from '../types';
 
 /**
@@ -15,6 +16,11 @@ export interface TextObjectProps {
   text: TextDisplayObject;
   isSelected?: boolean;
   onClick?: (e: any) => void;
+  onCollectionDragStart?: (textId: string) => void;
+  onCollectionDragMove?: (textId: string, x: number, y: number) => void;
+  onDragEnd?: (textId: string, x: number, y: number) => void;
+  draggable?: boolean;
+  listening?: boolean;
 }
 
 /**
@@ -27,7 +33,62 @@ export function TextObject({
   text,
   isSelected = false,
   onClick,
+  onCollectionDragStart,
+  onCollectionDragMove,
+  onDragEnd,
+  draggable,
+  listening,
 }: TextObjectProps): React.ReactElement {
+  
+  const handleClick = (e: KonvaEventObject<MouseEvent>) => {
+    if (onClick) {
+      const isShiftClick = e.evt.shiftKey;
+      onClick(text.id, isShiftClick);
+    }
+  };
+
+  const handleDragStart = (_e: KonvaEventObject<DragEvent>) => {
+    // If this is part of a collection, notify the collection drag system
+    if (onCollectionDragStart && isSelected) {
+      onCollectionDragStart(text.id);
+    }
+  };
+
+  const handleDragMove = (e: KonvaEventObject<DragEvent>) => {
+    // If this is part of a collection, notify the collection drag system
+    // Note: Konva reports CENTER position (due to our offset), convert to top-left
+    if (onCollectionDragMove && isSelected) {
+      const node = e.target;
+      const centerX = node.x();
+      const centerY = node.y();
+      const halfWidth = (text.width * text.scaleX) / 2;
+      const halfHeight = (text.height * text.scaleY) / 2;
+      const topLeftX = centerX - halfWidth;
+      const topLeftY = centerY - halfHeight;
+      onCollectionDragMove(text.id, topLeftX, topLeftY);
+    }
+  };
+
+  const handleDragEnd = (e: KonvaEventObject<DragEvent>) => {
+    // Convert from center position to top-left for our data model
+    if (onDragEnd) {
+      const node = e.target;
+      const centerX = node.x();
+      const centerY = node.y();
+      const halfWidth = (text.width * text.scaleX) / 2;
+      const halfHeight = (text.height * text.scaleY) / 2;
+      const topLeftX = centerX - halfWidth;
+      const topLeftY = centerY - halfHeight;
+      onDragEnd(text.id, topLeftX, topLeftY);
+    }
+  };
+
+  // Determine if text should be draggable
+  const isDraggable = draggable !== undefined ? draggable : isSelected;
+  
+  // Determine if text should listen to events
+  const isListening = listening !== undefined ? listening : true;
+  
   // Calculate center position for rendering (Konva rotates around center)
   const centerX = text.x + (text.width * text.scaleX) / 2;
   const centerY = text.y + (text.height * text.scaleY) / 2;
@@ -69,18 +130,19 @@ export function TextObject({
       fill={text.color}
       opacity={text.opacity}
       
-      // Selection visual feedback
-      shadowColor={isSelected ? '#4A9EFF' : undefined}
-      shadowBlur={isSelected ? 6 : 0}
-      shadowOpacity={isSelected ? 0.6 : 0}
-      
       // Interaction
-      onClick={onClick}
-      onTap={onClick}
+      onClick={handleClick}
+      onTap={handleClick}
+      
+      // Drag events
+      draggable={isDraggable}
+      onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
+      onDragEnd={handleDragEnd}
       
       // Performance
       perfectDrawEnabled={false}
-      listening={true}
+      listening={isListening}
       
       // Cursor
       cursor={isSelected ? 'move' : 'pointer'}

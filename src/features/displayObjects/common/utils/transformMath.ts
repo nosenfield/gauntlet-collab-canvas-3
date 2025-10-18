@@ -5,8 +5,7 @@
  * All angles are in degrees for user-friendly 1px = 1° sensitivity.
  */
 
-import type { Point } from '../types';
-import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
+import type { Point, TransformableObject } from '../types';
 
 /**
  * Convert degrees to radians
@@ -80,30 +79,16 @@ export function rotatePointAroundCenter(
  * );
  * ```
  */
-export function rotateCollection(
-  objects: ShapeDisplayObject[],
+export function rotateCollection<T extends TransformableObject>(
+  objects: T[],
   angleDegrees: number,
   center: Point
-): ShapeDisplayObject[] {
+): T[] {
   return objects.map(obj => {
     // Calculate object's center point (accounting for scale)
-    // Handle different shape types - MVP currently only has rectangles
-    let halfWidth: number;
-    let halfHeight: number;
-    
-    if (obj.type === 'rectangle') {
-      halfWidth = (obj.width * obj.scaleX) / 2;
-      halfHeight = (obj.height * obj.scaleY) / 2;
-    } else if (obj.type === 'circle') {
-      // Circle: treat as square bounding box
-      const diameter = obj.radius * 2;
-      halfWidth = (diameter * obj.scaleX) / 2;
-      halfHeight = (diameter * obj.scaleY) / 2;
-    } else {
-      // Line: use bounding box of points (not yet implemented in MVP)
-      halfWidth = 0;
-      halfHeight = 0;
-    }
+    // Works for any object with width/height properties
+    const halfWidth = (obj.width * obj.scaleX) / 2;
+    const halfHeight = (obj.height * obj.scaleY) / 2;
     
     const objectCenter = {
       x: obj.x + halfWidth,
@@ -158,11 +143,11 @@ export function rotateCollection(
  * );
  * ```
  */
-export function scaleCollection(
-  objects: ShapeDisplayObject[],
+export function scaleCollection<T extends TransformableObject>(
+  objects: T[],
   scaleFactor: number,
   center: Point
-): ShapeDisplayObject[] {
+): T[] {
   // Prevent zero or negative scaling
   if (scaleFactor <= 0) {
     console.warn('[transformMath] Invalid scale factor:', scaleFactor);
@@ -171,23 +156,9 @@ export function scaleCollection(
   
   return objects.map(obj => {
     // Calculate object's center point (accounting for ORIGINAL scale)
-    // Handle different shape types - MVP currently only has rectangles
-    let halfWidth: number;
-    let halfHeight: number;
-    
-    if (obj.type === 'rectangle') {
-      halfWidth = (obj.width * obj.scaleX) / 2;
-      halfHeight = (obj.height * obj.scaleY) / 2;
-    } else if (obj.type === 'circle') {
-      // Circle: treat as square bounding box
-      const diameter = obj.radius * 2;
-      halfWidth = (diameter * obj.scaleX) / 2;
-      halfHeight = (diameter * obj.scaleY) / 2;
-    } else {
-      // Line: use bounding box of points (not yet implemented in MVP)
-      halfWidth = 0;
-      halfHeight = 0;
-    }
+    // Works for any object with width/height properties
+    const halfWidth = (obj.width * obj.scaleX) / 2;
+    const halfHeight = (obj.height * obj.scaleY) / 2;
     
     const objectCenter = {
       x: obj.x + halfWidth,
@@ -210,10 +181,8 @@ export function scaleCollection(
     const constrainedScaleY = Math.max(0.1, Math.min(100.0, newScaleY));
     
     // Calculate new half dimensions with constrained scale
-    const newHalfWidth = (obj.type === 'rectangle' ? (obj.width * constrainedScaleX) / 2 : 
-                          obj.type === 'circle' ? (obj.radius * 2 * constrainedScaleX) / 2 : 0);
-    const newHalfHeight = (obj.type === 'rectangle' ? (obj.height * constrainedScaleY) / 2 : 
-                           obj.type === 'circle' ? (obj.radius * 2 * constrainedScaleY) / 2 : 0);
+    const newHalfWidth = (obj.width * constrainedScaleX) / 2;
+    const newHalfHeight = (obj.height * constrainedScaleY) / 2;
     
     // Convert back to top-left coordinates
     const newX = newCenterX - newHalfWidth;

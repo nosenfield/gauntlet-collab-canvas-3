@@ -159,3 +159,14 @@ export const DISPLAY_OBJECT_CONSTANTS = {
   MAX_OPACITY: 1,
 } as const;
 
+/**
+ * TransformableObject
+ * 
+ * Interface for any display object that can be transformed (moved, rotated, scaled).
+ * Used by transform hooks and utilities to work with multiple object types.
+ */
+export interface TransformableObject extends BaseDisplayObject {
+  width: number;
+  height: number;
+}
+

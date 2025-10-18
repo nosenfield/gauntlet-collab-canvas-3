@@ -44,7 +44,6 @@ Added text tool to the toolbar and implemented text object creation functionalit
 - **Default Content:** "Double-click to edit"
 - **Default Size:** 200px × 100px
 - **Rotation Support:** Uses offset pivot for rotation (matches shapes)
-- **Selection Highlight:** Blue shadow when selected
 
 ### Coordinate Handling:
 - Data model stores x,y as top-left
@@ -90,7 +89,7 @@ Added text tool to the toolbar and implemented text object creation functionalit
    - Size: 200px × 100px
    - Tool reverts to select
    - Text visible to other users
-4. Select text object - should show blue shadow
+4. Select text object - bounding box should appear
 5. Check Firestore - text document created in `/documents/main/texts/`
 
 ## Next Steps
@@ -169,8 +168,6 @@ export function TextObject({ text, isSelected, onClick }: TextObjectProps) {
       wrap="word"
       fill={text.color}
       opacity={text.opacity}
-      shadowColor={isSelected ? '#4A9EFF' : undefined}
-      shadowBlur={isSelected ? 6 : 0}
       onClick={onClick}
       cursor={isSelected ? 'move' : 'pointer'}
     />

@@ -5,8 +5,7 @@
  * for display objects and collections
  */
 
-import type { Point, AxisAlignedBoundingBox, OrientedBoundingBox } from '../types';
-import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
+import type { Point, AxisAlignedBoundingBox, OrientedBoundingBox, TransformableObject } from '../types';
 import { rotatePoint } from './geometryUtils';
 
 /**
@@ -21,28 +20,16 @@ import { rotatePoint } from './geometryUtils';
  * @param shape - The shape to calculate OBB for
  * @returns Oriented bounding box with 4 corner points
  */
-export function calculateObjectOBB(shape: ShapeDisplayObject): OrientedBoundingBox {
-  // Calculate shape dimensions
-  let width: number;
-  let height: number;
-  
-  if (shape.type === 'rectangle') {
-    width = shape.width * shape.scaleX;
-    height = shape.height * shape.scaleY;
-  } else if (shape.type === 'circle') {
-    const scaledRadius = shape.radius * Math.max(shape.scaleX, shape.scaleY);
-    width = scaledRadius * 2;
-    height = scaledRadius * 2;
-  } else {
-    width = 10;
-    height = 10;
-  }
+export function calculateObjectOBB(object: TransformableObject): OrientedBoundingBox {
+  // Calculate object dimensions (works for any object with width/height)
+  const width = object.width * object.scaleX;
+  const height = object.height * object.scaleY;
   
   // Data model: x,y is top-left corner
   // Center is at top-left + half dimensions
   const center: Point = {
-    x: shape.x + width / 2,
-    y: shape.y + height / 2,
+    x: object.x + width / 2,
+    y: object.y + height / 2,
   };
   
   // Calculate local corners relative to center
@@ -57,7 +44,7 @@ export function calculateObjectOBB(shape: ShapeDisplayObject): OrientedBoundingB
   ];
   
   // If no rotation, corners are simply center + local corners
-  if (shape.rotation === 0) {
+  if (object.rotation === 0) {
     const worldCorners = localCorners.map(corner => ({
       x: center.x + corner.x,
       y: center.y + corner.y,
@@ -76,39 +63,39 @@ export function calculateObjectOBB(shape: ShapeDisplayObject): OrientedBoundingB
       x: center.x + corner.x,
       y: center.y + corner.y,
     };
-    return rotatePoint(worldPoint, shape.rotation, center);
+    return rotatePoint(worldPoint, object.rotation, center);
   });
   
   return {
     corners: worldCorners,
     center,
-    rotation: shape.rotation,
+    rotation: object.rotation,
   };
 }
 
 /**
  * Get the 4 corners of an OBB for rendering
  * 
- * @param shape - The shape to get corners for
+ * @param object - The display object to get corners for
  * @returns Array of 4 corner points in world space
  */
-export function getObjectCorners(shape: ShapeDisplayObject): Point[] {
-  const obb = calculateObjectOBB(shape);
+export function getObjectCorners(object: TransformableObject): Point[] {
+  const obb = calculateObjectOBB(object);
   return obb.corners;
 }
 
 /**
- * Calculate the Axis-Aligned Bounding Box (AABB) for a single shape
+ * Calculate the Axis-Aligned Bounding Box (AABB) for a single object
  * 
  * AABB is always axis-aligned (no rotation) and represents the smallest
- * rectangle that contains the shape's OBB
+ * rectangle that contains the object's OBB
  * 
- * @param shape - The shape to calculate AABB for
+ * @param object - The display object to calculate AABB for
  * @returns Axis-aligned bounding box
  */
-export function calculateObjectAABB(shape: ShapeDisplayObject): AxisAlignedBoundingBox {
+export function calculateObjectAABB(object: TransformableObject): AxisAlignedBoundingBox {
   // Get the OBB corners
-  const corners = getObjectCorners(shape);
+  const corners = getObjectCorners(object);
   
   // Find min/max coordinates
   const xs = corners.map(c => c.x);
@@ -136,13 +123,13 @@ export function calculateObjectAABB(shape: ShapeDisplayObject): AxisAlignedBound
  * @param shapes - Array of shapes in the collection
  * @returns Axis-aligned bounding box containing all shapes
  */
-export function calculateCollectionAABB(shapes: ShapeDisplayObject[]): AxisAlignedBoundingBox | null {
-  if (shapes.length === 0) {
+export function calculateCollectionAABB(objects: TransformableObject[]): AxisAlignedBoundingBox | null {
+  if (objects.length === 0) {
     return null;
   }
   
-  // Get all corners from all shapes
-  const allCorners = shapes.flatMap(shape => getObjectCorners(shape));
+  // Get all corners from all objects
+  const allCorners = objects.flatMap(obj => getObjectCorners(obj));
   
   // Find min/max coordinates
   const xs = allCorners.map(c => c.x);
@@ -183,13 +170,13 @@ export function getAABBCenter(aabb: AxisAlignedBoundingBox): Point {
  * @param shapes - Array of shapes in the collection
  * @returns Oriented bounding box with 4 corners, or null if no shapes
  */
-export function calculateCollectionOBB(shapes: ShapeDisplayObject[]): OrientedBoundingBox | null {
-  if (shapes.length === 0) {
+export function calculateCollectionOBB(objects: TransformableObject[]): OrientedBoundingBox | null {
+  if (objects.length === 0) {
     return null;
   }
   
-  // Get all corners from all shapes
-  const allCorners = shapes.flatMap(shape => getObjectCorners(shape));
+  // Get all corners from all objects
+  const allCorners = objects.flatMap(obj => getObjectCorners(obj));
   
   // Calculate the center of all corners
   const sumX = allCorners.reduce((sum, c) => sum + c.x, 0);
@@ -233,9 +220,9 @@ export function calculateCollectionOBB(shapes: ShapeDisplayObject[]): OrientedBo
  * @returns Bounding box and center point, or null if no shapes
  */
 export function recalculateBoundsAfterTransform(
-  shapes: ShapeDisplayObject[]
+  objects: TransformableObject[]
 ): { bounds: AxisAlignedBoundingBox; center: Point } | null {
-  const bounds = calculateCollectionAABB(shapes);
+  const bounds = calculateCollectionAABB(objects);
   
   if (!bounds) {
     return null;
