@@ -69,8 +69,40 @@ Blockers: [Any issues encountered]
 Awaiting your approval to continue.
 ```
 3. **Wait** for explicit user approval before moving to next task
+4. **NEVER make git commits automatically** - Always ask user for approval before committing
 
-### Rule 3: Context Summary Documents
+### Rule 3: Git Commit Approval
+**CRITICAL GIT RULE:**
+
+- ❌ **NEVER** automatically commit code after completing a task
+- ❌ **NEVER** assume the user wants changes committed
+- ✅ **ALWAYS** wait for explicit user approval before committing
+- ✅ **ASK** the user if they want to commit changes after task completion
+
+**Format for commit request:**
+```
+📝 READY TO COMMIT
+
+Files changed:
+- [List of modified/created files]
+
+Proposed commit message:
+[Phase X] [Brief description]
+
+Would you like me to:
+A) Commit these changes now
+B) Wait - you'll review first
+C) Modify the commit message
+
+Waiting for your decision.
+```
+
+**Only commit when:**
+- User explicitly says "commit", "make a commit", or approves option A
+- User has reviewed and approved the changes
+- User confirms the commit message is acceptable
+
+### Rule 4: Context Summary Documents
 At the end of EVERY completed task, automatically create or update a context summary document.
 
 **File Location:** `context-summaries/YYYY-MM-DD-task-name.md`
@@ -277,6 +309,8 @@ Please confirm before I proceed.
 
 ## Git Commit Conventions
 
+**IMPORTANT:** Never commit automatically. Always ask for user approval first.
+
 **Format:** `[Phase] Brief description`
 
 **Examples:**
@@ -284,7 +318,7 @@ Please confirm before I proceed.
 - `[Phase 2] Add user presence system`
 - `[Phase 3] Create rectangle drawing tool`
 
-**Commit frequency:** After each completed subtask or significant milestone.
+**Commit frequency:** After each completed subtask or significant milestone, BUT ONLY after user approval.
 
 ---
 
@@ -447,7 +481,7 @@ At the start of each session:
 At the end of each session:
 - [ ] Create context summary for completed tasks
 - [ ] Update TASK_LIST.md checkboxes
-- [ ] Commit all changes
+- [ ] **ASK user about committing changes** (never commit automatically)
 - [ ] Note any blockers for next session
 
 ---
@@ -467,6 +501,7 @@ At the end of each session:
 
 - **ASK when uncertain** - Better to ask than assume
 - **CHECK IN after tasks** - Don't move forward automatically  
+- **NEVER commit automatically** - Always get explicit user approval
 - **DOCUMENT everything** - Future sessions depend on context
 - **FOLLOW the guide** - react-architecture-guide.md is your rulebook
 - **TEST frequently** - Catch issues early
@@ -486,7 +521,8 @@ At the end of each session:
 **Before any action:** Check PRD.md and TASK_LIST.md
 **When uncertain:** Ask the user
 **After completion:** Create context summary and check in
-**Every commit:** Follow naming convention
+**Before committing:** Ask for explicit user approval
+**Every commit:** Follow naming convention (only after approval)
 **Every component:** Follow React architecture guide
 **Every Firebase call:** Use service layer
 **Every task:** Update TASK_LIST.md checkboxes

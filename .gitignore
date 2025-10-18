@@ -24,10 +24,7 @@ dist-ssr
 *.sw?
 
 # Environment vars
-.env
-.env.prod
-.env.development
-.env.production
+.env*
 
 # Firebase
 .firebase/
