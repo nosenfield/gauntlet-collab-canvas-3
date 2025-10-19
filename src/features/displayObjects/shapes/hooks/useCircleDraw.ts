@@ -24,9 +24,11 @@ interface Point {
 interface CircleDimensions {
   x: number;        // Center X
   y: number;        // Center Y
-  radius: number;   // Radius
-  width: number;    // Diameter (for TransformableObject compatibility)
-  height: number;   // Diameter (for TransformableObject compatibility)
+  radius: number;   // Radius (average of radiusX and radiusY for data model)
+  width: number;    // Width (radiusX * 2)
+  height: number;   // Height (radiusY * 2)
+  radiusX: number;  // Horizontal radius (for preview rendering)
+  radiusY: number;  // Vertical radius (for preview rendering)
 }
 
 interface UseCircleDrawReturn {
@@ -73,8 +75,8 @@ export function useCircleDraw(): UseCircleDrawReturn {
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
 
   /**
-   * Calculate circle dimensions from bounding box
-   * Circle fits within the rectangle defined by start and current points
+   * Calculate circle/ellipse dimensions from bounding box
+   * Ellipse fills the entire rectangle defined by start and current points
    */
   const calculateCircle = useCallback((start: Point, current: Point): CircleDimensions => {
     // Calculate bounding box
@@ -89,20 +91,25 @@ export function useCircleDraw(): UseCircleDrawReturn {
     const boxWidth = Math.abs(rawWidth);
     const boxHeight = Math.abs(rawHeight);
     
-    // Circle fits within bounding box - use minimum dimension as diameter
-    const diameter = Math.min(boxWidth, boxHeight);
-    const radius = diameter / 2;
+    // Ellipse fills entire bounding box
+    const radiusX = boxWidth / 2;
+    const radiusY = boxHeight / 2;
     
-    // Center of the circle (within bounding box)
-    const centerX = boxX + radius;
-    const centerY = boxY + radius;
+    // Center of the ellipse
+    const centerX = boxX + radiusX;
+    const centerY = boxY + radiusY;
+    
+    // For data model, use average radius (will be scaled via scaleX/scaleY later if needed)
+    const radius = Math.min(radiusX, radiusY);
     
     return {
       x: centerX,
       y: centerY,
       radius,
-      width: diameter,
-      height: diameter,
+      width: boxWidth,
+      height: boxHeight,
+      radiusX,
+      radiusY,
     };
   }, []);
 
@@ -207,8 +214,8 @@ export function useCircleDraw(): UseCircleDrawReturn {
     setStartPoint(null);
     setCurrentPoint(null);
 
-    // Check minimum size (radius)
-    if (circle.radius < MIN_SIZE) {
+    // Check minimum size (both radii must meet minimum)
+    if (circle.radiusX < MIN_SIZE || circle.radiusY < MIN_SIZE) {
       console.log('[CircleDraw] Circle too small, discarding');
       return null;
     }

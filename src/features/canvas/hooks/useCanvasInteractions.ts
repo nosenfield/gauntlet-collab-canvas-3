@@ -70,7 +70,7 @@ interface UseCanvasInteractionsReturn {
   
   // Circle drawing state
   isDrawingCircle: boolean;
-  previewCircle: { x: number; y: number; radius: number } | null;
+  previewCircle: { x: number; y: number; radiusX: number; radiusY: number } | null;
   
   // Line drawing state
   isDrawingLine: boolean;

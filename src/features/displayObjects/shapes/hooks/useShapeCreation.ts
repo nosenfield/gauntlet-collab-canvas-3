@@ -127,9 +127,9 @@ export function useShapeCreation() {
         return null;
       }
 
-      const { x, y, radius } = options;
+      const { x, y, radius, width, height } = options;
 
-      console.log('[ShapeCreation] Creating circle:', { x, y, radius });
+      console.log('[ShapeCreation] Creating circle:', { x, y, radius, width, height });
 
       try {
         const shapeData: CreateShapeData = {
@@ -137,6 +137,8 @@ export function useShapeCreation() {
           x,
           y,
           radius,
+          width,
+          height,
           // Visual properties will use DEFAULT_SHAPE_PROPERTIES.circle
         };
 
@@ -201,8 +203,8 @@ export function useShapeCreation() {
         return;
       }
 
-      if (currentTool === 'select' || currentTool === 'text' || currentTool === 'rectangle') {
-        // Selection mode, text tool, or rectangle (uses drag) - don't create shapes on click
+      if (currentTool === 'select' || currentTool === 'text' || currentTool === 'rectangle' || currentTool === 'circle' || currentTool === 'line') {
+        // Selection mode, text tool, or drag-to-create tools (rectangle, circle, line) - don't create shapes on click
         return;
       }
 

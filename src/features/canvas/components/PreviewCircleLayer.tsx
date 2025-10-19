@@ -12,7 +12,7 @@ import { PreviewCircle } from '@/features/displayObjects/shapes/components/Previ
 
 interface PreviewCircleLayerProps {
   isDrawing: boolean;
-  previewCircle: { x: number; y: number; radius: number } | null;
+  previewCircle: { x: number; y: number; radiusX: number; radiusY: number } | null;
 }
 
 /**

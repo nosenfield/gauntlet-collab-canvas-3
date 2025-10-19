@@ -13,25 +13,73 @@ import { rotatePoint } from './geometryUtils';
  * 
  * OBB accounts for rotation and returns the 4 corners of the rotated rectangle
  * 
- * Note: Our data model stores x,y as top-left corner.
- * Konva rendering uses offset to rotate around center.
- * This calculation matches that behavior.
+ * Note: Coordinate system varies by object type:
+ * - Rectangles: x,y is top-left corner
+ * - Circles: x,y is center point
+ * - Lines: x,y is start point, use points to calculate bounds
  * 
  * @param shape - The shape to calculate OBB for
  * @returns Oriented bounding box with 4 corner points
  */
 export function calculateObjectOBB(object: TransformableObject): OrientedBoundingBox {
-  // Calculate object dimensions (works for any object with width/height)
-  // Add safety checks to prevent NaN
-  const width = (object.width ?? 0) * (object.scaleX ?? 1);
-  const height = (object.height ?? 0) * (object.scaleY ?? 1);
+  // Handle lines specially - they use points array instead of width/height
+  const isLine = 'category' in object && object.category === 'shape' && 'type' in object && (object as any).type === 'line';
   
-  // Data model: x,y is top-left corner
-  // Center is at top-left + half dimensions
-  const center: Point = {
-    x: (object.x ?? 0) + width / 2,
-    y: (object.y ?? 0) + height / 2,
-  };
+  let width: number;
+  let height: number;
+  
+  if (isLine && 'points' in object) {
+    // For lines, calculate bounding box from points array
+    const points = (object as any).points as number[];
+    if (points && points.length >= 4) {
+      // Points are [x1, y1, x2, y2] relative to line position
+      // Calculate dimensions from points
+      const x1 = points[0] * (object.scaleX ?? 1);
+      const y1 = points[1] * (object.scaleY ?? 1);
+      const x2 = points[2] * (object.scaleX ?? 1);
+      const y2 = points[3] * (object.scaleY ?? 1);
+      
+      width = Math.abs(x2 - x1);
+      height = Math.abs(y2 - y1);
+    } else {
+      width = 0;
+      height = 0;
+    }
+  } else {
+    // Calculate object dimensions (works for shapes with width/height)
+    // Add safety checks to prevent NaN
+    width = (object.width ?? 0) * (object.scaleX ?? 1);
+    height = (object.height ?? 0) * (object.scaleY ?? 1);
+  }
+  
+  // Determine center based on object type
+  // Circles store (x,y) as center, others store as top-left
+  const isCircle = 'category' in object && object.category === 'shape' && 'type' in object && (object as any).type === 'circle';
+  
+  let center: Point;
+  
+  if (isCircle) {
+    // Circle: x,y is already the center
+    center = {
+      x: object.x ?? 0,
+      y: object.y ?? 0,
+    };
+  } else if (isLine && 'points' in object) {
+    // Line: x,y is start point, center is midpoint
+    const linePoints = (object as any).points as number[];
+    const lineX2 = (linePoints[2] ?? 0) * (object.scaleX ?? 1);
+    const lineY2 = (linePoints[3] ?? 0) * (object.scaleY ?? 1);
+    center = {
+      x: (object.x ?? 0) + lineX2 / 2,
+      y: (object.y ?? 0) + lineY2 / 2,
+    };
+  } else {
+    // Rectangle/Text: x,y is top-left, calculate center
+    center = {
+      x: (object.x ?? 0) + width / 2,
+      y: (object.y ?? 0) + height / 2,
+    };
+  }
   
   // Calculate local corners relative to center
   const halfWidth = width / 2;

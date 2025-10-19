@@ -15,6 +15,61 @@ function degreesToRadians(degrees: number): number {
 }
 
 /**
+ * Get dimensions and center for any transformable object
+ * Handles different object types (rectangles, circles, lines) correctly
+ */
+function getObjectDimensionsAndCenter(obj: TransformableObject): {
+  width: number;
+  height: number;
+  center: Point;
+} {
+  const isLine = 'category' in obj && obj.category === 'shape' && 'type' in obj && (obj as any).type === 'line';
+  const isCircle = 'category' in obj && obj.category === 'shape' && 'type' in obj && (obj as any).type === 'circle';
+  
+  let width: number;
+  let height: number;
+  let center: Point;
+  
+  if (isLine && 'points' in obj) {
+    // Line: calculate dimensions from points array
+    const points = (obj as any).points as number[];
+    const x1 = points[0] * (obj.scaleX ?? 1);
+    const y1 = points[1] * (obj.scaleY ?? 1);
+    const x2 = points[2] * (obj.scaleX ?? 1);
+    const y2 = points[3] * (obj.scaleY ?? 1);
+    
+    width = Math.abs(x2 - x1);
+    height = Math.abs(y2 - y1);
+    
+    // Line center is midpoint
+    center = {
+      x: (obj.x ?? 0) + x2 / 2,
+      y: (obj.y ?? 0) + y2 / 2,
+    };
+  } else {
+    // Rectangle/Circle/Text: use width/height
+    width = (obj.width ?? 0) * (obj.scaleX ?? 1);
+    height = (obj.height ?? 0) * (obj.scaleY ?? 1);
+    
+    if (isCircle) {
+      // Circle: x,y is already center
+      center = {
+        x: obj.x ?? 0,
+        y: obj.y ?? 0,
+      };
+    } else {
+      // Rectangle/Text: x,y is top-left, calculate center
+      center = {
+        x: (obj.x ?? 0) + width / 2,
+        y: (obj.y ?? 0) + height / 2,
+      };
+    }
+  }
+  
+  return { width, height, center };
+}
+
+/**
  * Rotate a point around a center point by a given angle
  * 
  * @param point - Point to rotate
@@ -85,21 +140,8 @@ export function rotateCollection<T extends TransformableObject>(
   center: Point
 ): T[] {
   return objects.map(obj => {
-    // Skip objects without width/height (shouldn't happen with current types, but be safe)
-    if (obj.width === undefined || obj.height === undefined) {
-      console.warn('[transformMath] Object missing width/height, skipping rotation');
-      return obj;
-    }
-    
-    // Calculate object's center point (accounting for scale)
-    // Works for any object with width/height properties
-    const halfWidth = (obj.width * obj.scaleX) / 2;
-    const halfHeight = (obj.height * obj.scaleY) / 2;
-    
-    const objectCenter = {
-      x: obj.x + halfWidth,
-      y: obj.y + halfHeight,
-    };
+    // Get dimensions and center for this object type
+    const { width, height, center: objectCenter } = getObjectDimensionsAndCenter(obj);
     
     // Rotate object's CENTER around collection center
     const newCenter = rotatePointAroundCenter(
@@ -108,19 +150,39 @@ export function rotateCollection<T extends TransformableObject>(
       center
     );
     
-    // Convert back to top-left coordinates
-    const newTopLeft = {
-      x: newCenter.x - halfWidth,
-      y: newCenter.y - halfHeight,
-    };
+    // Calculate new position from rotated center
+    // For circles, new position IS the center
+    // For lines, need to calculate start point
+    // For rectangles, reverse: topLeft = center - half dimensions
+    const isCircle = 'category' in obj && obj.category === 'shape' && 'type' in obj && (obj as any).type === 'circle';
+    const isLine = 'category' in obj && obj.category === 'shape' && 'type' in obj && (obj as any).type === 'line';
+    
+    let newX: number;
+    let newY: number;
+    
+    if (isCircle) {
+      newX = newCenter.x;
+      newY = newCenter.y;
+    } else if (isLine && 'points' in obj) {
+      const points = (obj as any).points as number[];
+      const x2 = (points[2] ?? 0) * (obj.scaleX ?? 1);
+      const y2 = (points[3] ?? 0) * (obj.scaleY ?? 1);
+      newX = newCenter.x - x2 / 2;
+      newY = newCenter.y - y2 / 2;
+    } else {
+      const halfWidth = width / 2;
+      const halfHeight = height / 2;
+      newX = newCenter.x - halfWidth;
+      newY = newCenter.y - halfHeight;
+    }
     
     // Update object's rotation property (accumulated)
     const newRotation = obj.rotation + angleDegrees;
     
     return {
       ...obj,
-      x: newTopLeft.x,
-      y: newTopLeft.y,
+      x: newX,
+      y: newY,
       rotation: newRotation,
     };
   });
@@ -161,21 +223,8 @@ export function scaleCollection<T extends TransformableObject>(
   }
   
   return objects.map(obj => {
-    // Skip objects without width/height (shouldn't happen with current types, but be safe)
-    if (obj.width === undefined || obj.height === undefined) {
-      console.warn('[transformMath] Object missing width/height, skipping scaling');
-      return obj;
-    }
-    
-    // Calculate object's center point (accounting for ORIGINAL scale)
-    // Works for any object with width/height properties
-    const halfWidth = (obj.width * obj.scaleX) / 2;
-    const halfHeight = (obj.height * obj.scaleY) / 2;
-    
-    const objectCenter = {
-      x: obj.x + halfWidth,
-      y: obj.y + halfHeight,
-    };
+    // Get center for this object type
+    const { center: objectCenter } = getObjectDimensionsAndCenter(obj);
     
     // Scale object's CENTER position relative to collection center
     const deltaX = objectCenter.x - center.x;
@@ -192,13 +241,33 @@ export function scaleCollection<T extends TransformableObject>(
     const constrainedScaleX = Math.max(0.1, Math.min(100.0, newScaleX));
     const constrainedScaleY = Math.max(0.1, Math.min(100.0, newScaleY));
     
-    // Calculate new half dimensions with constrained scale
-    const newHalfWidth = (obj.width * constrainedScaleX) / 2;
-    const newHalfHeight = (obj.height * constrainedScaleY) / 2;
+    // Calculate new position from scaled center
+    // For circles, new position IS the center
+    // For lines, need to calculate start point
+    // For rectangles, reverse: topLeft = center - half dimensions
+    const isCircle = 'category' in obj && obj.category === 'shape' && 'type' in obj && (obj as any).type === 'circle';
+    const isLine = 'category' in obj && obj.category === 'shape' && 'type' in obj && (obj as any).type === 'line';
     
-    // Convert back to top-left coordinates
-    const newX = newCenterX - newHalfWidth;
-    const newY = newCenterY - newHalfHeight;
+    let newX: number;
+    let newY: number;
+    
+    if (isCircle) {
+      newX = newCenterX;
+      newY = newCenterY;
+    } else if (isLine && 'points' in obj) {
+      // Line: calculate start point from midpoint
+      const points = (obj as any).points as number[];
+      const scaledX2 = (points[2] ?? 0) * constrainedScaleX;
+      const scaledY2 = (points[3] ?? 0) * constrainedScaleY;
+      newX = newCenterX - scaledX2 / 2;
+      newY = newCenterY - scaledY2 / 2;
+    } else {
+      // Rectangle/Text: calculate top-left from center
+      const newWidth = (obj.width ?? 0) * constrainedScaleX;
+      const newHeight = (obj.height ?? 0) * constrainedScaleY;
+      newX = newCenterX - newWidth / 2;
+      newY = newCenterY - newHeight / 2;
+    }
     
     return {
       ...obj,

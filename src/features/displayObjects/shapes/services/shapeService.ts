@@ -80,8 +80,8 @@ export const createShape = async (
       }),
       ...(shapeData.type === 'circle' && {
         radius: shapeData.radius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.circle).radius,
-        width: (shapeData.radius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.circle).radius) * 2,
-        height: (shapeData.radius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.circle).radius) * 2,
+        width: shapeData.width ?? (shapeData.radius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.circle).radius) * 2,
+        height: shapeData.height ?? (shapeData.radius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.circle).radius) * 2,
       }),
       ...(shapeData.type === 'line' && {
         points: shapeData.points ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.line).points,

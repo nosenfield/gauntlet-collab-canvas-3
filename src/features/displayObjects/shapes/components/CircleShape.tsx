@@ -88,6 +88,11 @@ export function CircleShape({
   
   // Determine if shape should listen to events
   const isListening = listening !== undefined ? listening : true;
+  
+  // Calculate radii from width/height (supports ellipses)
+  // Width and height represent the full dimensions, so divide by 2 for radii
+  const radiusX = shape.width / 2;
+  const radiusY = shape.height / 2;
 
   return (
     <Ellipse
@@ -99,9 +104,9 @@ export function CircleShape({
       x={shape.x}
       y={shape.y}
       
-      // Radius (base size before scale)
-      radiusX={shape.radius}
-      radiusY={shape.radius}
+      // Radius (base size before scale) - supports ellipses via width/height
+      radiusX={radiusX}
+      radiusY={radiusY}
       
       // Transform
       rotation={shape.rotation}

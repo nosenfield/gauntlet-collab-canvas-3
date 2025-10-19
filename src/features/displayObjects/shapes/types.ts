@@ -145,9 +145,9 @@ export const DEFAULT_SHAPE_PROPERTIES = {
   // Circle defaults
   circle: {
     radius: 50,
-    fillColor: '#FF6B6B',
-    strokeColor: '#2C3E50',
-    strokeWidth: 2,
+    fillColor: '#FFFFFF',
+    strokeColor: '#000000',
+    strokeWidth: 1,
     opacity: 1,
     rotation: 0,
     scaleX: 1,
@@ -158,7 +158,7 @@ export const DEFAULT_SHAPE_PROPERTIES = {
   line: {
     points: [0, 0, 100, 100],
     fillColor: 'transparent', // Exception: 'transparent' used for semantic clarity (lines have no fill area)
-    strokeColor: '#2C3E50',
+    strokeColor: '#FFFFFF',
     strokeWidth: 2,
     opacity: 1,
     rotation: 0,

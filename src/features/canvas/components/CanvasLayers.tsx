@@ -61,7 +61,7 @@ interface CanvasLayersProps {
   
   // Preview circle props
   isDrawingCircle: boolean;
-  previewCircle: { x: number; y: number; radius: number } | null;
+  previewCircle: { x: number; y: number; radiusX: number; radiusY: number } | null;
   
   // Preview line props
   isDrawingLine: boolean;

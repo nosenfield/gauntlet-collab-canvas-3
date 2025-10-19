@@ -49,6 +49,9 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
   const strokeColor = getCommonValue<string>(selectedShapes, 'strokeColor');
   const strokeWidth = getCommonValue<number>(selectedShapes, 'strokeWidth');
   
+  // Check if all selected shapes are lines (lines don't have fill)
+  const allLines = selectedShapes.length > 0 && selectedShapes.every(s => s.type === 'line');
+  
   // Border radius only for rectangles
   const rectangles = selectedShapes.filter((s): s is RectangleShape => s.type === 'rectangle');
   const hasBorderRadius = rectangles.length > 0;
@@ -102,10 +105,14 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
       <div className="properties-modal__grid">
         {/* Fill Color */}
         <div className="properties-modal__field properties-modal__field--full">
-          <label className="properties-modal__label">Fill Color</label>
+          <label className="properties-modal__label">
+            Fill Color
+            {allLines && <span className="properties-modal__label-note"> (not available for lines)</span>}
+          </label>
           <ColorInput
             value={fillColor}
             onChange={(value) => updateProperty('fillColor', value)}
+            disabled={allLines}
           />
         </div>
         
