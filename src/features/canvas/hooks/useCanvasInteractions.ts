@@ -17,6 +17,7 @@ import { usePan } from './usePan';
 import { useZoom } from './useZoom';
 import { useViewportConstraints } from './useViewportConstraints';
 import { useShapeCreation } from '@/features/displayObjects/shapes/hooks/useShapeCreation';
+import { useRectangleDraw } from '@/features/displayObjects/shapes/hooks/useRectangleDraw';
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
 import { useTool } from '@/features/displayObjects/common/store/toolStore';
 import { useMarqueeSelection } from '@/features/displayObjects/common/hooks/useMarqueeSelection';
@@ -61,6 +62,10 @@ interface UseCanvasInteractionsReturn {
   moveCollectionDrag: (driverShapeId: string, x: number, y: number) => void;
   endCollectionDrag: () => Promise<void>;
   
+  // Rectangle drawing state
+  isDrawingRectangle: boolean;
+  previewRectangle: { x: number; y: number; width: number; height: number } | null;
+  
   // Data for rendering
   selectedIds: string[];
   selectedShapes: ShapeDisplayObject[];
@@ -88,7 +93,7 @@ export function useCanvasInteractions({
   setViewport,
 }: UseCanvasInteractionsParams): UseCanvasInteractionsReturn {
   // Tool state
-  const { isSelectMode } = useTool();
+  const { isSelectMode, currentTool } = useTool();
   
   // Selection state
   const { selectedIds, selectShape, toggleSelectShape, setSelection, clearSelection } = useSelection();
@@ -101,8 +106,17 @@ export function useCanvasInteractions({
   const { texts } = useTexts();
   const { user } = useAuth();
   
-  // Shape creation handler
-  const handleShapeCreation = useShapeCreation();
+  // Shape creation handlers
+  const { handleCanvasClick: handleShapeCreation, createRectangle } = useShapeCreation();
+  
+  // Rectangle drawing (drag-to-create)
+  const {
+    isDrawing: isDrawingRectangle,
+    previewRect: previewRectangle,
+    startDrawing: startRectangleDraw,
+    updateDrawing: updateRectangleDraw,
+    finishDrawing: finishRectangleDraw,
+  } = useRectangleDraw();
   
   // Marquee selection
   const {
@@ -240,17 +254,27 @@ export function useCanvasInteractions({
     }
   };
   
-  // Handle stage mouse down (start marquee or create shape)
+  // Handle stage mouse down (start marquee, rectangle drawing, or create shape)
   const handleStageMouseDown = (e: any) => {
     const clickedOnEmpty = e.target === e.currentTarget;
     
-    if (clickedOnEmpty && isSelectMode()) {
-      // Start marquee selection
+    if (!clickedOnEmpty) {
+      return; // Clicked on a shape
+    }
+    
+    // Rectangle tool - start drawing
+    if (currentTool === 'rectangle') {
+      startRectangleDraw(e);
+      return;
+    }
+    
+    // Select mode - start marquee selection
+    if (isSelectMode()) {
       marqueeMouseDown(e);
     }
   };
   
-  // Handle stage mouse move (update marquee)
+  // Handle stage mouse move (update marquee or rectangle preview)
   const handleStageMouseMove = (e: any) => {
     // Don't interfere if a shape is being dragged by Konva's built-in drag
     const stage = e.target.getStage();
@@ -258,15 +282,32 @@ export function useCanvasInteractions({
       return; // Konva is handling the drag internally
     }
     
+    // Update rectangle drawing preview
+    if (isDrawingRectangle) {
+      updateRectangleDraw(e);
+      return;
+    }
+    
+    // Update marquee selection
     marqueeMouseMove(e);
   };
   
-  // Handle stage mouse up (complete marquee or shape creation)
+  // Handle stage mouse up (complete marquee, rectangle drawing, or shape creation)
   const handleStageMouseUp = async (e: any) => {
     // Don't interfere if a shape was being dragged by Konva's built-in drag
     const stage = e?.target?.getStage?.();
     if (stage && stage.isDragging && stage.isDragging()) {
       return; // Konva is handling the drag end internally
+    }
+    
+    // Complete rectangle drawing
+    if (isDrawingRectangle) {
+      const rectDimensions = finishRectangleDraw(e);
+      if (rectDimensions) {
+        await createRectangle(rectDimensions);
+        console.log('[Canvas] Rectangle created via drag');
+      }
+      return;
     }
     
     if (isMarqueeActive) {
@@ -341,6 +382,10 @@ export function useCanvasInteractions({
     startCollectionDrag,
     moveCollectionDrag,
     endCollectionDrag,
+    
+    // Rectangle drawing state
+    isDrawingRectangle,
+    previewRectangle,
     
     // Data for rendering
     selectedIds,

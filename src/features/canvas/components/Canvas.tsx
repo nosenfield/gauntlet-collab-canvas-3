@@ -24,6 +24,7 @@ import { useTool } from '@/features/displayObjects/common/store/toolStore';
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
 import { useTextCreation } from '@/features/displayObjects/texts/hooks/useTextCreation';
 import type { Point } from '@/features/displayObjects/common/types';
+import { GRID_CONSTANTS } from '@/types/canvas';
 
 /**
  * Canvas Component
@@ -88,6 +89,8 @@ export function Canvas(): React.ReactElement {
     startCollectionDrag,
     moveCollectionDrag,
     endCollectionDrag,
+    isDrawingRectangle,
+    previewRectangle,
   } = useCanvasInteractions({
     stageRef,
     width,
@@ -118,7 +121,7 @@ export function Canvas(): React.ReactElement {
         position: 'fixed',
         top: 0,
         left: 0,
-        backgroundColor: '#2A2A2A', // Dark gray background
+        backgroundColor: GRID_CONSTANTS.backgroundColor,
       }}
     >
       <Stage
@@ -154,6 +157,8 @@ export function Canvas(): React.ReactElement {
           collectionCorners={rotationCorners || collectionCorners}
           isMarqueeActive={isMarqueeActive}
           marqueeBox={getMarqueeBox()}
+          isDrawingRectangle={isDrawingRectangle}
+          previewRectangle={previewRectangle}
         />
       </Stage>
 

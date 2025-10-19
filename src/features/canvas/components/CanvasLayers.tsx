@@ -17,6 +17,7 @@ import { ShapeLayer } from '@/features/displayObjects/shapes/components/ShapeLay
 import { TextLayer } from '@/features/displayObjects/texts/components/TextLayer';
 import { BoundingBoxLayer } from './BoundingBoxLayer';
 import { MarqueeLayer } from './MarqueeLayer';
+import { PreviewRectangleLayer } from './PreviewRectangleLayer';
 import { RemoteCursors } from '@/features/presence/components/RemoteCursors';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
 import type { TextDisplayObject } from '@/features/displayObjects/texts/types';
@@ -51,6 +52,10 @@ interface CanvasLayersProps {
   // Marquee props
   isMarqueeActive: boolean;
   marqueeBox: { x: number; y: number; width: number; height: number } | null;
+  
+  // Preview rectangle props
+  isDrawingRectangle: boolean;
+  previewRectangle: { x: number; y: number; width: number; height: number } | null;
 }
 
 /**
@@ -88,6 +93,10 @@ export function CanvasLayers({
   // Marquee
   isMarqueeActive,
   marqueeBox,
+  
+  // Preview rectangle
+  isDrawingRectangle,
+  previewRectangle,
 }: CanvasLayersProps): React.ReactElement {
   return (
     <>
@@ -137,6 +146,12 @@ export function CanvasLayers({
         isMarqueeActive={isMarqueeActive}
         marqueeBox={marqueeBox}
         scale={scale}
+      />
+      
+      {/* Layer 4.5: Preview Rectangle Layer (drag-to-create) */}
+      <PreviewRectangleLayer
+        isDrawing={isDrawingRectangle}
+        previewRect={previewRectangle}
       />
       
       {/* Layer 5: Remote Cursors (top layer) */}
