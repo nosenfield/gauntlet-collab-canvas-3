@@ -86,6 +86,7 @@ Awaiting your approval to continue.
 
 - ❌ **NEVER** automatically commit code after completing a task
 - ❌ **NEVER** assume the user wants changes committed
+- ❌ **NEVER** add files to the commit that you did not work on during your task
 - ✅ **ALWAYS** wait for explicit user approval before committing
 - ✅ **ASK** the user if they want to commit changes after task completion
 
