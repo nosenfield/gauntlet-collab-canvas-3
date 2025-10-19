@@ -6,6 +6,7 @@
  */
 
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
+import { CANVAS_CONSTANTS } from '@/types/canvas';
 
 /**
  * Canvas boundaries configuration
@@ -13,8 +14,8 @@ import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types'
 const CANVAS_CONFIG = {
   MIN_X: 0,
   MIN_Y: 0,
-  MAX_X: 10000,
-  MAX_Y: 10000,
+  MAX_X: CANVAS_CONSTANTS.width,
+  MAX_Y: CANVAS_CONSTANTS.height,
 } as const;
 
 /**

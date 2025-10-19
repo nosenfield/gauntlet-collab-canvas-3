@@ -3,13 +3,14 @@
  * 
  * Calculates zoom scale constraints based on viewport size.
  * Per PRD requirements:
- * - Max zoom out: Show full 10,000px canvas across larger viewport dimension
+ * - Max zoom out: Show full canvas across larger viewport dimension
  * - Max zoom in: Show only 100px across smaller viewport dimension
  */
 
 import type { ZoomConstraints } from '@/types/canvas';
+import { CANVAS_CONSTANTS } from '@/types/canvas';
 
-const CANVAS_SIZE = 10000;
+const CANVAS_SIZE = CANVAS_CONSTANTS.width;
 const MIN_VISIBLE_SIZE = 100;
 
 /**

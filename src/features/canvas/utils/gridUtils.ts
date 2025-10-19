@@ -4,6 +4,8 @@
  * Helper functions for calculating grid lines and viewport culling.
  */
 
+import { CANVAS_CONSTANTS } from '@/types/canvas';
+
 /**
  * Canvas Bounds
  */
@@ -88,8 +90,8 @@ export function getVisibleCanvasBounds(
   return {
     minX: Math.max(0, minX), // Clamp to canvas bounds
     minY: Math.max(0, minY),
-    maxX: Math.min(10000, maxX),
-    maxY: Math.min(10000, maxY),
+    maxX: Math.min(CANVAS_CONSTANTS.width, maxX),
+    maxY: Math.min(CANVAS_CONSTANTS.height, maxY),
   };
 }
 
