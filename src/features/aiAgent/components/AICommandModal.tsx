@@ -127,7 +127,7 @@ export function AICommandModal({ isOpen, onClose }: AICommandModalProps) {
               value={command}
               onChange={(e) => setCommand(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Try: 'Make a 200x300 blue rectangle' or 'Create a large red square'"
+              placeholder="e.g. Make a 200x300 blue rectangle"
               className={`ai-command-modal__input ${isProcessing ? 'ai-command-modal__input--processing' : ''}`}
               disabled={isProcessing}
               aria-label="AI Command Input"
@@ -152,25 +152,6 @@ export function AICommandModal({ isOpen, onClose }: AICommandModalProps) {
               </button>
             </div>
           </form>
-
-          {/* Examples */}
-          <div className="ai-command-modal__examples">
-            <p className="ai-command-modal__examples-title">Example Commands</p>
-            <ul className="ai-command-modal__examples-list">
-              <li className="ai-command-modal__examples-item">
-                "Make a 200x300 rectangle"
-              </li>
-              <li className="ai-command-modal__examples-item">
-                "Create a red square"
-              </li>
-              <li className="ai-command-modal__examples-item">
-                "Add a large blue rectangle with rounded corners"
-              </li>
-              <li className="ai-command-modal__examples-item">
-                "Make a green rectangle at position 2000, 3000"
-              </li>
-            </ul>
-          </div>
         </div>
       </div>
     </div>
