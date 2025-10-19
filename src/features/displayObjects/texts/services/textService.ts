@@ -211,6 +211,28 @@ export const deleteAllTexts = async (): Promise<number> => {
 };
 
 /**
+ * Update Z-index for multiple texts (reordering)
+ * 
+ * @param updates - Array of {textId, zIndex} pairs
+ */
+export const updateZIndexes = async (
+  updates: Array<{ textId: string; zIndex: number }>
+): Promise<void> => {
+  try {
+    // Note: In a production app, use batch writes for atomic updates
+    await Promise.all(
+      updates.map(({ textId, zIndex }) =>
+        updateDoc(getTextDoc(textId), { zIndex })
+      )
+    );
+    console.log('[TextService] Z-indexes updated for', updates.length, 'texts');
+  } catch (error) {
+    console.error('[TextService] Error updating z-indexes:', error);
+    throw error;
+  }
+};
+
+/**
  * Subscribe to real-time updates for all text objects
  * 
  * @param callback - Callback function called with updated texts array
