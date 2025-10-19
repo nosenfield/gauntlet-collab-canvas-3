@@ -75,8 +75,9 @@ export function useClipboard(userId: string | undefined) {
 
   /**
    * Paste objects from clipboard
+   * @param offset - Amount to offset pasted objects (default: PASTE_OFFSET)
    */
-  const paste = useCallback(async () => {
+  const paste = useCallback(async (offset: number = PASTE_OFFSET) => {
     if (!userId) {
       console.warn('[Clipboard] Cannot paste: No user ID');
       return;
@@ -98,8 +99,8 @@ export function useClipboard(userId: string | undefined) {
           // Create new shape with offset position
           const newId = await createShape(userId, {
             type: shape.type,
-            x: shape.x + PASTE_OFFSET,
-            y: shape.y + PASTE_OFFSET,
+            x: shape.x + offset,
+            y: shape.y + offset,
             rotation: shape.rotation,
             scaleX: shape.scaleX,
             scaleY: shape.scaleY,
@@ -130,8 +131,8 @@ export function useClipboard(userId: string | undefined) {
           // Create new text with offset position (returns TextDisplayObject)
           const newText = await createText(userId, {
             content: text.content,
-            x: text.x + PASTE_OFFSET,
-            y: text.y + PASTE_OFFSET,
+            x: text.x + offset,
+            y: text.y + offset,
             fontSize: text.fontSize,
             fontFamily: text.fontFamily,
             fontWeight: text.fontWeight,
@@ -147,7 +148,8 @@ export function useClipboard(userId: string | undefined) {
         }
       }
 
-      console.log(`[Clipboard] Pasted ${newIds.length} objects`);
+      const pasteType = offset === 0 ? 'in place' : `with ${offset}px offset`;
+      console.log(`[Clipboard] Pasted ${newIds.length} objects ${pasteType}`);
 
       // Select the newly pasted objects
       // Wait a bit for Firestore to sync
@@ -180,10 +182,15 @@ export function useClipboard(userId: string | undefined) {
         copy();
       }
 
-      // Paste: Cmd/Ctrl + V
-      if (isCmdOrCtrl && e.key === 'v') {
+      // Paste in place: Cmd/Ctrl + Shift + V (no offset)
+      if (isCmdOrCtrl && e.shiftKey && e.key === 'v') {
         e.preventDefault();
-        paste();
+        paste(0); // Paste with 0 offset
+      }
+      // Paste with offset: Cmd/Ctrl + V
+      else if (isCmdOrCtrl && e.key === 'v') {
+        e.preventDefault();
+        paste(); // Paste with default offset
       }
     };
 
