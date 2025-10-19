@@ -197,37 +197,37 @@ export function alignCenterVertical(objects: TransformableObject[]): AlignmentUp
 
 /**
  * Distribute objects evenly along the horizontal axis
- * Objects are spaced evenly between the leftmost and rightmost objects
+ * Objects are distributed evenly within the collection bounding box
  */
 export function distributeHorizontal(objects: TransformableObject[]): AlignmentUpdate[] {
   if (objects.length < 3) return [];
   
-  // Sort objects by their left position
-  const sorted = [...objects].sort((a, b) => a.x - b.x);
+  // Sort objects by their center X position
+  const sorted = [...objects].sort((a, b) => {
+    const boundsA = getObjectBounds(a);
+    const boundsB = getObjectBounds(b);
+    return boundsA.centerX - boundsB.centerX;
+  });
   
-  const leftmost = sorted[0];
-  const rightmost = sorted[sorted.length - 1];
+  // Get the collective bounding box
+  const collective = getCollectiveBounds(objects);
   
-  // Calculate total available space
-  const leftmostBounds = getObjectBounds(leftmost);
-  const rightmostBounds = getObjectBounds(rightmost);
-  const totalSpace = rightmostBounds.left - (leftmostBounds.left + leftmostBounds.width);
+  // Calculate spacing between object centers
+  const totalWidth = collective.width;
+  const spacing = totalWidth / (sorted.length - 1);
   
-  // Calculate spacing between objects
-  const spacing = totalSpace / (sorted.length - 1);
-  
-  // Create updates (skip first and last - they stay in place)
+  // Create updates - distribute all objects evenly within the collection bounds
   const updates: AlignmentUpdate[] = [];
-  let currentX = leftmostBounds.left + leftmostBounds.width;
   
-  for (let i = 1; i < sorted.length - 1; i++) {
-    currentX += spacing;
+  for (let i = 0; i < sorted.length; i++) {
+    const bounds = getObjectBounds(sorted[i]);
+    const targetCenterX = collective.left + (i * spacing);
+    const newX = targetCenterX - bounds.width / 2;
+    
     updates.push({
       objectId: sorted[i].id,
-      x: currentX,
+      x: newX,
     });
-    const bounds = getObjectBounds(sorted[i]);
-    currentX += bounds.width;
   }
   
   return updates;
@@ -235,37 +235,37 @@ export function distributeHorizontal(objects: TransformableObject[]): AlignmentU
 
 /**
  * Distribute objects evenly along the vertical axis
- * Objects are spaced evenly between the topmost and bottommost objects
+ * Objects are distributed evenly within the collection bounding box
  */
 export function distributeVertical(objects: TransformableObject[]): AlignmentUpdate[] {
   if (objects.length < 3) return [];
   
-  // Sort objects by their top position
-  const sorted = [...objects].sort((a, b) => a.y - b.y);
+  // Sort objects by their center Y position
+  const sorted = [...objects].sort((a, b) => {
+    const boundsA = getObjectBounds(a);
+    const boundsB = getObjectBounds(b);
+    return boundsA.centerY - boundsB.centerY;
+  });
   
-  const topmost = sorted[0];
-  const bottommost = sorted[sorted.length - 1];
+  // Get the collective bounding box
+  const collective = getCollectiveBounds(objects);
   
-  // Calculate total available space
-  const topmostBounds = getObjectBounds(topmost);
-  const bottommostBounds = getObjectBounds(bottommost);
-  const totalSpace = bottommostBounds.top - (topmostBounds.top + topmostBounds.height);
+  // Calculate spacing between object centers
+  const totalHeight = collective.height;
+  const spacing = totalHeight / (sorted.length - 1);
   
-  // Calculate spacing between objects
-  const spacing = totalSpace / (sorted.length - 1);
-  
-  // Create updates (skip first and last - they stay in place)
+  // Create updates - distribute all objects evenly within the collection bounds
   const updates: AlignmentUpdate[] = [];
-  let currentY = topmostBounds.top + topmostBounds.height;
   
-  for (let i = 1; i < sorted.length - 1; i++) {
-    currentY += spacing;
+  for (let i = 0; i < sorted.length; i++) {
+    const bounds = getObjectBounds(sorted[i]);
+    const targetCenterY = collective.top + (i * spacing);
+    const newY = targetCenterY - bounds.height / 2;
+    
     updates.push({
       objectId: sorted[i].id,
-      y: currentY,
+      y: newY,
     });
-    const bounds = getObjectBounds(sorted[i]);
-    currentY += bounds.height;
   }
   
   return updates;

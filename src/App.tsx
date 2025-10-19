@@ -8,7 +8,7 @@ import { UserPresenceSidebar } from '@/features/presence/components/UserPresence
 import { ToolProvider } from '@/features/displayObjects/common/store/toolStore';
 import { DisplayObjectToolbar } from '@/features/displayObjects/common/components/DisplayObjectToolbar';
 // import { ZIndexControls } from '@/features/displayObjects/common/components/ZIndexControls';
-import { AlignmentControls } from '@/features/displayObjects/common/components/AlignmentControls';
+// import { AlignmentControls } from '@/features/displayObjects/common/components/AlignmentControls';
 import { PropertiesModal } from '@/features/displayObjects/common/components/PropertiesModal';
 import { ShapesProvider } from '@/features/displayObjects/shapes/store/shapesStore';
 import { TextsProvider } from '@/features/displayObjects/texts/store/textsStore';
@@ -41,7 +41,7 @@ function AppContent() {
       <UserPresenceSidebar />
       <DisplayObjectToolbar />
       {/* <ZIndexControls /> */}
-      <AlignmentControls />
+      {/* <AlignmentControls /> */}
       <PropertiesModal />
       <PerformanceTest />
       <ViewportProvider>

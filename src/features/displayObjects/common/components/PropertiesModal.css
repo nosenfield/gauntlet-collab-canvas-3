@@ -335,6 +335,55 @@
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.5);
 }
 
+/* ============================================
+   Alignment Controls
+   ============================================ */
+
+.properties-modal__alignment-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.properties-modal__alignment-row {
+  display: flex;
+  gap: 4px;
+}
+
+.properties-modal__alignment-button {
+  flex: 1;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.properties-modal__alignment-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  transform: scale(1.02);
+}
+
+.properties-modal__alignment-button:active {
+  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.properties-modal__alignment-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.5);
+}
+
 .properties-modal__slider {
   flex: 1;
   height: 4px;

@@ -16,6 +16,7 @@ import { calculateCollectionAABB, getAABBCenter } from '../../utils/boundingBoxU
 import { NumberInput } from './NumberInput';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useTexts } from '@/features/displayObjects/texts/store/textsStore';
+import { useAlignment } from '../../hooks/useAlignment';
 
 interface UniversalPropertiesProps {
   selectedObjects: TransformableObject[];
@@ -48,6 +49,19 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
   // Z-index management - we'll implement custom simple logic for the buttons
   const { shapes } = useShapes();
   const { texts } = useTexts();
+  
+  // Alignment functions
+  const {
+    alignLeft,
+    alignRight,
+    alignCenterHorizontal,
+    alignTop,
+    alignBottom,
+    alignCenterVertical,
+    distributeHorizontal,
+    distributeVertical,
+    selectionCount,
+  } = useAlignment();
   
   /**
    * Get all display objects for z-index calculations
@@ -387,6 +401,90 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
             suffix="px"
           />
         </div>
+        
+        {/* Alignment - only show when 2+ objects selected */}
+        {selectionCount >= 2 && (
+          <div className="properties-modal__field properties-modal__field--full">
+            <label className="properties-modal__label">Alignment</label>
+            <div className="properties-modal__alignment-rows">
+              {/* Horizontal Row */}
+              <div className="properties-modal__alignment-row">
+                <button
+                  className="properties-modal__alignment-button"
+                  onClick={alignLeft}
+                  title="Align Left"
+                  aria-label="Align Left"
+                >
+                  ⊢
+                </button>
+                <button
+                  className="properties-modal__alignment-button"
+                  onClick={alignCenterHorizontal}
+                  title="Align Center (Horizontal)"
+                  aria-label="Align Center Horizontal"
+                >
+                  ⊢⊣
+                </button>
+                <button
+                  className="properties-modal__alignment-button"
+                  onClick={alignRight}
+                  title="Align Right"
+                  aria-label="Align Right"
+                >
+                  ⊣
+                </button>
+                {selectionCount >= 3 && (
+                  <button
+                    className="properties-modal__alignment-button"
+                    onClick={distributeHorizontal}
+                    title="Distribute Horizontally"
+                    aria-label="Distribute Horizontally"
+                  >
+                    ⟷
+                  </button>
+                )}
+              </div>
+              
+              {/* Vertical Row */}
+              <div className="properties-modal__alignment-row">
+                <button
+                  className="properties-modal__alignment-button"
+                  onClick={alignTop}
+                  title="Align Top"
+                  aria-label="Align Top"
+                >
+                  ⊤
+                </button>
+                <button
+                  className="properties-modal__alignment-button"
+                  onClick={alignCenterVertical}
+                  title="Align Middle (Vertical)"
+                  aria-label="Align Center Vertical"
+                >
+                  ⊥⊤
+                </button>
+                <button
+                  className="properties-modal__alignment-button"
+                  onClick={alignBottom}
+                  title="Align Bottom"
+                  aria-label="Align Bottom"
+                >
+                  ⊥
+                </button>
+                {selectionCount >= 3 && (
+                  <button
+                    className="properties-modal__alignment-button"
+                    onClick={distributeVertical}
+                    title="Distribute Vertically"
+                    aria-label="Distribute Vertically"
+                  >
+                    ⇅
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Rotation */}
         <div className="properties-modal__field properties-modal__field--full">
