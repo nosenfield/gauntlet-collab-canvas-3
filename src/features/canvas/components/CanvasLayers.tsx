@@ -18,6 +18,8 @@ import { TextLayer } from '@/features/displayObjects/texts/components/TextLayer'
 import { BoundingBoxLayer } from './BoundingBoxLayer';
 import { MarqueeLayer } from './MarqueeLayer';
 import { PreviewRectangleLayer } from './PreviewRectangleLayer';
+import { PreviewCircleLayer } from './PreviewCircleLayer';
+import { PreviewLineLayer } from './PreviewLineLayer';
 import { RemoteCursors } from '@/features/presence/components/RemoteCursors';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
 import type { TextDisplayObject } from '@/features/displayObjects/texts/types';
@@ -56,6 +58,14 @@ interface CanvasLayersProps {
   // Preview rectangle props
   isDrawingRectangle: boolean;
   previewRectangle: { x: number; y: number; width: number; height: number } | null;
+  
+  // Preview circle props
+  isDrawingCircle: boolean;
+  previewCircle: { x: number; y: number; radius: number } | null;
+  
+  // Preview line props
+  isDrawingLine: boolean;
+  previewLine: { x: number; y: number; points: number[] } | null;
 }
 
 /**
@@ -97,6 +107,14 @@ export function CanvasLayers({
   // Preview rectangle
   isDrawingRectangle,
   previewRectangle,
+  
+  // Preview circle
+  isDrawingCircle,
+  previewCircle,
+  
+  // Preview line
+  isDrawingLine,
+  previewLine,
 }: CanvasLayersProps): React.ReactElement {
   return (
     <>
@@ -152,6 +170,18 @@ export function CanvasLayers({
       <PreviewRectangleLayer
         isDrawing={isDrawingRectangle}
         previewRect={previewRectangle}
+      />
+      
+      {/* Layer 4.6: Preview Circle Layer (drag-to-create) */}
+      <PreviewCircleLayer
+        isDrawing={isDrawingCircle}
+        previewCircle={previewCircle}
+      />
+      
+      {/* Layer 4.7: Preview Line Layer (drag-to-create) */}
+      <PreviewLineLayer
+        isDrawing={isDrawingLine}
+        previewLine={previewLine}
       />
       
       {/* Layer 5: Remote Cursors (top layer) */}

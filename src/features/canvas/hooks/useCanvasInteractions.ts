@@ -18,6 +18,8 @@ import { useZoom } from './useZoom';
 import { useViewportConstraints } from './useViewportConstraints';
 import { useShapeCreation } from '@/features/displayObjects/shapes/hooks/useShapeCreation';
 import { useRectangleDraw } from '@/features/displayObjects/shapes/hooks/useRectangleDraw';
+import { useCircleDraw } from '@/features/displayObjects/shapes/hooks/useCircleDraw';
+import { useLineDraw } from '@/features/displayObjects/shapes/hooks/useLineDraw';
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
 import { useTool } from '@/features/displayObjects/common/store/toolStore';
 import { useMarqueeSelection } from '@/features/displayObjects/common/hooks/useMarqueeSelection';
@@ -66,6 +68,14 @@ interface UseCanvasInteractionsReturn {
   isDrawingRectangle: boolean;
   previewRectangle: { x: number; y: number; width: number; height: number } | null;
   
+  // Circle drawing state
+  isDrawingCircle: boolean;
+  previewCircle: { x: number; y: number; radius: number } | null;
+  
+  // Line drawing state
+  isDrawingLine: boolean;
+  previewLine: { x: number; y: number; points: number[] } | null;
+  
   // Data for rendering
   selectedIds: string[];
   selectedShapes: ShapeDisplayObject[];
@@ -107,7 +117,7 @@ export function useCanvasInteractions({
   const { user } = useAuth();
   
   // Shape creation handlers
-  const { handleCanvasClick: handleShapeCreation, createRectangle } = useShapeCreation();
+  const { handleCanvasClick: handleShapeCreation, createRectangle, createCircle, createLine } = useShapeCreation();
   
   // Rectangle drawing (drag-to-create)
   const {
@@ -117,6 +127,24 @@ export function useCanvasInteractions({
     updateDrawing: updateRectangleDraw,
     finishDrawing: finishRectangleDraw,
   } = useRectangleDraw();
+  
+  // Circle drawing (drag-to-create)
+  const {
+    isDrawing: isDrawingCircle,
+    previewCircle,
+    startDrawing: startCircleDraw,
+    updateDrawing: updateCircleDraw,
+    finishDrawing: finishCircleDraw,
+  } = useCircleDraw();
+  
+  // Line drawing (drag-to-create)
+  const {
+    isDrawing: isDrawingLine,
+    previewLine,
+    startDrawing: startLineDraw,
+    updateDrawing: updateLineDraw,
+    finishDrawing: finishLineDraw,
+  } = useLineDraw();
   
   // Marquee selection
   const {
@@ -268,13 +296,25 @@ export function useCanvasInteractions({
       return;
     }
     
+    // Circle tool - start drawing
+    if (currentTool === 'circle') {
+      startCircleDraw(e);
+      return;
+    }
+    
+    // Line tool - start drawing
+    if (currentTool === 'line') {
+      startLineDraw(e);
+      return;
+    }
+    
     // Select mode - start marquee selection
     if (isSelectMode()) {
       marqueeMouseDown(e);
     }
   };
   
-  // Handle stage mouse move (update marquee or rectangle preview)
+  // Handle stage mouse move (update marquee or shape drawing preview)
   const handleStageMouseMove = (e: any) => {
     // Don't interfere if a shape is being dragged by Konva's built-in drag
     const stage = e.target.getStage();
@@ -288,11 +328,23 @@ export function useCanvasInteractions({
       return;
     }
     
+    // Update circle drawing preview
+    if (isDrawingCircle) {
+      updateCircleDraw(e);
+      return;
+    }
+    
+    // Update line drawing preview
+    if (isDrawingLine) {
+      updateLineDraw(e);
+      return;
+    }
+    
     // Update marquee selection
     marqueeMouseMove(e);
   };
   
-  // Handle stage mouse up (complete marquee, rectangle drawing, or shape creation)
+  // Handle stage mouse up (complete marquee, shape drawing, or shape creation)
   const handleStageMouseUp = async (e: any) => {
     // Don't interfere if a shape was being dragged by Konva's built-in drag
     const stage = e?.target?.getStage?.();
@@ -306,6 +358,26 @@ export function useCanvasInteractions({
       if (rectDimensions) {
         await createRectangle(rectDimensions);
         console.log('[Canvas] Rectangle created via drag');
+      }
+      return;
+    }
+    
+    // Complete circle drawing
+    if (isDrawingCircle) {
+      const circleDimensions = finishCircleDraw(e);
+      if (circleDimensions) {
+        await createCircle(circleDimensions);
+        console.log('[Canvas] Circle created via drag');
+      }
+      return;
+    }
+    
+    // Complete line drawing
+    if (isDrawingLine) {
+      const lineDimensions = finishLineDraw(e);
+      if (lineDimensions) {
+        await createLine(lineDimensions);
+        console.log('[Canvas] Line created via drag');
       }
       return;
     }
@@ -386,6 +458,14 @@ export function useCanvasInteractions({
     // Rectangle drawing state
     isDrawingRectangle,
     previewRectangle,
+    
+    // Circle drawing state
+    isDrawingCircle,
+    previewCircle,
+    
+    // Line drawing state
+    isDrawingLine,
+    previewLine,
     
     // Data for rendering
     selectedIds,

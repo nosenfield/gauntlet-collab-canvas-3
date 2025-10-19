@@ -31,6 +31,26 @@ interface CreateRectangleOptions {
 }
 
 /**
+ * Circle creation options
+ */
+interface CreateCircleOptions {
+  x: number;      // Center X
+  y: number;      // Center Y
+  radius: number; // Radius
+  width: number;  // Diameter (for compatibility)
+  height: number; // Diameter (for compatibility)
+}
+
+/**
+ * Line creation options
+ */
+interface CreateLineOptions {
+  x: number;        // Start point X
+  y: number;        // Start point Y
+  points: number[]; // [0, 0, x2, y2]
+}
+
+/**
  * useShapeCreation Hook
  * 
  * Provides shape creation functionality
@@ -90,6 +110,76 @@ export function useShapeCreation() {
         return shapeId;
       } catch (error) {
         console.error('[ShapeCreation] Error creating rectangle:', error);
+        return null;
+      }
+    },
+    [user]
+  );
+
+  /**
+   * Create a circle with specific dimensions
+   * Used for drag-to-create interaction
+   */
+  const createCircle = useCallback(
+    async (options: CreateCircleOptions): Promise<string | null> => {
+      if (!user) {
+        console.warn('[ShapeCreation] User not authenticated');
+        return null;
+      }
+
+      const { x, y, radius } = options;
+
+      console.log('[ShapeCreation] Creating circle:', { x, y, radius });
+
+      try {
+        const shapeData: CreateShapeData = {
+          type: 'circle',
+          x,
+          y,
+          radius,
+          // Visual properties will use DEFAULT_SHAPE_PROPERTIES.circle
+        };
+
+        const shapeId = await createShape(user.userId, shapeData);
+        console.log('[ShapeCreation] Circle created successfully:', shapeId);
+        return shapeId;
+      } catch (error) {
+        console.error('[ShapeCreation] Error creating circle:', error);
+        return null;
+      }
+    },
+    [user]
+  );
+
+  /**
+   * Create a line with specific points
+   * Used for drag-to-create interaction
+   */
+  const createLine = useCallback(
+    async (options: CreateLineOptions): Promise<string | null> => {
+      if (!user) {
+        console.warn('[ShapeCreation] User not authenticated');
+        return null;
+      }
+
+      const { x, y, points } = options;
+
+      console.log('[ShapeCreation] Creating line:', { x, y, points });
+
+      try {
+        const shapeData: CreateShapeData = {
+          type: 'line',
+          x,
+          y,
+          points,
+          // Visual properties will use DEFAULT_SHAPE_PROPERTIES.line
+        };
+
+        const shapeId = await createShape(user.userId, shapeData);
+        console.log('[ShapeCreation] Line created successfully:', shapeId);
+        return shapeId;
+      } catch (error) {
+        console.error('[ShapeCreation] Error creating line:', error);
         return null;
       }
     },
@@ -163,6 +253,8 @@ export function useShapeCreation() {
   return {
     handleCanvasClick,
     createRectangle,
+    createCircle,
+    createLine,
   };
 }
 

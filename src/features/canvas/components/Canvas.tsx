@@ -91,6 +91,10 @@ export function Canvas(): React.ReactElement {
     endCollectionDrag,
     isDrawingRectangle,
     previewRectangle,
+    isDrawingCircle,
+    previewCircle,
+    isDrawingLine,
+    previewLine,
   } = useCanvasInteractions({
     stageRef,
     width,
@@ -159,6 +163,10 @@ export function Canvas(): React.ReactElement {
           marqueeBox={getMarqueeBox()}
           isDrawingRectangle={isDrawingRectangle}
           previewRectangle={previewRectangle}
+          isDrawingCircle={isDrawingCircle}
+          previewCircle={previewCircle}
+          isDrawingLine={isDrawingLine}
+          previewLine={previewLine}
         />
       </Stage>
 

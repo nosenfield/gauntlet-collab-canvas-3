@@ -9,6 +9,8 @@ import React from 'react';
 import { useShapes } from '../store/shapesStore';
 import { updateShape } from '../services/shapeService';
 import { RectangleShape } from './RectangleShape';
+import { CircleShape } from './CircleShape';
+import { LineShape } from './LineShape';
 import { DisplayObjectLayer, type ObjectRenderProps } from '../../common/components/DisplayObjectLayer';
 import type { ShapeDisplayObject } from '../types';
 
@@ -64,9 +66,22 @@ export function ShapeLayer({
         );
       
       case 'circle':
+        return (
+          <CircleShape
+            key={shape.id}
+            shape={shape}
+            {...props}
+          />
+        );
+      
       case 'line':
-        // Not implemented yet (rectangles only for now)
-        return null;
+        return (
+          <LineShape
+            key={shape.id}
+            shape={shape}
+            {...props}
+          />
+        );
       
       default:
         console.warn('[ShapeLayer] Unknown shape type:', shape);
