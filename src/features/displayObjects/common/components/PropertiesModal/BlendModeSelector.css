@@ -1,0 +1,180 @@
+/**
+ * Blend Mode Selector Styles
+ * 
+ * Dropdown component for selecting blend modes with visual grouping
+ */
+
+/* ============================================
+   Container
+   ============================================ */
+
+.blend-mode-selector {
+  position: relative;
+  width: 100%;
+}
+
+/* ============================================
+   Label
+   ============================================ */
+
+.blend-mode-selector__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================
+   Dropdown Button
+   ============================================ */
+
+.blend-mode-selector__button {
+  width: 100%;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 14px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.blend-mode-selector__button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.blend-mode-selector__button:focus {
+  outline: none;
+  border-color: #4A90E2;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.blend-mode-selector__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.blend-mode-selector__button--open {
+  border-color: #4A90E2;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ============================================
+   Button Content
+   ============================================ */
+
+.blend-mode-selector__value {
+  flex: 1;
+  color: #ffffff;
+}
+
+.blend-mode-selector__arrow {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  transition: transform 0.2s;
+}
+
+.blend-mode-selector__button--open .blend-mode-selector__arrow {
+  transform: rotate(180deg);
+}
+
+/* ============================================
+   Dropdown Menu
+   ============================================ */
+
+.blend-mode-selector__dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 300px;
+  background: rgba(30, 30, 30, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  overflow-y: auto;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+}
+
+.blend-mode-selector__dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.blend-mode-selector__dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.blend-mode-selector__dropdown::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.blend-mode-selector__dropdown::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================
+   Options
+   ============================================ */
+
+.blend-mode-selector__option {
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 14px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.blend-mode-selector__option:hover,
+.blend-mode-selector__option--focused {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.blend-mode-selector__option--selected {
+  background: rgba(74, 144, 226, 0.2);
+  color: #4A90E2;
+}
+
+.blend-mode-selector__option--selected:hover,
+.blend-mode-selector__option--selected.blend-mode-selector__option--focused {
+  background: rgba(74, 144, 226, 0.3);
+}
+
+/* ============================================
+   Checkmark
+   ============================================ */
+
+.blend-mode-selector__checkmark {
+  font-size: 14px;
+  color: #4A90E2;
+}
+
+/* ============================================
+   Divider
+   ============================================ */
+
+.blend-mode-selector__divider {
+  height: 1px;
+  margin: 4px 0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
