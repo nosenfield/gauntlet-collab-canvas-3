@@ -75,7 +75,6 @@ export function Canvas(): React.ReactElement {
     handleStageMouseUp,
     handleShapeClick,
     selectedIds,
-    selectedShapes,
     selectedObjects,
     isMarqueeActive,
     getMarqueeBox,

@@ -85,6 +85,12 @@ export function rotateCollection<T extends TransformableObject>(
   center: Point
 ): T[] {
   return objects.map(obj => {
+    // Skip objects without width/height (shouldn't happen with current types, but be safe)
+    if (obj.width === undefined || obj.height === undefined) {
+      console.warn('[transformMath] Object missing width/height, skipping rotation');
+      return obj;
+    }
+    
     // Calculate object's center point (accounting for scale)
     // Works for any object with width/height properties
     const halfWidth = (obj.width * obj.scaleX) / 2;
@@ -155,6 +161,12 @@ export function scaleCollection<T extends TransformableObject>(
   }
   
   return objects.map(obj => {
+    // Skip objects without width/height (shouldn't happen with current types, but be safe)
+    if (obj.width === undefined || obj.height === undefined) {
+      console.warn('[transformMath] Object missing width/height, skipping scaling');
+      return obj;
+    }
+    
     // Calculate object's center point (accounting for ORIGINAL scale)
     // Works for any object with width/height properties
     const halfWidth = (obj.width * obj.scaleX) / 2;

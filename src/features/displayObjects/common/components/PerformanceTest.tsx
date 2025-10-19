@@ -1,11 +1,12 @@
 /**
  * Performance Test Utility
  * 
- * Development-only component for testing performance with many objects
+ * Component for testing performance with many objects
  * - Press 'P' to open performance test panel
  * - Spawn 100+ rectangles
  * - Test selection and drag performance
  * - Monitor FPS impact
+ * - Available in production builds
  */
 
 import React, { useState, useEffect } from 'react';
@@ -33,8 +34,7 @@ export function PerformanceTest(): React.ReactElement | null {
   // Toggle panel with 'P' key
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Only in dev mode and if not typing in an input
-      if (!import.meta.env.DEV) return;
+      // Don't trigger if typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       
       if (e.key === 'p' || e.key === 'P') {
@@ -167,8 +167,8 @@ export function PerformanceTest(): React.ReactElement | null {
     setLastTestResults('✅ Cleared selection');
   };
 
-  // Don't render in production
-  if (!import.meta.env.DEV || !isOpen) {
+  // Don't render if closed
+  if (!isOpen) {
     return null;
   }
 

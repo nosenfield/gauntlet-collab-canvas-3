@@ -9,7 +9,7 @@
  */
 
 import React, { useCallback } from 'react';
-import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
+import type { ShapeDisplayObject, RectangleShape } from '@/features/displayObjects/shapes/types';
 import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
 import { NumberInput } from './NumberInput';
 import { ColorInput } from './ColorInput';
@@ -31,6 +31,18 @@ function getCommonValue<T>(shapes: ShapeDisplayObject[], key: keyof ShapeDisplay
   return allSame ? (firstValue as T) : 'mixed';
 }
 
+/**
+ * Get common value for rectangle-specific properties
+ */
+function getRectangleCommonValue<T>(rectangles: RectangleShape[], key: keyof RectangleShape): T | 'mixed' {
+  if (rectangles.length === 0) return 'mixed';
+  
+  const firstValue = rectangles[0][key];
+  const allSame = rectangles.every(rect => rect[key] === firstValue);
+  
+  return allSame ? (firstValue as T) : 'mixed';
+}
+
 export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps): React.ReactElement {
   // Get common values
   const fillColor = getCommonValue<string>(selectedShapes, 'fillColor');
@@ -38,10 +50,10 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
   const strokeWidth = getCommonValue<number>(selectedShapes, 'strokeWidth');
   
   // Border radius only for rectangles
-  const rectangles = selectedShapes.filter(s => s.type === 'rectangle');
+  const rectangles = selectedShapes.filter((s): s is RectangleShape => s.type === 'rectangle');
   const hasBorderRadius = rectangles.length > 0;
   const borderRadius = hasBorderRadius 
-    ? getCommonValue<number | undefined>(rectangles as any, 'borderRadius')
+    ? getRectangleCommonValue<number | undefined>(rectangles, 'borderRadius')
     : 'mixed';
   
   /**
@@ -52,19 +64,8 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
     if (!userId) return;
     
     try {
-      // Filter shapes that should receive the update
-      const shapesToUpdate = selectedShapes.filter(shape => {
-        // Only update borderRadius for rectangles
-        if (key === 'borderRadius' && shape.type !== 'rectangle') {
-          return false;
-        }
-        return true;
-      });
-      
-      if (shapesToUpdate.length === 0) return;
-      
       // Batch update all shapes
-      const batchUpdates = shapesToUpdate.map(shape => ({
+      const batchUpdates = selectedShapes.map(shape => ({
         shapeId: shape.id,
         updates: { [key]: value },
       }));
@@ -74,6 +75,25 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
       console.error(`[ShapeProperties] Error updating ${key}:`, error);
     }
   }, [selectedShapes, userId]);
+  
+  /**
+   * Update rectangle-specific properties
+   */
+  const updateRectangleProperty = useCallback(async (key: keyof RectangleShape, value: any) => {
+    if (!userId || rectangles.length === 0) return;
+    
+    try {
+      // Only update rectangles
+      const batchUpdates = rectangles.map(rect => ({
+        shapeId: rect.id,
+        updates: { [key]: value },
+      }));
+      
+      await updateShapesBatch(userId, batchUpdates);
+    } catch (error) {
+      console.error(`[ShapeProperties] Error updating ${key}:`, error);
+    }
+  }, [rectangles, userId]);
   
   return (
     <div className="properties-modal__section">
@@ -122,7 +142,7 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
             </label>
             <NumberInput
               value={typeof borderRadius === 'number' ? borderRadius : 'mixed'}
-              onChange={(value) => updateProperty('borderRadius', value)}
+              onChange={(value) => updateRectangleProperty('borderRadius', value)}
               min={0}
               max={50}
               step={1}

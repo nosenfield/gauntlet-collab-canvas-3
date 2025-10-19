@@ -59,8 +59,8 @@ export function useShapeCreation() {
         return;
       }
 
-      if (currentTool === 'select') {
-        // Selection mode - don't create shapes
+      if (currentTool === 'select' || currentTool === 'text') {
+        // Selection mode or text tool - don't create shapes
         return;
       }
 
@@ -92,9 +92,9 @@ export function useShapeCreation() {
       console.log('[ShapeCreation] Creating shape at:', { canvasX, canvasY, tool: currentTool });
 
       try {
-        // Create shape based on current tool
+        // Create shape based on current tool (TypeScript now knows it's a ShapeType)
         const shapeData: CreateShapeData = {
-          type: currentTool,
+          type: currentTool, // currentTool is now narrowed to 'rectangle' | 'circle' | 'line'
           x: canvasX,
           y: canvasY,
         };
