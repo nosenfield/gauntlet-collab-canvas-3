@@ -408,89 +408,91 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
           />
         </div>
         
-        {/* Alignment - only show when 2+ objects selected */}
-        {selectionCount >= 2 && (
-          <div className="properties-modal__field properties-modal__field--full">
-            <label className="properties-modal__label">Alignment</label>
-            <div className="properties-modal__alignment-rows">
-              {/* Horizontal Row */}
-              <div className="properties-modal__alignment-row">
-                <button
-                  className="properties-modal__alignment-button"
-                  onClick={alignLeft}
-                  title="Align Left"
-                  aria-label="Align Left"
-                >
-                  ⊢
-                </button>
-                <button
-                  className="properties-modal__alignment-button"
-                  onClick={alignCenterHorizontal}
-                  title="Align Center (Horizontal)"
-                  aria-label="Align Center Horizontal"
-                >
-                  ⊢⊣
-                </button>
-                <button
-                  className="properties-modal__alignment-button"
-                  onClick={alignRight}
-                  title="Align Right"
-                  aria-label="Align Right"
-                >
-                  ⊣
-                </button>
-                {selectionCount >= 3 && (
-                  <button
-                    className="properties-modal__alignment-button"
-                    onClick={distributeHorizontal}
-                    title="Distribute Horizontally"
-                    aria-label="Distribute Horizontally"
-                  >
-                    ⟷
-                  </button>
-                )}
-              </div>
-              
-              {/* Vertical Row */}
-              <div className="properties-modal__alignment-row">
-                <button
-                  className="properties-modal__alignment-button"
-                  onClick={alignTop}
-                  title="Align Top"
-                  aria-label="Align Top"
-                >
-                  ⊤
-                </button>
-                <button
-                  className="properties-modal__alignment-button"
-                  onClick={alignCenterVertical}
-                  title="Align Middle (Vertical)"
-                  aria-label="Align Center Vertical"
-                >
-                  ⊥⊤
-                </button>
-                <button
-                  className="properties-modal__alignment-button"
-                  onClick={alignBottom}
-                  title="Align Bottom"
-                  aria-label="Align Bottom"
-                >
-                  ⊥
-                </button>
-                {selectionCount >= 3 && (
-                  <button
-                    className="properties-modal__alignment-button"
-                    onClick={distributeVertical}
-                    title="Distribute Vertically"
-                    aria-label="Distribute Vertically"
-                  >
-                    ⇅
-                  </button>
-                )}
-              </div>
+        {/* Alignment - always visible, disabled when < 2 objects */}
+        <div className="properties-modal__field properties-modal__field--full">
+          <label className="properties-modal__label">Alignment</label>
+          <div className="properties-modal__alignment-rows">
+            {/* Horizontal Row */}
+            <div className="properties-modal__alignment-row">
+              <button
+                className="properties-modal__alignment-button"
+                onClick={alignLeft}
+                disabled={selectionCount < 2}
+                title={selectionCount < 2 ? "Select 2+ objects to align" : "Align Left"}
+                aria-label="Align Left"
+              >
+                ⊢
+              </button>
+              <button
+                className="properties-modal__alignment-button"
+                onClick={alignCenterHorizontal}
+                disabled={selectionCount < 2}
+                title={selectionCount < 2 ? "Select 2+ objects to align" : "Align Center (Horizontal)"}
+                aria-label="Align Center Horizontal"
+              >
+                ⊢⊣
+              </button>
+              <button
+                className="properties-modal__alignment-button"
+                onClick={alignRight}
+                disabled={selectionCount < 2}
+                title={selectionCount < 2 ? "Select 2+ objects to align" : "Align Right"}
+                aria-label="Align Right"
+              >
+                ⊣
+              </button>
+              <button
+                className="properties-modal__alignment-button"
+                onClick={distributeHorizontal}
+                disabled={selectionCount < 3}
+                title={selectionCount < 3 ? "Select 3+ objects to distribute" : "Distribute Horizontally"}
+                aria-label="Distribute Horizontally"
+              >
+                ⟷
+              </button>
+            </div>
+            
+            {/* Vertical Row */}
+            <div className="properties-modal__alignment-row">
+              <button
+                className="properties-modal__alignment-button"
+                onClick={alignTop}
+                disabled={selectionCount < 2}
+                title={selectionCount < 2 ? "Select 2+ objects to align" : "Align Top"}
+                aria-label="Align Top"
+              >
+                ⊤
+              </button>
+              <button
+                className="properties-modal__alignment-button"
+                onClick={alignCenterVertical}
+                disabled={selectionCount < 2}
+                title={selectionCount < 2 ? "Select 2+ objects to align" : "Align Middle (Vertical)"}
+                aria-label="Align Center Vertical"
+              >
+                ⊥⊤
+              </button>
+              <button
+                className="properties-modal__alignment-button"
+                onClick={alignBottom}
+                disabled={selectionCount < 2}
+                title={selectionCount < 2 ? "Select 2+ objects to align" : "Align Bottom"}
+                aria-label="Align Bottom"
+              >
+                ⊥
+              </button>
+              <button
+                className="properties-modal__alignment-button"
+                onClick={distributeVertical}
+                disabled={selectionCount < 3}
+                title={selectionCount < 3 ? "Select 3+ objects to distribute" : "Distribute Vertically"}
+                aria-label="Distribute Vertically"
+              >
+                ⇅
+              </button>
             </div>
           </div>
-        )}
+        </div>
         
         {/* Rotation */}
         <div className="properties-modal__field properties-modal__field--full">

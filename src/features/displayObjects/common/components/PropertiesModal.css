@@ -384,6 +384,21 @@
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.5);
 }
 
+.properties-modal__alignment-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.properties-modal__alignment-button:disabled:hover {
+  transform: none;
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.3);
+}
+
 .properties-modal__slider {
   flex: 1;
   height: 4px;
