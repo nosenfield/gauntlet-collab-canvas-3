@@ -43,7 +43,7 @@ export function MarqueeBox({ x, y, width, height, scale = 1 }: MarqueeBoxProps) 
       height={height}
       
       // Visual properties (zoom-independent)
-      fill="rgba(74, 144, 226, 0.1)" // Light blue with low opacity
+      fill="#4A90E21A"                // Light blue with low opacity (10% alpha = 1A in hex)
       stroke="#4A90E2"                // Blue stroke
       strokeWidth={strokeWidth}       // 1px visual stroke (scaled)
       dash={dashPattern}              // Dashed line pattern (scaled)

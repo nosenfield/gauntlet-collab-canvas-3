@@ -2,6 +2,19 @@
  * Shape Display Objects Types
  * 
  * Type definitions for shape-based display objects (rectangles, circles, lines)
+ * 
+ * Color Convention:
+ * All color values MUST use hex format (#RRGGBB or #RRGGBBAA).
+ * Exception: 'transparent' keyword is allowed for semantic clarity (e.g., line fills).
+ * 
+ * Examples:
+ * - ✅ '#FFFFFF' (white)
+ * - ✅ '#000000' (black)
+ * - ✅ '#FF6B6B' (coral red)
+ * - ✅ 'transparent' (no fill - semantic exception)
+ * - ❌ 'white' (use #FFFFFF instead)
+ * - ❌ 'black' (use #000000 instead)
+ * - ❌ 'red' (use #FF0000 instead)
  */
 
 import type { BaseDisplayObject } from '../common/types';
@@ -17,7 +30,7 @@ export type ShapeType = 'rectangle' | 'circle' | 'line';
  * Common visual attributes for all shapes
  */
 export interface ShapeVisualProperties {
-  fillColor: string;    // Hex color (e.g., '#FF6B6B')
+  fillColor: string;    // Hex color (e.g., '#FF6B6B' or 'transparent')
   strokeColor: string;  // Hex color (e.g., '#000000')
   strokeWidth: number;  // 1-10px
 }
@@ -119,9 +132,9 @@ export const DEFAULT_SHAPE_PROPERTIES = {
   rectangle: {
     width: 100,
     height: 100,
-    fillColor: '#4ECDC4',
-    strokeColor: '#2C3E50',
-    strokeWidth: 2,
+    fillColor: '#FFFFFF',
+    strokeColor: '#000000',
+    strokeWidth: 1,
     borderRadius: 0,
     opacity: 1,
     rotation: 0,
@@ -144,7 +157,7 @@ export const DEFAULT_SHAPE_PROPERTIES = {
   // Line defaults
   line: {
     points: [0, 0, 100, 100],
-    fillColor: 'transparent',
+    fillColor: 'transparent', // Exception: 'transparent' used for semantic clarity (lines have no fill area)
     strokeColor: '#2C3E50',
     strokeWidth: 2,
     opacity: 1,

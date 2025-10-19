@@ -3,6 +3,10 @@
  * 
  * Type definitions for text objects in the canvas.
  * Text objects support rich text editing with font, size, alignment, and styling.
+ * 
+ * Color Convention:
+ * All color values MUST use hex format (#RRGGBB or #RRGGBBAA).
+ * See shapes/types.ts for detailed color convention rules.
  */
 
 import type { BaseDisplayObject } from '../common/types';
@@ -34,7 +38,7 @@ export interface TextDisplayObject extends BaseDisplayObject {
   /** Line height multiplier (e.g., 1.5 = 150% of font size) */
   lineHeight: number;
   
-  /** Text color (hex format) */
+  /** Text color in hex format (e.g., '#000000') */
   color: string;
   
   /** Opacity (0-1) */
