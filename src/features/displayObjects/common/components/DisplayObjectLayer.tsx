@@ -98,23 +98,24 @@ export function DisplayObjectLayer<T extends TransformableObject>({
   const { user } = useAuth();
   
   // Check if multiple objects are selected (enables collection drag)
-  const hasMultipleSelected = selectedIds.length > 1;
+  // NOTE: We use collection drag for single objects too, to ensure bounding boxes update during drag
+  const hasMultipleSelected = selectedIds.length >= 1;
 
   /**
-   * Handle single object drag end
+   * Handle drag end (collection or single object)
    */
   const handleObjectDragEnd = async (objectId: string, x: number, y: number) => {
     if (!user) return;
     
-    // If this was a collection drag, end it
-    if (hasMultipleSelected && isCollectionDragging) {
+    // All drags now use collection drag system for consistent bounding box updates
+    if (isCollectionDragging) {
       await endCollectionDrag();
       return;
     }
     
-    // Otherwise, it's a single object drag
+    // Fallback: direct update (shouldn't happen with current logic)
     try {
-      console.log(`[DisplayObjectLayer] Updating single object position:`, objectId, { x, y });
+      console.log(`[DisplayObjectLayer] Fallback: Updating single object position:`, objectId, { x, y });
       await updateObject(objectId, user.userId, { x, y });
     } catch (error) {
       console.error('[DisplayObjectLayer] Error updating object position:', error);
@@ -122,18 +123,18 @@ export function DisplayObjectLayer<T extends TransformableObject>({
   };
   
   /**
-   * Handle collection drag start (when multiple objects selected)
+   * Handle collection drag start (includes single object drags)
    */
   const handleCollectionDragStart = (objectId: string) => {
-    if (!hasMultipleSelected) return;
+    if (selectedIds.length === 0) return;
     startCollectionDrag(objectId);
   };
   
   /**
-   * Handle collection drag move (when multiple objects selected)
+   * Handle collection drag move (includes single object drags)
    */
   const handleCollectionDragMove = (objectId: string, x: number, y: number) => {
-    if (!hasMultipleSelected || !isCollectionDragging) return;
+    if (!isCollectionDragging) return;
     moveCollectionDrag(objectId, x, y);
   };
   
@@ -170,7 +171,7 @@ export function DisplayObjectLayer<T extends TransformableObject>({
           onDragEnd: handleObjectDragEnd,
           // Keep draggable for all selected objects (use Konva's draggable)
           draggable: isSelected,
-          // Collection drag handlers (only when multiple objects selected)
+          // Collection drag handlers (for all selected objects, including single)
           onCollectionDragStart: hasMultipleSelected ? handleCollectionDragStart : undefined,
           onCollectionDragMove: hasMultipleSelected ? handleCollectionDragMove : undefined,
           // During collection drag, only the driver object is controlled by Konva
