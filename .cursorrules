@@ -1,5 +1,15 @@
 # CollabCanvas Development Rules for Cursor AI
 
+## 🎯 MOST IMPORTANT RULE - Read This First
+
+**Before doing ANYTHING else in this project, you MUST:**
+
+Review our project `_docs/README.md`
+
+This document contains critical context about the project structure, current state, and development guidelines. Reading it first will prevent mistakes and ensure you understand the full context before making any changes.
+
+---
+
 ## Core Principles
 
 You are working on CollabCanvas, a real-time collaborative canvas application built with React + TypeScript + Konva.js + Firebase. Your primary goal is to build a robust MVP that prioritizes real-time synchronization and multiplayer functionality.
