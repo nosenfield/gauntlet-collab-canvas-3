@@ -19,7 +19,7 @@ export function FPSMonitor(): React.ReactElement | null {
     frameTime: 0, 
     timestamp: 0 
   });
-  const [showFPS, setShowFPS] = useState(true);
+  const [showFPS, setShowFPS] = useState(false);
 
   // Performance monitoring in development
   useEffect(() => {

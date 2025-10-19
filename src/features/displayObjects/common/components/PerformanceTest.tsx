@@ -3,8 +3,9 @@
  * 
  * Component for testing performance with many objects
  * - Press 'P' to open performance test panel
- * - Spawn 100+ rectangles
+ * - Spawn shapes with configurable options
  * - Test selection and drag performance
+ * - Test AI commands
  * - Monitor FPS impact
  * - Available in production builds
  */
@@ -12,8 +13,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/store/authStore';
 import { createShape } from '@/features/displayObjects/shapes/services/shapeService';
+import { createText } from '@/features/displayObjects/texts/services/textService';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
+import { useTexts } from '@/features/displayObjects/texts/store/textsStore';
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
+import { useAIAgent } from '@/features/aiAgent/hooks/useAIAgent';
+import { startFPSMonitoring, stopFPSMonitoring } from '@/utils/performanceMonitor';
+import type { PerformanceMetrics } from '@/utils/performanceMonitor';
 import './PerformanceTest.css';
 
 /**
@@ -55,20 +61,40 @@ function hslToHex(h: number, s: number, l: number): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
 }
 
-interface TestConfig {
-  count: number;
-  pattern: 'grid' | 'random' | 'cluster';
-  size: 'small' | 'medium' | 'large';
-}
+type ObjectType = 'rectangle' | 'circle' | 'line' | 'text';
+type SpawnPattern = 'grid' | 'random' | 'cluster';
 
 export function PerformanceTest(): React.ReactElement | null {
   const [isOpen, setIsOpen] = useState(false);
   const [isSpawning, setIsSpawning] = useState(false);
   const [lastTestResults, setLastTestResults] = useState<string>('');
+  const [fpsMetrics, setFpsMetrics] = useState<PerformanceMetrics>({ 
+    fps: 60, 
+    frameTime: 0, 
+    timestamp: 0 
+  });
+  
+  // Spawn configuration state
+  const [selectedTypes, setSelectedTypes] = useState<Set<ObjectType>>(new Set(['rectangle']));
+  const [spawnPattern, setSpawnPattern] = useState<SpawnPattern>('grid');
+  const [spawnCount, setSpawnCount] = useState<number>(50);
   
   const { user } = useAuth();
   const { shapes } = useShapes();
+  const { texts } = useTexts();
   const { selectedIds, setSelection, clearSelection } = useSelection();
+  const { executeCommand } = useAIAgent();
+
+  // FPS monitoring
+  useEffect(() => {
+    startFPSMonitoring((metrics) => {
+      setFpsMetrics(metrics);
+    });
+
+    return () => {
+      stopFPSMonitoring();
+    };
+  }, []);
 
   // Toggle panel with 'P' key
   useEffect(() => {
@@ -86,44 +112,59 @@ export function PerformanceTest(): React.ReactElement | null {
   }, []);
 
   /**
-   * Spawn multiple rectangles based on test configuration
+   * Toggle object type selection
    */
-  const spawnShapes = async (config: TestConfig) => {
+  const toggleObjectType = (type: ObjectType) => {
+    setSelectedTypes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(type)) {
+        // Don't allow deselecting all types
+        if (newSet.size > 1) {
+          newSet.delete(type);
+        }
+      } else {
+        newSet.add(type);
+      }
+      return newSet;
+    });
+  };
+
+  /**
+   * Spawn multiple objects based on test configuration
+   */
+  const spawnObjects = async () => {
     if (!user) {
       setLastTestResults('❌ No user authenticated');
       return;
     }
 
+    if (selectedTypes.size === 0) {
+      setLastTestResults('❌ Select at least one object type');
+      return;
+    }
+
     setIsSpawning(true);
-    setLastTestResults(`⏳ Spawning ${config.count} shapes...`);
+    setLastTestResults(`⏳ Spawning ${spawnCount} objects...`);
     
     const startTime = performance.now();
     
     try {
       const promises: Promise<string>[] = [];
-      
-      // Size presets
-      const sizes = {
-        small: { width: 30, height: 30 },
-        medium: { width: 60, height: 60 },
-        large: { width: 100, height: 100 },
-      };
-      
-      const { width, height } = sizes[config.size];
+      const typesArray = Array.from(selectedTypes);
       
       // Canvas center is at (5000, 5000) in a 10,000 x 10,000 canvas
       const CANVAS_CENTER = 5000;
       
-      for (let i = 0; i < config.count; i++) {
+      for (let i = 0; i < spawnCount; i++) {
         let x: number, y: number;
         
-        switch (config.pattern) {
+        switch (spawnPattern) {
           case 'grid':
             // Grid layout (10 per row) centered around viewport
             const cols = 10;
             const col = i % cols;
             const row = Math.floor(i / cols);
-            x = CANVAS_CENTER - 750 + col * 150; // Center the grid
+            x = CANVAS_CENTER - 750 + col * 150;
             y = CANVAS_CENTER - 750 + row * 150;
             break;
             
@@ -142,21 +183,68 @@ export function PerformanceTest(): React.ReactElement | null {
         }
         
         // Generate varied hex colors based on index
-        const hue = (i * 360) / config.count;
+        const hue = (i * 360) / spawnCount;
         const hexColor = hslToHex(hue, 70, 60);
         
-        promises.push(
-          createShape(user.userId, {
-            type: 'rectangle',
-            x,
-            y,
-            width,
-            height,
-            fillColor: hexColor,
-            strokeColor: '#000000',
-            strokeWidth: 1,
-          })
-        );
+        // Randomly select object type from selected types
+        const objectType = typesArray[i % typesArray.length];
+        
+        switch (objectType) {
+          case 'rectangle':
+            promises.push(
+              createShape(user.userId, {
+                type: 'rectangle',
+                x,
+                y,
+                width: 60,
+                height: 60,
+                fillColor: hexColor,
+                strokeColor: '#000000',
+                strokeWidth: 1,
+              })
+            );
+            break;
+            
+          case 'circle':
+            promises.push(
+              createShape(user.userId, {
+                type: 'circle',
+                x,
+                y,
+                radius: 30,
+                fillColor: hexColor,
+                strokeColor: '#000000',
+                strokeWidth: 1,
+              })
+            );
+            break;
+            
+          case 'line':
+            promises.push(
+              createShape(user.userId, {
+                type: 'line',
+                x,
+                y,
+                points: [0, 0, 60, 60],
+                fillColor: 'transparent',
+                strokeColor: hexColor,
+                strokeWidth: 2,
+              })
+            );
+            break;
+            
+          case 'text':
+            promises.push(
+              createText(user.userId, {
+                x,
+                y,
+                content: `Text ${i + 1}`,
+                fontSize: 16,
+                color: hexColor,
+              }).then(text => text.id)
+            );
+            break;
+        }
         
         // Batch in groups of 20 to avoid overwhelming Firestore
         if (promises.length >= 20) {
@@ -168,7 +256,7 @@ export function PerformanceTest(): React.ReactElement | null {
         }
       }
       
-      // Create remaining shapes
+      // Create remaining objects
       if (promises.length > 0) {
         await Promise.all(promises);
       }
@@ -176,13 +264,15 @@ export function PerformanceTest(): React.ReactElement | null {
       const endTime = performance.now();
       const duration = ((endTime - startTime) / 1000).toFixed(2);
       
+      const totalObjects = shapes.length + texts.length;
       setLastTestResults(
-        `✅ Created ${config.count} shapes in ${duration}s\n` +
-        `Pattern: ${config.pattern}, Size: ${config.size}\n` +
-        `Total shapes on canvas: ${shapes.length + config.count}`
+        `✅ Created ${spawnCount} objects in ${duration}s\n` +
+        `Types: ${Array.from(selectedTypes).join(', ')}\n` +
+        `Pattern: ${spawnPattern}\n` +
+        `Total objects on canvas: ${totalObjects}`
       );
     } catch (error) {
-      console.error('[PerformanceTest] Error spawning shapes:', error);
+      console.error('[PerformanceTest] Error spawning objects:', error);
       setLastTestResults(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSpawning(false);
@@ -190,15 +280,14 @@ export function PerformanceTest(): React.ReactElement | null {
   };
 
   /**
-   * Select all shapes on canvas
+   * Select all objects on canvas
    */
   const selectAll = () => {
-    const allIds = shapes.map(s => s.id);
+    const allIds = [...shapes.map(s => s.id), ...texts.map(t => t.id)];
     setSelection(allIds);
     setLastTestResults(
-      `✅ Selected ${allIds.length} shapes\n` +
-      `Watch FPS during drag operations\n` +
-      `Bounding box recalculation overhead: ~${(allIds.length * 0.02).toFixed(1)}ms per frame`
+      `✅ Selected ${allIds.length} objects\n` +
+      `Watch FPS during drag operations`
     );
   };
 
@@ -210,10 +299,42 @@ export function PerformanceTest(): React.ReactElement | null {
     setLastTestResults('✅ Cleared selection');
   };
 
+  /**
+   * Execute AI command
+   */
+  const runAICommand = async (command: string) => {
+    if (!user) {
+      setLastTestResults('❌ No user authenticated');
+      return;
+    }
+
+    setLastTestResults(`⏳ Executing AI command: "${command}"`);
+    
+    try {
+      const startTime = performance.now();
+      await executeCommand(command);
+      const endTime = performance.now();
+      const duration = ((endTime - startTime) / 1000).toFixed(2);
+      
+      setLastTestResults(
+        `✅ AI command executed in ${duration}s\n` +
+        `Command: "${command}"`
+      );
+    } catch (error) {
+      console.error('[PerformanceTest] Error executing AI command:', error);
+      setLastTestResults(
+        `❌ AI command failed\n` +
+        `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  };
+
   // Don't render if closed
   if (!isOpen) {
     return null;
   }
+
+  const totalObjects = shapes.length + texts.length;
 
   return (
     <div className="performance-test-panel">
@@ -226,46 +347,93 @@ export function PerformanceTest(): React.ReactElement | null {
         <div className="test-section">
           <h4>Current State</h4>
           <div className="metrics">
-            <div>Shapes on canvas: <strong>{shapes.length}</strong></div>
+            <div>Objects on canvas: <strong>{totalObjects}</strong></div>
             <div>Selected: <strong>{selectedIds.length}</strong></div>
-            <div>Watch FPS counter (bottom-left)</div>
+            <div>
+              FPS: <strong style={{ color: fpsMetrics.fps < 60 ? '#ff6b6b' : '#51cf66' }}>
+                {fpsMetrics.fps}
+              </strong>
+            </div>
           </div>
         </div>
 
         <div className="test-section">
-          <h4>Spawn Test Shapes</h4>
+          <h4>Spawn Test Objects</h4>
           
-          <button
-            onClick={() => spawnShapes({ count: 50, pattern: 'grid', size: 'medium' })}
-            disabled={isSpawning}
-            className="test-button"
-          >
-            50 Shapes (Grid)
-          </button>
-          
-          <button
-            onClick={() => spawnShapes({ count: 100, pattern: 'grid', size: 'medium' })}
-            disabled={isSpawning}
-            className="test-button"
-          >
-            100 Shapes (Grid)
-          </button>
-          
-          <button
-            onClick={() => spawnShapes({ count: 200, pattern: 'random', size: 'small' })}
-            disabled={isSpawning}
-            className="test-button"
-          >
-            200 Shapes (Random)
-          </button>
-          
-          <button
-            onClick={() => spawnShapes({ count: 100, pattern: 'cluster', size: 'large' })}
-            disabled={isSpawning}
-            className="test-button"
-          >
-            100 Shapes (Cluster)
-          </button>
+          <div className="spawn-config">
+            <div className="config-group">
+              <label>Object Types:</label>
+              <div className="checkbox-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.has('rectangle')}
+                    onChange={() => toggleObjectType('rectangle')}
+                  />
+                  Rectangle
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.has('circle')}
+                    onChange={() => toggleObjectType('circle')}
+                  />
+                  Circle
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.has('line')}
+                    onChange={() => toggleObjectType('line')}
+                  />
+                  Line
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.has('text')}
+                    onChange={() => toggleObjectType('text')}
+                  />
+                  Text
+                </label>
+              </div>
+            </div>
+
+            <div className="config-group">
+              <label htmlFor="spawn-pattern">Pattern:</label>
+              <select
+                id="spawn-pattern"
+                value={spawnPattern}
+                onChange={(e) => setSpawnPattern(e.target.value as SpawnPattern)}
+                className="spawn-select"
+              >
+                <option value="grid">Grid</option>
+                <option value="random">Random</option>
+                <option value="cluster">Cluster</option>
+              </select>
+            </div>
+
+            <div className="config-group">
+              <label htmlFor="spawn-count">Count:</label>
+              <input
+                id="spawn-count"
+                type="number"
+                min="1"
+                max="500"
+                value={spawnCount}
+                onChange={(e) => setSpawnCount(Math.max(1, parseInt(e.target.value) || 1))}
+                className="spawn-input"
+              />
+            </div>
+
+            <button
+              onClick={spawnObjects}
+              disabled={isSpawning}
+              className="test-button"
+            >
+              {isSpawning ? 'Spawning...' : 'Spawn Objects'}
+            </button>
+          </div>
         </div>
 
         <div className="test-section">
@@ -273,10 +441,10 @@ export function PerformanceTest(): React.ReactElement | null {
           
           <button
             onClick={selectAll}
-            disabled={shapes.length === 0}
+            disabled={totalObjects === 0}
             className="test-button"
           >
-            Select All ({shapes.length})
+            Select All ({totalObjects})
           </button>
           
           <button
@@ -285,10 +453,91 @@ export function PerformanceTest(): React.ReactElement | null {
           >
             Clear Selection
           </button>
+        </div>
+
+        <div className="test-section">
+          <h4>AI Commands</h4>
           
-          <div className="test-instructions">
-            After selecting, drag shapes and watch FPS.
-            Target: 60 FPS minimum.
+          <div className="ai-commands">
+            <div className="config-group">
+              <label htmlFor="ai-creation">Creation:</label>
+              <select
+                id="ai-creation"
+                onChange={(e) => {
+                  if (e.target.value) {
+                    runAICommand(e.target.value);
+                    e.target.value = '';
+                  }
+                }}
+                className="spawn-select"
+                defaultValue=""
+              >
+                <option value="">Select command...</option>
+                <option value="Create a red circle at position 100, 200">Create a red circle at position 100, 200</option>
+                <option value="Add a text layer that says 'Hello World'">Add a text layer that says 'Hello World'</option>
+                <option value="Make a 200x300 rectangle">Make a 200x300 rectangle</option>
+              </select>
+            </div>
+
+            <div className="config-group">
+              <label htmlFor="ai-manipulation">Manipulation:</label>
+              <select
+                id="ai-manipulation"
+                onChange={(e) => {
+                  if (e.target.value) {
+                    runAICommand(e.target.value);
+                    e.target.value = '';
+                  }
+                }}
+                className="spawn-select"
+                defaultValue=""
+              >
+                <option value="">Select command...</option>
+                <option value="Move the blue rectangle to the center">Move the blue rectangle to the center</option>
+                <option value="Resize the circle to be twice as big">Resize the circle to be twice as big</option>
+                <option value="Rotate the text 45 degrees">Rotate the text 45 degrees</option>
+              </select>
+            </div>
+
+            <div className="config-group">
+              <label htmlFor="ai-layout">Layout:</label>
+              <select
+                id="ai-layout"
+                onChange={(e) => {
+                  if (e.target.value) {
+                    runAICommand(e.target.value);
+                    e.target.value = '';
+                  }
+                }}
+                className="spawn-select"
+                defaultValue=""
+              >
+                <option value="">Select command...</option>
+                <option value="Arrange these shapes in a horizontal row">Arrange these shapes in a horizontal row</option>
+                <option value="Create a grid of 3x3 squares">Create a grid of 3x3 squares</option>
+                <option value="Space these elements evenly">Space these elements evenly</option>
+              </select>
+            </div>
+
+            <div className="config-group">
+              <label htmlFor="ai-complex">Complex:</label>
+              <select
+                id="ai-complex"
+                onChange={(e) => {
+                  if (e.target.value) {
+                    runAICommand(e.target.value);
+                    e.target.value = '';
+                  }
+                }}
+                className="spawn-select"
+                defaultValue=""
+              >
+                <option value="">Select command...</option>
+                <option value="Create a login form with username and password fields">Create a login form with username and password fields</option>
+                <option value="Build a navigation bar with 4 menu items">Build a navigation bar with 4 menu items</option>
+                <option value="Make a card layout with title, image, and description">Make a card layout with title, image, and description</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -300,13 +549,7 @@ export function PerformanceTest(): React.ReactElement | null {
         )}
 
         <div className="test-help">
-          <strong>Performance Targets:</strong>
-          <ul>
-            <li>60 FPS with 100+ shapes</li>
-            <li>Smooth drag with 50+ selected</li>
-            <li>No visible lag during selection</li>
-          </ul>
-          <div style={{ marginTop: '8px', fontSize: '11px', opacity: 0.7 }}>
+          <div style={{ fontSize: '11px', opacity: 0.7 }}>
             Press P to close
           </div>
         </div>
@@ -314,4 +557,3 @@ export function PerformanceTest(): React.ReactElement | null {
     </div>
   );
 }
-
