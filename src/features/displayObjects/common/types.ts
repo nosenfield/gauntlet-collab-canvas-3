@@ -56,6 +56,29 @@ export interface Transform {
 export type DisplayObjectCategory = 'shape' | 'text' | 'image' | 'group';
 
 /**
+ * Blend Mode
+ * Canvas globalCompositeOperation blend modes
+ */
+export type BlendMode = 
+  | 'source-over'
+  | 'multiply'
+  | 'screen'
+  | 'overlay'
+  | 'darken'
+  | 'lighten'
+  | 'color-dodge'
+  | 'color-burn'
+  | 'hard-light'
+  | 'soft-light'
+  | 'difference'
+  | 'exclusion'
+  | 'hue'
+  | 'saturation'
+  | 'color'
+  | 'luminosity'
+  | 'xor';
+
+/**
  * BaseDisplayObject
  * Common properties shared by all display objects on the canvas
  * 

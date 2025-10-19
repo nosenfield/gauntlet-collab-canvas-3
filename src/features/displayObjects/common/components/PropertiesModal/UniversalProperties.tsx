@@ -244,6 +244,9 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
         
         // For each object, calculate new position and scale
         const shapeUpdates = shapes.map(obj => {
+          // Skip objects without width/height
+          if (!obj.width || !obj.height) return null;
+          
           // Calculate object's center point (accounting for current scale)
           const halfWidth = (obj.width * obj.scaleX) / 2;
           const halfHeight = (obj.height * obj.scaleY) / 2;
@@ -289,9 +292,12 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
               scaleY: constrainedScaleY,
             },
           };
-        });
+        }).filter((update): update is NonNullable<typeof update> => update !== null);
         
         const textUpdates = texts.map(obj => {
+          // Skip objects without width/height
+          if (!obj.width || !obj.height) return null;
+          
           // Calculate object's center point (accounting for current scale)
           const halfWidth = (obj.width * obj.scaleX) / 2;
           const halfHeight = (obj.height * obj.scaleY) / 2;
@@ -337,7 +343,7 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
               scaleY: constrainedScaleY,
             },
           };
-        });
+        }).filter((update): update is NonNullable<typeof update> => update !== null);
         
         if (shapeUpdates.length > 0) {
           promises.push(updateShapesBatch(userId, shapeUpdates));
