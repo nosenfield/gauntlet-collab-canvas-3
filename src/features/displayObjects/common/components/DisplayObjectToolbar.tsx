@@ -5,10 +5,13 @@
  * Location: Fixed at top of screen, below any app header
  */
 
+import { useEffect, useCallback } from 'react';
 import { useTool, type ToolType, TOOL_LABELS } from '../store/toolStore';
-import { deleteAllShapes } from '@/features/displayObjects/shapes/services/shapeService';
-import { deleteAllTexts } from '@/features/displayObjects/texts/services/textService';
+import { deleteShape } from '@/features/displayObjects/shapes/services/shapeService';
+import { deleteText } from '@/features/displayObjects/texts/services/textService';
 import { useSelection } from '../store/selectionStore';
+import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
+import { useTexts } from '@/features/displayObjects/texts/store/textsStore';
 import { useAIModal } from '@/features/aiAgent/hooks/useAIModal';
 import { AICommandModal } from '@/features/aiAgent/components/AICommandModal';
 import './DisplayObjectToolbar.css';
@@ -80,7 +83,9 @@ function ToolButton({ tool, isActive, onClick }: ToolButtonProps) {
  */
 export function DisplayObjectToolbar() {
   const { setTool, isToolActive } = useTool();
-  const { clearSelection } = useSelection();
+  const { selectedIds, clearSelection } = useSelection();
+  const { shapes } = useShapes();
+  const { texts } = useTexts();
   const { isOpen, openModal, closeModal } = useAIModal();
 
   const tools: ToolType[] = ['select', 'rectangle', 'circle', 'line', 'text'];
@@ -89,33 +94,63 @@ export function DisplayObjectToolbar() {
     setTool(tool);
   };
 
-  const handleClearAll = async () => {
-    // Confirm before deleting
-    const confirmed = window.confirm(
-      'Are you sure you want to delete all objects from the canvas? This action cannot be undone.'
-    );
-    
-    if (!confirmed) {
+  const handleDelete = useCallback(async () => {
+    if (selectedIds.length === 0) {
       return;
     }
     
     try {
-      // Clear selection first
+      // Determine which IDs are shapes vs texts by checking the stores
+      const shapeIds = new Set(shapes.map(s => s.id));
+      const textIds = new Set(texts.map(t => t.id));
+      
+      // Delete all selected objects
+      const deletePromises = selectedIds.map(async (id) => {
+        if (shapeIds.has(id)) {
+          return deleteShape(id);
+        } else if (textIds.has(id)) {
+          return deleteText(id);
+        }
+        // If ID not found, log warning but continue
+        console.warn(`[Toolbar] Could not find object with ID: ${id}`);
+      });
+      
+      await Promise.all(deletePromises);
+      
+      console.log(`[Toolbar] Deleted ${selectedIds.length} objects from canvas`);
+      
+      // Clear selection after deletion
       clearSelection();
-      
-      // Delete all shapes and texts in parallel
-      const [shapesCount, textsCount] = await Promise.all([
-        deleteAllShapes(),
-        deleteAllTexts(),
-      ]);
-      
-      const totalCount = shapesCount + textsCount;
-      console.log(`[Toolbar] Cleared ${totalCount} objects from canvas (${shapesCount} shapes, ${textsCount} texts)`);
     } catch (error) {
-      console.error('[Toolbar] Error clearing canvas:', error);
-      alert('Failed to clear canvas. Please try again.');
+      console.error('[Toolbar] Error deleting objects:', error);
+      alert('Failed to delete objects. Please try again.');
     }
-  };
+  }, [selectedIds, shapes, texts, clearSelection]);
+
+  // Keyboard shortcut for delete
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if Delete or Backspace key is pressed
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Don't trigger if user is typing in an input/textarea
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+          return;
+        }
+        
+        // Prevent default backspace navigation
+        e.preventDefault();
+        
+        // Delete selected objects
+        if (selectedIds.length > 0) {
+          handleDelete();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds, handleDelete]);
 
   return (
     <div className="display-object-toolbar">
@@ -136,22 +171,25 @@ export function DisplayObjectToolbar() {
         <button
           className="tool-button tool-button--ai"
           onClick={openModal}
-          title="AI Commands (Natural Language)"
+          title="AI Commands (Spacebar)"
           aria-label="AI Commands"
         >
           <span className="tool-button__icon">✨</span>
           <span className="tool-button__label">AI</span>
+          <span className="tool-button__shortcut">Spacebar</span>
         </button>
         
-        {/* Clear All Button */}
+        {/* Delete Button */}
         <button
           className="tool-button tool-button--danger"
-          onClick={handleClearAll}
-          title="Clear All Objects"
-          aria-label="Clear All Objects"
+          onClick={handleDelete}
+          disabled={selectedIds.length === 0}
+          title={selectedIds.length > 0 ? `Delete ${selectedIds.length} selected object${selectedIds.length > 1 ? 's' : ''} (Del)` : 'Delete (select objects first)'}
+          aria-label="Delete selected objects"
         >
           <span className="tool-button__icon">🗑️</span>
-          <span className="tool-button__label">Clear All</span>
+          <span className="tool-button__label">Delete</span>
+          <span className="tool-button__shortcut">Del</span>
         </button>
       </div>
       
