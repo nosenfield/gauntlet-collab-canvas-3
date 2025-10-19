@@ -138,6 +138,35 @@
   margin: 0 4px;
 }
 
+/* AI Button */
+.tool-button--ai {
+  color: #A855F7; /* Purple */
+  position: relative;
+}
+
+.tool-button--ai:hover {
+  background-color: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
+.tool-button--ai:active {
+  background-color: rgba(168, 85, 247, 0.25);
+}
+
+/* Subtle glow effect for AI button */
+.tool-button--ai .tool-button__icon {
+  animation: aiGlow 2s ease-in-out infinite;
+}
+
+@keyframes aiGlow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
 /* Danger Button (Clear All) */
 .tool-button--danger {
   color: #FF6B6B;

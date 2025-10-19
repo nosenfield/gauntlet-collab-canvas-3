@@ -17,6 +17,11 @@ VITE_FIREBASE_APP_ID=your-app-id
 # Get this from Firebase Console > Realtime Database > Data tab URL
 # Format: https://your-project-id-default-rtdb.firebaseio.com
 VITE_FIREBASE_DATABASE_URL=https://your-project-id-default-rtdb.firebaseio.com
+
+# OpenAI API Key (for AI Agent feature)
+# Get this from OpenAI Platform > API Keys
+# Format: sk-...
+VITE_OPENAI_API_KEY=sk-your-openai-api-key-here
 ```
 
 ## Setup Instructions
@@ -49,10 +54,14 @@ VITE_FIREBASE_DATABASE_URL=https://your-project-id-default-rtdb.firebaseio.com
 ## Security Notes
 
 - ✅ `.env.local` is gitignored by default
-- ✅ These are PUBLIC API keys (safe for client-side)
+- ✅ Firebase keys are PUBLIC API keys (safe for client-side)
+- ⚠️ **OpenAI API key is PRIVATE** - exposed in browser for dev only
 - ⚠️ Security is handled by Firebase Security Rules
 - ⚠️ Test mode has OPEN rules - update for production
-- 🔒 For production, set appropriate Firestore and Realtime Database rules
+- 🔒 For production:
+  - Move OpenAI calls to Firebase Functions (server-side)
+  - Set appropriate Firestore and Realtime Database rules
+  - Implement rate limiting for AI commands
 
 ## Verifying Setup
 

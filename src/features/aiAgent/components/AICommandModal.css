@@ -1,0 +1,258 @@
+/**
+ * AI Command Modal Styles
+ * 
+ * Modal overlay and input for natural language commands
+ */
+
+/* Modal Overlay */
+.ai-command-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000; /* Above toolbar (z-index: 1000) */
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal Container */
+.ai-command-modal {
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 600px;
+  margin: 0 16px;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Modal Content */
+.ai-command-modal__content {
+  padding: 24px;
+}
+
+/* Modal Header */
+.ai-command-modal__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.ai-command-modal__title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1F2937;
+  margin: 0;
+}
+
+.ai-command-modal__icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+/* Input Form */
+.ai-command-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Command Input */
+.ai-command-modal__input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 16px;
+  line-height: 1.5;
+  border: 2px solid #E5E7EB;
+  border-radius: 8px;
+  background-color: #FFFFFF;
+  color: #1F2937;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transition: all 0.2s ease;
+}
+
+.ai-command-modal__input:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.ai-command-modal__input:disabled {
+  background-color: #F3F4F6;
+  color: #9CA3AF;
+  cursor: not-allowed;
+}
+
+.ai-command-modal__input::placeholder {
+  color: #9CA3AF;
+}
+
+/* Button Container */
+.ai-command-modal__buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* Buttons */
+.ai-command-modal__button {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.ai-command-modal__button--cancel {
+  background-color: transparent;
+  color: #6B7280;
+}
+
+.ai-command-modal__button--cancel:hover {
+  color: #1F2937;
+  background-color: #F3F4F6;
+}
+
+.ai-command-modal__button--submit {
+  background-color: #3B82F6;
+  color: #FFFFFF;
+}
+
+.ai-command-modal__button--submit:hover:not(:disabled) {
+  background-color: #2563EB;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.ai-command-modal__button--submit:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.ai-command-modal__button--submit:disabled {
+  background-color: #D1D5DB;
+  color: #9CA3AF;
+  cursor: not-allowed;
+}
+
+/* Examples Section */
+.ai-command-modal__examples {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #E5E7EB;
+}
+
+.ai-command-modal__examples-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6B7280;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ai-command-modal__examples-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-command-modal__examples-item {
+  font-size: 13px;
+  color: #6B7280;
+  padding-left: 16px;
+  position: relative;
+}
+
+.ai-command-modal__examples-item::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: #9CA3AF;
+}
+
+/* Loading State */
+.ai-command-modal__input--processing {
+  border-color: #3B82F6;
+  background-color: #F0F9FF;
+}
+
+/* Responsive: Mobile */
+@media (max-width: 640px) {
+  .ai-command-modal {
+    max-width: calc(100vw - 32px);
+    margin: 0 16px;
+  }
+
+  .ai-command-modal__content {
+    padding: 20px;
+  }
+
+  .ai-command-modal__title {
+    font-size: 20px;
+  }
+
+  .ai-command-modal__input {
+    font-size: 16px; /* Prevent iOS zoom */
+  }
+
+  .ai-command-modal__buttons {
+    flex-direction: column-reverse;
+  }
+
+  .ai-command-modal__button {
+    width: 100%;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .ai-command-modal {
+    border: 2px solid #000000;
+  }
+
+  .ai-command-modal__input {
+    border-width: 2px;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .ai-command-modal-overlay,
+  .ai-command-modal {
+    animation: none;
+  }
+
+  .ai-command-modal__button {
+    transition: none;
+  }
+}
+

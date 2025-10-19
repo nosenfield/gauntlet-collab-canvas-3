@@ -9,6 +9,8 @@ import { useTool, type ToolType, TOOL_LABELS } from '../store/toolStore';
 import { deleteAllShapes } from '@/features/displayObjects/shapes/services/shapeService';
 import { deleteAllTexts } from '@/features/displayObjects/texts/services/textService';
 import { useSelection } from '../store/selectionStore';
+import { useAIModal } from '@/features/aiAgent/hooks/useAIModal';
+import { AICommandModal } from '@/features/aiAgent/components/AICommandModal';
 import './DisplayObjectToolbar.css';
 
 /**
@@ -79,6 +81,7 @@ function ToolButton({ tool, isActive, onClick }: ToolButtonProps) {
 export function DisplayObjectToolbar() {
   const { setTool, isToolActive } = useTool();
   const { clearSelection } = useSelection();
+  const { isOpen, openModal, closeModal } = useAIModal();
 
   const tools: ToolType[] = ['select', 'rectangle', 'circle', 'line', 'text'];
 
@@ -129,6 +132,17 @@ export function DisplayObjectToolbar() {
         {/* Separator */}
         <div className="display-object-toolbar__separator" />
         
+        {/* AI Commands Button */}
+        <button
+          className="tool-button tool-button--ai"
+          onClick={openModal}
+          title="AI Commands (Natural Language)"
+          aria-label="AI Commands"
+        >
+          <span className="tool-button__icon">✨</span>
+          <span className="tool-button__label">AI</span>
+        </button>
+        
         {/* Clear All Button */}
         <button
           className="tool-button tool-button--danger"
@@ -140,6 +154,9 @@ export function DisplayObjectToolbar() {
           <span className="tool-button__label">Clear All</span>
         </button>
       </div>
+      
+      {/* AI Command Modal */}
+      <AICommandModal isOpen={isOpen} onClose={closeModal} />
     </div>
   );
 }
