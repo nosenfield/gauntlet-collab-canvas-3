@@ -166,7 +166,7 @@ export const DISPLAY_OBJECT_CONSTANTS = {
  * Used by transform hooks and utilities to work with multiple object types.
  */
 export interface TransformableObject extends BaseDisplayObject {
-  width: number;
-  height: number;
+  width?: number;  // Optional: not all objects have width (e.g., lines use points)
+  height?: number; // Optional: not all objects have height (e.g., lines use points)
 }
 

@@ -1,16 +1,15 @@
 /**
  * Shape Layer Component
  * 
- * Renders all shapes on the canvas
- * Handles shape rendering, click events, and collection dragging
+ * Renders all shapes on the canvas using the generic DisplayObjectLayer.
+ * Delegates to specific shape components based on type.
  */
 
 import React from 'react';
-import { Layer } from 'react-konva';
 import { useShapes } from '../store/shapesStore';
-import { useAuth } from '@/features/auth/store/authStore';
 import { updateShape } from '../services/shapeService';
 import { RectangleShape } from './RectangleShape';
+import { DisplayObjectLayer, type ObjectRenderProps } from '../../common/components/DisplayObjectLayer';
 import type { ShapeDisplayObject } from '../types';
 
 /**
@@ -32,9 +31,7 @@ interface ShapeLayerProps {
 /**
  * ShapeLayer Component
  * 
- * Renders all shapes in order of z-index
- * Delegates to specific shape components based on type
- * Handles collection dragging when multiple shapes are selected
+ * Thin wrapper around DisplayObjectLayer that provides shape-specific rendering.
  */
 export function ShapeLayer({ 
   selectedIds = [], 
@@ -47,103 +44,52 @@ export function ShapeLayer({
   endCollectionDrag,
 }: ShapeLayerProps) {
   const { shapes, isLoading } = useShapes();
-  const { user } = useAuth();
-  
-  // Get selected shapes for multi-selection checks
-  const selectedShapes = shapes.filter(shape => selectedIds.includes(shape.id));
-  const hasMultipleSelected = selectedShapes.length > 1;
 
-  // Handle shape drag end
-  const handleShapeDragEnd = async (shapeId: string, x: number, y: number) => {
-    if (!user) return;
-    
-    // If this was a collection drag, end it
-    if (hasMultipleSelected && isCollectionDragging) {
-      await endCollectionDrag();
-      return;
+  /**
+   * Render function for individual shapes
+   * Delegates to specific shape components based on type
+   */
+  const renderShape = React.useCallback((
+    shape: ShapeDisplayObject,
+    props: ObjectRenderProps
+  ): React.ReactNode => {
+    switch (shape.type) {
+      case 'rectangle':
+        return (
+          <RectangleShape
+            key={shape.id}
+            shape={shape}
+            {...props}
+          />
+        );
+      
+      case 'circle':
+      case 'line':
+        // Not implemented yet (rectangles only for now)
+        return null;
+      
+      default:
+        console.warn('[ShapeLayer] Unknown shape type:', shape);
+        return null;
     }
-    
-    // Otherwise, it's a single shape drag
-    try {
-      console.log('[ShapeLayer] Updating single shape position:', shapeId, { x, y });
-      await updateShape(shapeId, user.userId, { x, y });
-    } catch (error) {
-      console.error('[ShapeLayer] Error updating shape position:', error);
-    }
-  };
-  
-  // Handle collection drag start (when multiple shapes selected)
-  const handleCollectionDragStart = (shapeId: string) => {
-    if (!hasMultipleSelected) return;
-    startCollectionDrag(shapeId);
-  };
-  
-  // Handle collection drag move (when multiple shapes selected)
-  const handleCollectionDragMove = (shapeId: string, x: number, y: number) => {
-    if (!hasMultipleSelected || !isCollectionDragging) return;
-    moveCollectionDrag(shapeId, x, y);
-  };
-  
-  // Merge optimistic shapes with regular shapes during collection dragging
-  // Optimistic shapes only contain the selected/dragging shapes, we need to include non-selected shapes too
-  // MUST be called before any conditional returns (Rules of Hooks)
-  
-  // Performance optimization: Create optimistic map once, reuse for rendering
-  const optimisticShapesMap = React.useMemo(() => {
-    if (!dragOptimisticShapes) return null;
-    return new Map(dragOptimisticShapes.map(s => [s.id, s]));
-  }, [dragOptimisticShapes]);
-  
-  const shapesToRender = React.useMemo(() => {
-    if (isCollectionDragging && optimisticShapesMap) {
-      // Replace selected shapes with optimistic versions, keep non-selected shapes as-is
-      return shapes.map(shape => optimisticShapesMap.get(shape.id) || shape);
-    }
-    return shapes;
-  }, [isCollectionDragging, optimisticShapesMap, shapes]);
-
-  if (isLoading) {
-    return <Layer />;
-  }
+  }, []);
 
   return (
-    <Layer name="shapes-layer">
-      {shapesToRender.map((shape) => {
-        const isSelected = selectedIds.includes(shape.id);
-        const isDriver = isCollectionDragging && driverShapeId === shape.id;
-
-        // Render based on shape type
-        switch (shape.type) {
-          case 'rectangle':
-            return (
-              <RectangleShape
-                key={shape.id}
-                shape={shape}
-                isSelected={isSelected}
-                onClick={onShapeClick}
-                onDragEnd={handleShapeDragEnd}
-                // Keep draggable for all selected shapes (use Konva's draggable)
-                draggable={isSelected}
-                // Collection drag handlers (only when multiple shapes selected)
-                onCollectionDragStart={hasMultipleSelected ? handleCollectionDragStart : undefined}
-                onCollectionDragMove={hasMultipleSelected ? handleCollectionDragMove : undefined}
-                // During collection drag, only the driver shape is controlled by Konva
-                // Non-driver shapes get their positions from optimistic updates
-                listening={!isCollectionDragging || isDriver}
-              />
-            );
-          
-          case 'circle':
-          case 'line':
-            // Not implemented yet (rectangles only for now)
-            return null;
-          
-          default:
-            console.warn('[ShapeLayer] Unknown shape type:', shape);
-            return null;
-        }
-      })}
-    </Layer>
+    <DisplayObjectLayer
+      objects={shapes}
+      selectedIds={selectedIds}
+      isLoading={isLoading}
+      onClick={onShapeClick}
+      renderObject={renderShape}
+      updateObject={updateShape}
+      isCollectionDragging={isCollectionDragging}
+      driverObjectId={driverShapeId}
+      dragOptimisticObjects={dragOptimisticShapes}
+      startCollectionDrag={startCollectionDrag}
+      moveCollectionDrag={moveCollectionDrag}
+      endCollectionDrag={endCollectionDrag}
+      layerName="shapes-layer"
+    />
   );
 }
 
