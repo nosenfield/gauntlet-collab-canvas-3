@@ -22,6 +22,7 @@ import { useLockToolIntegration } from '@/features/displayObjects/common/hooks/u
 import { useToolShortcuts } from '@/features/displayObjects/common/hooks/useToolShortcuts';
 import { useSelectionShortcuts } from '@/features/displayObjects/common/hooks/useSelectionShortcuts';
 import { useClipboard } from '@/features/displayObjects/common/hooks/useClipboard';
+import { useArrowKeyMovement } from '@/features/displayObjects/common/hooks/useArrowKeyMovement';
 import { TransformModal } from '@/features/displayObjects/common/components/TransformModal';
 import { useTool } from '@/features/displayObjects/common/store/toolStore';
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
@@ -73,6 +74,9 @@ export function Canvas(): React.ReactElement {
   
   // Handle copy/paste functionality (CMD+C, CMD+V)
   useClipboard(user?.userId);
+  
+  // Handle arrow key movement for selected objects
+  useArrowKeyMovement(user?.userId);
   
   // Text creation hook
   const { handleCanvasClick: handleTextClick, isTextTool } = useTextCreation();
