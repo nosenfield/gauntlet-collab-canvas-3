@@ -19,6 +19,7 @@ import { FPSMonitor } from './FPSMonitor';
 import { useCursorTracking } from '@/features/presence/hooks/useCursorTracking';
 import { useLockToolIntegration } from '@/features/displayObjects/common/hooks/useLockToolIntegration';
 import { useToolShortcuts } from '@/features/displayObjects/common/hooks/useToolShortcuts';
+import { useSelectionShortcuts } from '@/features/displayObjects/common/hooks/useSelectionShortcuts';
 import { TransformModal } from '@/features/displayObjects/common/components/TransformModal';
 import { useTool } from '@/features/displayObjects/common/store/toolStore';
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
@@ -63,6 +64,9 @@ export function Canvas(): React.ReactElement {
 
   // Handle keyboard shortcuts for tool selection
   useToolShortcuts();
+  
+  // Handle keyboard shortcuts for selection operations (CMD+A)
+  useSelectionShortcuts();
   
   // Text creation hook
   const { handleCanvasClick: handleTextClick, isTextTool } = useTextCreation();
