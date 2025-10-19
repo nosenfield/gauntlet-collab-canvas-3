@@ -123,9 +123,6 @@ export function RectangleShape({
       opacity={shape.opacity}
       cornerRadius={shape.borderRadius || 0}
       
-      // Layer order
-      zIndex={shape.zIndex}
-      
       // Interaction
       onClick={handleClick}
       onTap={handleClick}

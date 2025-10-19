@@ -145,12 +145,17 @@ export function DisplayObjectLayer<T extends TransformableObject>({
   }, [dragOptimisticObjects]);
   
   // Merge optimistic objects with regular objects during collection dragging
+  // Sort by zIndex to control rendering order (React Konva renders in order, not by zIndex prop)
   const objectsToRender = React.useMemo(() => {
+    let result = objects;
+    
     if (isCollectionDragging && optimisticObjectsMap) {
       // Replace selected objects with optimistic versions, keep non-selected objects as-is
-      return objects.map(obj => optimisticObjectsMap.get(obj.id) || obj);
+      result = objects.map(obj => optimisticObjectsMap.get(obj.id) || obj);
     }
-    return objects;
+    
+    // Sort by zIndex (ascending) so higher zIndex objects render on top
+    return result.slice().sort((a, b) => a.zIndex - b.zIndex);
   }, [isCollectionDragging, optimisticObjectsMap, objects]);
 
   // Early return for loading state
