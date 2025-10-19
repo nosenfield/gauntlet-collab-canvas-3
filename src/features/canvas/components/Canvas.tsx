@@ -16,10 +16,12 @@ import { useCanvasInteractions } from '../hooks/useCanvasInteractions';
 import { CanvasLayers } from './CanvasLayers';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { FPSMonitor } from './FPSMonitor';
+import { useAuth } from '@/features/auth/store/authStore';
 import { useCursorTracking } from '@/features/presence/hooks/useCursorTracking';
 import { useLockToolIntegration } from '@/features/displayObjects/common/hooks/useLockToolIntegration';
 import { useToolShortcuts } from '@/features/displayObjects/common/hooks/useToolShortcuts';
 import { useSelectionShortcuts } from '@/features/displayObjects/common/hooks/useSelectionShortcuts';
+import { useClipboard } from '@/features/displayObjects/common/hooks/useClipboard';
 import { TransformModal } from '@/features/displayObjects/common/components/TransformModal';
 import { useTool } from '@/features/displayObjects/common/store/toolStore';
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
@@ -38,6 +40,7 @@ export function Canvas(): React.ReactElement {
   const { width, height } = useCanvasSize();
   const { viewport, setPosition, setViewport, setDimensions } = useViewport();
   const stageRef = useRef<any>(null); // Konva Stage ref
+  const { user } = useAuth();
   
   // Tool and selection state for transform modal
   const { isSelectMode } = useTool();
@@ -67,6 +70,9 @@ export function Canvas(): React.ReactElement {
   
   // Handle keyboard shortcuts for selection operations (CMD+A)
   useSelectionShortcuts();
+  
+  // Handle copy/paste functionality (CMD+C, CMD+V)
+  useClipboard(user?.userId);
   
   // Text creation hook
   const { handleCanvasClick: handleTextClick, isTextTool } = useTextCreation();
