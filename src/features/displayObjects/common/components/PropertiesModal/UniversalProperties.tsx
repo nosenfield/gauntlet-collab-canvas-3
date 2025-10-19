@@ -14,6 +14,8 @@ import { updateShapesBatch } from '@/features/displayObjects/shapes/services/sha
 import { updateTextsBatch } from '@/features/displayObjects/texts/services/textService';
 import { calculateCollectionAABB, getAABBCenter } from '../../utils/boundingBoxUtils';
 import { NumberInput } from './NumberInput';
+import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
+import { useTexts } from '@/features/displayObjects/texts/store/textsStore';
 
 interface UniversalPropertiesProps {
   selectedObjects: TransformableObject[];
@@ -41,6 +43,168 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
   const scaleX = getCommonValue<number>(selectedObjects, 'scaleX');
   const scaleY = getCommonValue<number>(selectedObjects, 'scaleY');
   const opacity = getCommonValue<number>(selectedObjects, 'opacity');
+  const zIndex = getCommonValue<number>(selectedObjects, 'zIndex');
+  
+  // Z-index management - we'll implement custom simple logic for the buttons
+  const { shapes } = useShapes();
+  const { texts } = useTexts();
+  
+  /**
+   * Get all display objects for z-index calculations
+   */
+  const getAllObjects = useCallback((): TransformableObject[] => {
+    return [...shapes, ...texts];
+  }, [shapes, texts]);
+  
+  /**
+   * Forward: Increase z-index by 1
+   */
+  const handleForward = useCallback(async () => {
+    if (!userId || selectedObjects.length === 0) return;
+    
+    try {
+      // Separate shapes and texts for batch updates
+      const shapesToUpdate = selectedObjects.filter(obj => obj.category === 'shape');
+      const textsToUpdate = selectedObjects.filter(obj => obj.category === 'text');
+      
+      const promises: Promise<void>[] = [];
+      
+      if (shapesToUpdate.length > 0) {
+        const shapeUpdates = shapesToUpdate.map(obj => ({
+          shapeId: obj.id,
+          updates: { zIndex: obj.zIndex + 1 },
+        }));
+        promises.push(updateShapesBatch(userId, shapeUpdates));
+      }
+      
+      if (textsToUpdate.length > 0) {
+        const textUpdates = textsToUpdate.map(obj => ({
+          textId: obj.id,
+          updates: { zIndex: obj.zIndex + 1 },
+        }));
+        promises.push(updateTextsBatch(userId, textUpdates));
+      }
+      
+      await Promise.all(promises);
+      console.log('[UniversalProperties] Moved forward:', selectedObjects.length, 'objects');
+    } catch (error) {
+      console.error('[UniversalProperties] Error moving forward:', error);
+    }
+  }, [selectedObjects, userId]);
+  
+  /**
+   * Backward: Decrease z-index by 1
+   */
+  const handleBackward = useCallback(async () => {
+    if (!userId || selectedObjects.length === 0) return;
+    
+    try {
+      // Separate shapes and texts for batch updates
+      const shapesToUpdate = selectedObjects.filter(obj => obj.category === 'shape');
+      const textsToUpdate = selectedObjects.filter(obj => obj.category === 'text');
+      
+      const promises: Promise<void>[] = [];
+      
+      if (shapesToUpdate.length > 0) {
+        const shapeUpdates = shapesToUpdate.map(obj => ({
+          shapeId: obj.id,
+          updates: { zIndex: obj.zIndex - 1 },
+        }));
+        promises.push(updateShapesBatch(userId, shapeUpdates));
+      }
+      
+      if (textsToUpdate.length > 0) {
+        const textUpdates = textsToUpdate.map(obj => ({
+          textId: obj.id,
+          updates: { zIndex: obj.zIndex - 1 },
+        }));
+        promises.push(updateTextsBatch(userId, textUpdates));
+      }
+      
+      await Promise.all(promises);
+      console.log('[UniversalProperties] Moved backward:', selectedObjects.length, 'objects');
+    } catch (error) {
+      console.error('[UniversalProperties] Error moving backward:', error);
+    }
+  }, [selectedObjects, userId]);
+  
+  /**
+   * To Front: Set to highest known z-index + 1
+   */
+  const handleToFront = useCallback(async () => {
+    if (!userId || selectedObjects.length === 0) return;
+    
+    try {
+      const allObjects = getAllObjects();
+      const maxZIndex = Math.max(...allObjects.map(obj => obj.zIndex), 0);
+      
+      // Separate shapes and texts for batch updates
+      const shapesToUpdate = selectedObjects.filter(obj => obj.category === 'shape');
+      const textsToUpdate = selectedObjects.filter(obj => obj.category === 'text');
+      
+      const promises: Promise<void>[] = [];
+      
+      if (shapesToUpdate.length > 0) {
+        const shapeUpdates = shapesToUpdate.map(obj => ({
+          shapeId: obj.id,
+          updates: { zIndex: maxZIndex + 1 },
+        }));
+        promises.push(updateShapesBatch(userId, shapeUpdates));
+      }
+      
+      if (textsToUpdate.length > 0) {
+        const textUpdates = textsToUpdate.map(obj => ({
+          textId: obj.id,
+          updates: { zIndex: maxZIndex + 1 },
+        }));
+        promises.push(updateTextsBatch(userId, textUpdates));
+      }
+      
+      await Promise.all(promises);
+      console.log('[UniversalProperties] Brought to front:', selectedObjects.length, 'objects');
+    } catch (error) {
+      console.error('[UniversalProperties] Error bringing to front:', error);
+    }
+  }, [selectedObjects, userId, getAllObjects]);
+  
+  /**
+   * To Back: Set to lowest known z-index - 1
+   */
+  const handleToBack = useCallback(async () => {
+    if (!userId || selectedObjects.length === 0) return;
+    
+    try {
+      const allObjects = getAllObjects();
+      const minZIndex = Math.min(...allObjects.map(obj => obj.zIndex), 0);
+      
+      // Separate shapes and texts for batch updates
+      const shapesToUpdate = selectedObjects.filter(obj => obj.category === 'shape');
+      const textsToUpdate = selectedObjects.filter(obj => obj.category === 'text');
+      
+      const promises: Promise<void>[] = [];
+      
+      if (shapesToUpdate.length > 0) {
+        const shapeUpdates = shapesToUpdate.map(obj => ({
+          shapeId: obj.id,
+          updates: { zIndex: minZIndex - 1 },
+        }));
+        promises.push(updateShapesBatch(userId, shapeUpdates));
+      }
+      
+      if (textsToUpdate.length > 0) {
+        const textUpdates = textsToUpdate.map(obj => ({
+          textId: obj.id,
+          updates: { zIndex: minZIndex - 1 },
+        }));
+        promises.push(updateTextsBatch(userId, textUpdates));
+      }
+      
+      await Promise.all(promises);
+      console.log('[UniversalProperties] Sent to back:', selectedObjects.length, 'objects');
+    } catch (error) {
+      console.error('[UniversalProperties] Error sending to back:', error);
+    }
+  }, [selectedObjects, userId, getAllObjects]);
   
   /**
    * Update a universal property for all selected objects
@@ -283,6 +447,55 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
               step={1}
               suffix="%"
             />
+          </div>
+        </div>
+        
+        {/* Z-Index (Layer Order) */}
+        <div className="properties-modal__field properties-modal__field--full">
+          <label className="properties-modal__label">Z-Index (Layer)</label>
+          <div className="properties-modal__zindex-group">
+            <NumberInput
+              value={zIndex}
+              onChange={(value) => updateProperty('zIndex', Math.round(value))}
+              min={0}
+              max={10000}
+              step={1}
+              suffix=""
+            />
+            <div className="properties-modal__zindex-buttons">
+              <button
+                className="properties-modal__zindex-button"
+                onClick={handleForward}
+                title="Forward (Z-Index +1)"
+                aria-label="Forward"
+              >
+                ⬆
+              </button>
+              <button
+                className="properties-modal__zindex-button"
+                onClick={handleBackward}
+                title="Backward (Z-Index -1)"
+                aria-label="Backward"
+              >
+                ⬇
+              </button>
+              <button
+                className="properties-modal__zindex-button"
+                onClick={handleToFront}
+                title="To Front (Highest + 1)"
+                aria-label="To Front"
+              >
+                ⬆⬆
+              </button>
+              <button
+                className="properties-modal__zindex-button"
+                onClick={handleToBack}
+                title="To Back (Lowest - 1)"
+                aria-label="To Back"
+              >
+                ⬇⬇
+              </button>
+            </div>
           </div>
         </div>
       </div>

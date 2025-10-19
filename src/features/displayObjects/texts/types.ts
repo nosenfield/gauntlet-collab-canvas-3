@@ -78,6 +78,7 @@ export interface UpdateTextData {
   rotation?: number;
   scaleX?: number;
   scaleY?: number;
+  zIndex?: number;
 }
 
 /**

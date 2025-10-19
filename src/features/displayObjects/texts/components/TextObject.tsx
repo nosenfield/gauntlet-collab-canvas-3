@@ -130,6 +130,9 @@ export function TextObject({
       fill={text.color}
       opacity={text.opacity}
       
+      // Layer order
+      zIndex={text.zIndex}
+      
       // Interaction
       onClick={handleClick}
       onTap={handleClick}

@@ -7,7 +7,7 @@ import { usePresence } from '@/features/presence/hooks/usePresence';
 import { UserPresenceSidebar } from '@/features/presence/components/UserPresenceSidebar';
 import { ToolProvider } from '@/features/displayObjects/common/store/toolStore';
 import { DisplayObjectToolbar } from '@/features/displayObjects/common/components/DisplayObjectToolbar';
-import { ZIndexControls } from '@/features/displayObjects/common/components/ZIndexControls';
+// import { ZIndexControls } from '@/features/displayObjects/common/components/ZIndexControls';
 import { AlignmentControls } from '@/features/displayObjects/common/components/AlignmentControls';
 import { PropertiesModal } from '@/features/displayObjects/common/components/PropertiesModal';
 import { ShapesProvider } from '@/features/displayObjects/shapes/store/shapesStore';
@@ -40,7 +40,7 @@ function AppContent() {
     <>
       <UserPresenceSidebar />
       <DisplayObjectToolbar />
-      <ZIndexControls />
+      {/* <ZIndexControls /> */}
       <AlignmentControls />
       <PropertiesModal />
       <PerformanceTest />

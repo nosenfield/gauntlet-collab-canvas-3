@@ -285,6 +285,56 @@
   gap: 12px;
 }
 
+/* ============================================
+   Z-Index Controls
+   ============================================ */
+
+.properties-modal__zindex-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.properties-modal__zindex-buttons {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.properties-modal__zindex-button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.properties-modal__zindex-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
+}
+
+.properties-modal__zindex-button:active {
+  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.properties-modal__zindex-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.5);
+}
+
 .properties-modal__slider {
   flex: 1;
   height: 4px;
