@@ -1,0 +1,187 @@
+/**
+ * Alignment Controls Styles
+ * 
+ * Contextual toolbar for alignment and distribution
+ * Position: Fixed top-left of screen (appears when 2+ objects selected)
+ */
+
+.alignment-controls {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1000;
+  
+  /* Ensure pointer events work */
+  pointer-events: auto;
+  
+  /* Smooth appearance */
+  animation: slideInLeft 0.2s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.alignment-controls__container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: rgba(30, 30, 30, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+}
+
+.alignment-controls__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #A0A0A0;
+  margin-right: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  user-select: none;
+}
+
+.alignment-controls__group {
+  display: flex;
+  gap: 4px;
+}
+
+.alignment-controls__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  width: 36px;
+  height: 36px;
+  
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 5px;
+  
+  color: #E0E0E0;
+  cursor: pointer;
+  
+  transition: all 0.15s ease;
+  
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.alignment-controls__icon {
+  font-size: 16px;
+  line-height: 1;
+  user-select: none;
+}
+
+/* Hover State */
+.alignment-controls__button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+/* Active State */
+.alignment-controls__button:active {
+  transform: scale(0.95);
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Focus State */
+.alignment-controls__button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.5);
+}
+
+.alignment-controls__button:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+
+/* Disabled State */
+.alignment-controls__button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.alignment-controls__button:disabled:hover {
+  background-color: transparent;
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: none;
+}
+
+/* Separator */
+.alignment-controls__separator {
+  width: 1px;
+  height: 32px;
+  background-color: rgba(255, 255, 255, 0.15);
+  margin: 0 4px;
+}
+
+/* Responsive: Hide on small screens */
+@media (max-width: 768px) {
+  .alignment-controls {
+    top: 8px;
+    left: 8px;
+  }
+  
+  .alignment-controls__container {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+  
+  .alignment-controls__label {
+    display: none; /* Hide label on small screens */
+  }
+  
+  .alignment-controls__button {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .alignment-controls__icon {
+    font-size: 14px;
+  }
+  
+  .alignment-controls__separator {
+    height: 28px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .alignment-controls__container {
+    background-color: rgba(0, 0, 0, 0.95);
+    border: 1px solid #FFFFFF;
+  }
+  
+  .alignment-controls__button {
+    border-color: #FFFFFF;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .alignment-controls {
+    animation: none;
+  }
+  
+  .alignment-controls__button {
+    transition: none;
+  }
+  
+  .alignment-controls__button:hover {
+    transform: none;
+  }
+  
+  .alignment-controls__button:active {
+    transform: none;
+  }
+}
+
