@@ -44,24 +44,38 @@ function getRectangleCommonValue<T>(rectangles: RectangleShape[], key: keyof Rec
   return allSame ? (firstValue as T) : 'mixed';
 }
 
+/**
+ * Get common value for dimension properties (width/height)
+ * Only works for shapes that have these properties (rectangles and circles)
+ */
+function getDimensionCommonValue(shapes: ShapeDisplayObject[], key: 'width' | 'height'): number | 'mixed' {
+  const shapesWithDimensions = shapes.filter(s => s.type === 'rectangle' || s.type === 'circle');
+  if (shapesWithDimensions.length === 0) return 'mixed';
+  
+  const firstValue = (shapesWithDimensions[0] as any)[key] as number;
+  const allSame = shapesWithDimensions.every(shape => (shape as any)[key] === firstValue);
+  
+  return allSame ? firstValue : 'mixed';
+}
+
 export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps): React.ReactElement {
   // Get common values
   const fillColor = getCommonValue<string>(selectedShapes, 'fillColor');
   const strokeColor = getCommonValue<string>(selectedShapes, 'strokeColor');
   const strokeWidth = getCommonValue<number>(selectedShapes, 'strokeWidth');
   
-  // Check if all selected shapes are lines (lines don't have fill)
+  // Check if all selected shapes are lines (lines don't have fill or dimensions)
   const allLines = selectedShapes.length > 0 && selectedShapes.every(s => s.type === 'line');
+  
+  // Width/Height for rectangles and circles (lines don't have these)
+  const shapesWithDimensions = selectedShapes.filter(s => s.type === 'rectangle' || s.type === 'circle');
+  const hasDimensions = shapesWithDimensions.length > 0;
+  const width = getDimensionCommonValue(selectedShapes, 'width');
+  const height = getDimensionCommonValue(selectedShapes, 'height');
   
   // Rectangle-specific properties
   const rectangles = selectedShapes.filter((s): s is RectangleShape => s.type === 'rectangle');
   const hasRectangleProps = rectangles.length > 0;
-  const width = hasRectangleProps 
-    ? getRectangleCommonValue<number>(rectangles, 'width')
-    : 'mixed';
-  const height = hasRectangleProps 
-    ? getRectangleCommonValue<number>(rectangles, 'height')
-    : 'mixed';
   const borderRadius = hasRectangleProps 
     ? getRectangleCommonValue<number | undefined>(rectangles, 'borderRadius')
     : 'mixed';
@@ -92,14 +106,35 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
   }, [selectedShapes, userId]);
   
   /**
-   * Update rectangle-specific properties
+   * Update dimension properties (width/height for rectangles and circles)
+   */
+  const updateDimensionProperty = useCallback(async (key: 'width' | 'height', value: number) => {
+    if (!userId || shapesWithDimensions.length === 0) return;
+    
+    try {
+      const processedValue = roundNumericProperty(value);
+      
+      // Update all shapes that have dimensions (rectangles and circles)
+      const batchUpdates = shapesWithDimensions.map(shape => ({
+        shapeId: shape.id,
+        updates: { [key]: processedValue },
+      }));
+      
+      await updateShapesBatch(userId, batchUpdates);
+    } catch (error) {
+      console.error(`[ShapeProperties] Error updating ${key}:`, error);
+    }
+  }, [shapesWithDimensions, userId]);
+  
+  /**
+   * Update rectangle-specific properties (border radius only)
    */
   const updateRectangleProperty = useCallback(async (key: keyof RectangleShape, value: any) => {
     if (!userId || rectangles.length === 0) return;
     
     try {
       // Round numeric properties to 2 decimal places
-      const processedValue = (key === 'borderRadius' || key === 'width' || key === 'height') 
+      const processedValue = (key === 'borderRadius') 
         ? roundNumericProperty(value)
         : value;
       
@@ -120,18 +155,18 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
       <div className="properties-modal__section-title">Shape Properties</div>
       
       <div className="properties-modal__grid">
-        {/* Width (rectangles only) */}
-        {hasRectangleProps && (
+        {/* Width (rectangles and circles) */}
+        {hasDimensions && (
           <div className="properties-modal__field">
             <label className="properties-modal__label">
               Width
-              {rectangles.length !== selectedShapes.length && (
-                <span className="properties-modal__label-note"> (rectangles only)</span>
+              {shapesWithDimensions.length !== selectedShapes.length && (
+                <span className="properties-modal__label-note"> (not for lines)</span>
               )}
             </label>
             <NumberInput
               value={width}
-              onChange={(value) => updateRectangleProperty('width', value)}
+              onChange={(value) => updateDimensionProperty('width', value)}
               min={1}
               max={2000}
               step={1}
@@ -140,18 +175,18 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
           </div>
         )}
         
-        {/* Height (rectangles only) */}
-        {hasRectangleProps && (
+        {/* Height (rectangles and circles) */}
+        {hasDimensions && (
           <div className="properties-modal__field">
             <label className="properties-modal__label">
               Height
-              {rectangles.length !== selectedShapes.length && (
-                <span className="properties-modal__label-note"> (rectangles only)</span>
+              {shapesWithDimensions.length !== selectedShapes.length && (
+                <span className="properties-modal__label-note"> (not for lines)</span>
               )}
             </label>
             <NumberInput
               value={height}
-              onChange={(value) => updateRectangleProperty('height', value)}
+              onChange={(value) => updateDimensionProperty('height', value)}
               min={1}
               max={2000}
               step={1}
@@ -168,7 +203,7 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
           </label>
           <ColorInput
             value={fillColor}
-            onChange={(value) => updateProperty('fillColor', value)}
+            onChange={(value: string) => updateProperty('fillColor', value)}
             disabled={allLines}
           />
         </div>
@@ -178,7 +213,7 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
           <label className="properties-modal__label">Stroke Color</label>
           <ColorInput
             value={strokeColor}
-            onChange={(value) => updateProperty('strokeColor', value)}
+            onChange={(value: string) => updateProperty('strokeColor', value)}
           />
         </div>
         
