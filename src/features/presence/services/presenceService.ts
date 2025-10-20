@@ -195,3 +195,33 @@ export function onPresenceChange(
     off(presenceRef, 'value', listener);
   };
 }
+
+/**
+ * Listen to Firebase connection state
+ * 
+ * Uses Firebase's .info/connected to detect online/offline status.
+ * This is more reliable than browser navigator.onLine.
+ * 
+ * @param callback - Called with true when connected, false when disconnected
+ * @returns Unsubscribe function
+ */
+export function onConnectionStateChange(
+  callback: (isConnected: boolean) => void
+): () => void {
+  const connectedRef = ref(database, '.info/connected');
+  
+  const listener = onValue(connectedRef, (snapshot) => {
+    const isConnected = snapshot.val() === true;
+    callback(isConnected);
+    
+    if (isConnected) {
+      console.log('🟢 Firebase connected');
+    } else {
+      console.log('🔴 Firebase disconnected');
+    }
+  });
+
+  return () => {
+    off(connectedRef, 'value', listener);
+  };
+}

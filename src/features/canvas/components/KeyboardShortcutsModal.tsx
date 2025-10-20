@@ -238,22 +238,20 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
             </div>
           </div>
 
-          {/* Debug Section (Development Only) */}
-          {import.meta.env.DEV && (
-            <div className="shortcuts-section">
-              <h4 className="shortcuts-section-title">Debug (Dev Only)</h4>
-              <div className="shortcuts-list">
-                <div className="shortcut-item">
-                  <span className="shortcut-label">Toggle Auth Debug Panel</span>
-                  <kbd className="shortcut-key">A</kbd>
-                </div>
-                <div className="shortcut-item">
-                  <span className="shortcut-label">Toggle Performance Test Panel</span>
-                  <kbd className="shortcut-key">P</kbd>
-                </div>
+          {/* Debug Section */}
+          <div className="shortcuts-section">
+            <h4 className="shortcuts-section-title">Debug</h4>
+            <div className="shortcuts-list">
+              <div className="shortcut-item">
+                <span className="shortcut-label">Toggle Auth Debug Panel</span>
+                <kbd className="shortcut-key">A</kbd>
+              </div>
+              <div className="shortcut-item">
+                <span className="shortcut-label">Toggle Performance Test Panel</span>
+                <kbd className="shortcut-key">P</kbd>
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         <div className="shortcuts-modal-footer">

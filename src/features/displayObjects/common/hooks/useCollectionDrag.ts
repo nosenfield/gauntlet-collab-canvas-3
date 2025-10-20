@@ -3,6 +3,7 @@
  * 
  * Handles dragging multiple selected objects as a collection using Konva's draggable
  * Provides optimistic updates with debounced Firestore writes
+ * Broadcasts real-time position updates via Realtime Database for smooth multiplayer sync
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
@@ -10,6 +11,8 @@ import type { TransformableObject } from '../types';
 import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
 import { updateTextsBatch } from '@/features/displayObjects/texts/services/textService';
 import { roundPosition } from '../utils/transformMath';
+import { updateDragPositions, clearDragPositions } from '@/features/presence/services/dragPositionService';
+import { throttle } from '@/utils/performanceMonitor';
 
 /**
  * Drag state for collection
@@ -48,6 +51,9 @@ export function useCollectionDrag(
   const [optimisticShapes, setOptimisticShapes] = useState<TransformableObject[] | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasPendingUpdateRef = useRef(false);
+  
+  // Throttled real-time position broadcast (50ms = 20 updates/sec)
+  const throttledBroadcastRef = useRef<((positions: Map<string, { x: number; y: number }>) => void) | null>(null);
 
   /**
    * Start dragging a collection
@@ -113,6 +119,15 @@ export function useCollectionDrag(
 
     // Update optimistic state for immediate visual feedback
     setOptimisticShapes(translatedObjects);
+    
+    // Broadcast positions to Realtime Database for smooth multiplayer sync (50ms throttled)
+    if (throttledBroadcastRef.current) {
+      const positions = new Map<string, { x: number; y: number }>();
+      translatedObjects.forEach(obj => {
+        positions.set(obj.id, { x: obj.x, y: obj.y });
+      });
+      throttledBroadcastRef.current(positions);
+    }
 
     // Debounce Firestore updates (300ms)
     if (debounceTimerRef.current) {
@@ -162,6 +177,9 @@ export function useCollectionDrag(
     }
 
     console.log('[CollectionDrag] Drag ended');
+    
+    // Clear real-time drag positions from Realtime Database
+    await clearDragPositions(userId);
 
     // Clear debounce timer
     if (debounceTimerRef.current) {
@@ -234,6 +252,34 @@ export function useCollectionDrag(
     hasPendingUpdateRef.current = false;
   }, []);
 
+  // Initialize throttled broadcast function
+  useEffect(() => {
+    if (!userId) {
+      throttledBroadcastRef.current = null;
+      return;
+    }
+    
+    // Create throttled function (50ms = 20 updates/second, same as cursor tracking)
+    const throttledFn = throttle((...args: unknown[]) => {
+      const [positions] = args as [Map<string, { x: number; y: number }>];
+      updateDragPositions(userId, positions).catch((error) => {
+        // Silent failure - drag position updates shouldn't break the app
+        console.debug('[CollectionDrag] Drag position update failed:', error);
+      });
+    }, 50);
+    
+    throttledBroadcastRef.current = (positions: Map<string, { x: number; y: number }>) => {
+      throttledFn(positions);
+    };
+    
+    return () => {
+      // Clear drag positions on unmount
+      clearDragPositions(userId).catch(() => {
+        // Silent cleanup failure
+      });
+    };
+  }, [userId]);
+  
   // Cleanup on unmount
   useEffect(() => {
     return () => {

@@ -3,11 +3,13 @@
  * 
  * Manages collaborative locking for selected display objects.
  * Automatically acquires locks on selection and releases on deselection.
+ * Handles network disconnection by releasing locks and clearing selection.
  */
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useSelection } from '../store/selectionStore';
 import { useAuth } from '@/features/auth/store/authStore';
+import { onConnectionStateChange } from '@/features/presence/services/presenceService';
 import {
   lockCollection,
   releaseCollection,
@@ -24,7 +26,7 @@ import {
  * @returns Lock management functions
  */
 export function useLocking() {
-  const { selectedIds } = useSelection();
+  const { selectedIds, clearSelection } = useSelection();
   const { user } = useAuth();
   const heartbeatCleanupRef = useRef<(() => void) | null>(null);
   const lockedIdsRef = useRef<string[]>([]);
@@ -180,6 +182,39 @@ export function useLocking() {
       releaseLocks();
     }
   }, [selectedIds, releaseLocks]);
+
+  /**
+   * Monitor connection state: clear selection and release locks when offline
+   * This prevents stuck locks when user goes offline for extended periods
+   */
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = onConnectionStateChange((isConnected) => {
+      if (!isConnected && lockedIdsRef.current.length > 0) {
+        console.log('🔴 [useLocking] Connection lost - releasing locks and clearing selection');
+        
+        // Stop heartbeat
+        if (heartbeatCleanupRef.current) {
+          heartbeatCleanupRef.current();
+          heartbeatCleanupRef.current = null;
+        }
+        
+        // Release locks (best effort - may fail if already offline)
+        releaseCollection(lockedIdsRef.current, user.userId).catch(error => {
+          console.log('[useLocking] Could not release locks (already offline):', error.message);
+        });
+        
+        // Clear locked IDs locally
+        lockedIdsRef.current = [];
+        
+        // Clear selection UI
+        clearSelection();
+      }
+    });
+
+    return unsubscribe;
+  }, [user, clearSelection]);
 
   /**
    * Cleanup: release locks on unmount

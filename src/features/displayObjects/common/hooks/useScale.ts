@@ -3,9 +3,10 @@
  * 
  * Manages scale transformation for selected collections.
  * Handles mouse tracking, scale calculation, optimistic updates, and Firestore sync.
+ * Broadcasts real-time scale updates via Realtime Database for smooth multiplayer sync.
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import { useSelection } from '../store/selectionStore';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useAuth } from '@/features/auth/store/authStore';
@@ -13,6 +14,8 @@ import { updateShapesBatch } from '@/features/displayObjects/shapes/services/sha
 import { scaleCollection, roundPosition, roundNumericProperty } from '../utils/transformMath';
 import type { Point } from '../types';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
+import { updateTransformStates, clearTransformStates } from '@/features/presence/services/dragPositionService';
+import { throttle } from '@/utils/performanceMonitor';
 
 /**
  * useScale Hook
@@ -50,6 +53,9 @@ export function useScale(collectionCenter: Point | null) {
   
   // Track if there are uncommitted changes that need to be written
   const hasPendingWriteRef = useRef(false);
+  
+  // Throttled real-time transform broadcast (50ms = 20 updates/sec)
+  const throttledBroadcastRef = useRef<((transforms: Map<string, { x: number; y: number; scaleX: number; scaleY: number }>) => void) | null>(null);
   
   // Store original object states (for calculating deltas)
   const originalObjectsRef = useRef<ShapeDisplayObject[]>([]);
@@ -130,6 +136,15 @@ export function useScale(collectionCenter: Point | null) {
         });
       });
       
+      // Broadcast to Realtime Database for smooth multiplayer sync (50ms throttled)
+      if (throttledBroadcastRef.current) {
+        const transforms = new Map<string, { x: number; y: number; scaleX: number; scaleY: number }>();
+        scaledObjects.forEach(obj => {
+          transforms.set(obj.id, { x: obj.x, y: obj.y, scaleX: obj.scaleX, scaleY: obj.scaleY });
+        });
+        throttledBroadcastRef.current(transforms);
+      }
+      
       // Mark that we have uncommitted changes
       hasPendingWriteRef.current = true;
       
@@ -169,10 +184,15 @@ export function useScale(collectionCenter: Point | null) {
    * End scale and finalize changes
    * Called on mouse up
    */
-  const endScale = useCallback(() => {
+  const endScale = useCallback(async () => {
     if (!isScaling || !initialCenterRef.current) return;
     
     console.log('[useScale] Ended scaling at scale:', cumulativeScaleRef.current);
+    
+    // Clear real-time transform states from Realtime Database
+    if (user) {
+      await clearTransformStates(user.userId);
+    }
     
     // Clear debounce timer
     if (debounceTimerRef.current) {
@@ -227,6 +247,33 @@ export function useScale(collectionCenter: Point | null) {
       endScale();
     }
   }, [isScaling, endScale]);
+  
+  // Initialize throttled broadcast function
+  useEffect(() => {
+    if (!user) {
+      throttledBroadcastRef.current = null;
+      return;
+    }
+    
+    // Create throttled function (50ms = 20 updates/second)
+    const throttledFn = throttle((...args: unknown[]) => {
+      const [transforms] = args as [Map<string, { x: number; y: number; scaleX: number; scaleY: number }>];
+      updateTransformStates(user.userId, transforms).catch((error) => {
+        console.debug('[useScale] Transform update failed:', error);
+      });
+    }, 50);
+    
+    throttledBroadcastRef.current = (transforms: Map<string, { x: number; y: number; scaleX: number; scaleY: number }>) => {
+      throttledFn(transforms);
+    };
+    
+    return () => {
+      // Clear transform states on unmount
+      clearTransformStates(user.userId).catch(() => {
+        // Silent cleanup failure
+      });
+    };
+  }, [user]);
   
   return {
     startScale,

@@ -10,6 +10,7 @@ import { TextObject } from './TextObject';
 import { updateText } from '../services/textService';
 import { DisplayObjectLayer, type ObjectRenderProps } from '../../common/components/DisplayObjectLayer';
 import type { TextDisplayObject } from '../types';
+import type { ToolType } from '../../common/store/toolStore';
 
 /**
  * TextLayer Props
@@ -25,6 +26,9 @@ export interface TextLayerProps {
   startCollectionDrag: (driverTextId: string) => void;
   moveCollectionDrag: (driverTextId: string, x: number, y: number) => void;
   endCollectionDrag: () => void;
+  
+  // Current tool
+  currentTool?: ToolType;
 }
 
 /**
@@ -41,6 +45,7 @@ export function TextLayer({
   startCollectionDrag,
   moveCollectionDrag,
   endCollectionDrag,
+  currentTool,
 }: TextLayerProps): React.ReactElement {
   const { texts } = useTexts();
   
@@ -73,6 +78,7 @@ export function TextLayer({
       startCollectionDrag={startCollectionDrag}
       moveCollectionDrag={moveCollectionDrag}
       endCollectionDrag={endCollectionDrag}
+      currentTool={currentTool}
       layerName="text-layer"
     />
   );

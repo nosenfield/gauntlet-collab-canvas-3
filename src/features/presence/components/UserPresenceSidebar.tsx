@@ -32,11 +32,8 @@ export function UserPresenceSidebar(): React.ReactElement | null {
     storageKey: 'user-presence-modal-height'
   });
 
-  // Toggle debug panel with 'A' key (development only)
+  // Toggle debug panel with 'A' key
   useEffect(() => {
-    // Only enable hotkey in development mode
-    if (!import.meta.env.DEV) return;
-
     const handleKeyPress = (e: KeyboardEvent) => {
       // Don't trigger if typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;

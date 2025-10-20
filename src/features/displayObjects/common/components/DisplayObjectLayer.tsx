@@ -14,6 +14,7 @@ import React from 'react';
 import { Layer } from 'react-konva';
 import { useAuth } from '@/features/auth/store/authStore';
 import type { TransformableObject } from '../types';
+import type { ToolType } from '../store/toolStore';
 
 /**
  * Props for rendering an individual object
@@ -26,6 +27,7 @@ export interface ObjectRenderProps {
   onCollectionDragStart?: (objectId: string) => void;
   onCollectionDragMove?: (objectId: string, x: number, y: number) => void;
   listening: boolean;
+  currentTool?: ToolType;
 }
 
 /**
@@ -57,6 +59,9 @@ interface DisplayObjectLayerProps<T extends TransformableObject> {
   startCollectionDrag: (driverObjectId: string) => void;
   moveCollectionDrag: (driverObjectId: string, x: number, y: number) => void;
   endCollectionDrag: () => void;
+  
+  /** Current active tool */
+  currentTool?: ToolType;
   
   /** Layer name for debugging */
   layerName?: string;
@@ -93,6 +98,7 @@ export function DisplayObjectLayer<T extends TransformableObject>({
   startCollectionDrag,
   moveCollectionDrag,
   endCollectionDrag,
+  currentTool,
   layerName = 'display-objects-layer',
 }: DisplayObjectLayerProps<T>): React.ReactElement {
   const { user } = useAuth();
@@ -182,6 +188,7 @@ export function DisplayObjectLayer<T extends TransformableObject>({
           // During collection drag, only the driver object is controlled by Konva
           // Non-driver objects get their positions from optimistic updates
           listening: !isCollectionDragging || isDriver,
+          currentTool,
         };
 
         return renderObject(object, renderProps);

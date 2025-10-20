@@ -1,7 +1,7 @@
 /**
  * Debug Authentication Panel
  * 
- * Development-only panel for testing authentication flows.
+ * Panel for viewing authentication info and testing auth flows.
  * Triggered by clicking on your own user in the Active Users list.
  * Provides quick access to sign-out and user info.
  */
@@ -16,15 +16,10 @@ interface DebugAuthPanelProps {
 
 /**
  * DebugAuthPanel Component
- * Only visible in development mode
+ * Accessible in both development and production
  */
 export function DebugAuthPanel({ isVisible, onClose }: DebugAuthPanelProps): React.ReactElement | null {
   const { user, signOut } = useAuth();
-
-  // Only render in development mode
-  if (!import.meta.env.DEV) {
-    return null;
-  }
 
   if (!isVisible) {
     return null;
@@ -76,7 +71,7 @@ export function DebugAuthPanel({ isVisible, onClose }: DebugAuthPanelProps): Rea
                 onClose();
               }}
             >
-              Sign Out (Test Auth Modal)
+              Sign Out
             </button>
           </>
         ) : (
@@ -91,7 +86,7 @@ export function DebugAuthPanel({ isVisible, onClose }: DebugAuthPanelProps): Rea
       </div>
 
       <div className="debug-auth-footer">
-        <small>Development Only • Click to close</small>
+        <small>Auth Info Panel • Click to close</small>
       </div>
     </div>
   );

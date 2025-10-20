@@ -8,6 +8,7 @@
 import { Text } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type { TextDisplayObject } from '../types';
+import type { ToolType } from '../../common/store/toolStore';
 
 /**
  * TextObject Props
@@ -21,6 +22,7 @@ export interface TextObjectProps {
   onDragEnd?: (textId: string, x: number, y: number) => void;
   draggable?: boolean;
   listening?: boolean;
+  currentTool?: ToolType; // Current active tool (for handling creation vs selection)
 }
 
 /**
@@ -38,9 +40,15 @@ export function TextObject({
   onDragEnd,
   draggable,
   listening,
+  currentTool,
 }: TextObjectProps): React.ReactElement {
   
   const handleClick = (e: KonvaEventObject<MouseEvent>) => {
+    // Don't handle clicks when a creation tool is active - let it bubble to stage
+    if (currentTool === 'rectangle' || currentTool === 'circle' || currentTool === 'line') {
+      return;
+    }
+    
     if (onClick) {
       const isShiftClick = e.evt.shiftKey;
       onClick(text.id, isShiftClick);

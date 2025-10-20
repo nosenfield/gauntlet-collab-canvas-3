@@ -8,6 +8,8 @@
 import { createContext, useContext, useReducer, useEffect, useCallback, type ReactNode } from 'react';
 import type { ShapeDisplayObject } from '../types';
 import { subscribeToShapes } from '../services/shapeService';
+import { subscribeToDragPositions } from '@/features/presence/services/dragPositionService';
+import { useAuth } from '@/features/auth/store/authStore';
 
 /**
  * Shapes State
@@ -123,6 +125,7 @@ interface ShapesProviderProps {
  */
 export function ShapesProvider({ children }: ShapesProviderProps) {
   const [state, dispatch] = useReducer(shapesReducer, initialShapesState);
+  const { user } = useAuth();
 
   // Subscribe to real-time shape updates from Firestore
   useEffect(() => {
@@ -139,6 +142,48 @@ export function ShapesProvider({ children }: ShapesProviderProps) {
       unsubscribe();
     };
   }, []);
+  
+  // Subscribe to real-time transform updates from Realtime Database
+  // This provides smooth 50ms updates for objects being transformed by other users
+  useEffect(() => {
+    if (!user) return;
+    
+    console.log('[ShapesStore] Setting up transform state subscription');
+    
+    const unsubscribe = subscribeToDragPositions((updates) => {
+      // Only apply transforms from other users
+      const otherUserUpdates = updates.filter(update => update.userId !== user.userId);
+      
+      if (otherUserUpdates.length === 0) return;
+      
+      // Apply transform updates locally (optimistic update)
+      otherUserUpdates.forEach(update => {
+        const transformUpdates: Partial<ShapeDisplayObject> = {};
+        
+        // Only update properties that are defined
+        if (update.x !== undefined) transformUpdates.x = update.x;
+        if (update.y !== undefined) transformUpdates.y = update.y;
+        if (update.rotation !== undefined) transformUpdates.rotation = update.rotation;
+        if (update.scaleX !== undefined) transformUpdates.scaleX = update.scaleX;
+        if (update.scaleY !== undefined) transformUpdates.scaleY = update.scaleY;
+        
+        if (Object.keys(transformUpdates).length > 0) {
+          dispatch({
+            type: 'UPDATE_SHAPE',
+            payload: {
+              id: update.objectId,
+              updates: transformUpdates,
+            },
+          });
+        }
+      });
+    });
+    
+    return () => {
+      console.log('[ShapesStore] Cleaning up transform state subscription');
+      unsubscribe();
+    };
+  }, [user]);
 
   const value: ShapesContextValue = {
     state,

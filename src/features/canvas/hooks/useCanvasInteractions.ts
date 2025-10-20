@@ -286,29 +286,30 @@ export function useCanvasInteractions({
   const handleStageMouseDown = (e: any) => {
     const clickedOnEmpty = e.target === e.currentTarget;
     
-    if (!clickedOnEmpty) {
-      return; // Clicked on a shape
-    }
-    
-    // Rectangle tool - start drawing
+    // Rectangle tool - start drawing (allow on top of existing shapes)
     if (currentTool === 'rectangle') {
       startRectangleDraw(e);
       return;
     }
     
-    // Circle tool - start drawing
+    // Circle tool - start drawing (allow on top of existing shapes)
     if (currentTool === 'circle') {
       startCircleDraw(e);
       return;
     }
     
-    // Line tool - start drawing
+    // Line tool - start drawing (allow on top of existing shapes)
     if (currentTool === 'line') {
       startLineDraw(e);
       return;
     }
     
-    // Select mode - start marquee selection
+    // For select mode, only handle clicks on empty canvas
+    if (!clickedOnEmpty) {
+      return; // Clicked on a shape - let shape handle it
+    }
+    
+    // Select mode - start marquee selection (only on empty canvas)
     if (isSelectMode()) {
       marqueeMouseDown(e);
     }

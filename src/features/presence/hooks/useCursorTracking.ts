@@ -5,11 +5,12 @@
  * - Throttled to 50ms (max 20 updates/second)
  * - Converts screen coordinates to canvas coordinates
  * - Only tracks when cursor is over canvas
+ * - Pauses updates when offline to save resources
  */
 
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@/features/auth/store/authStore';
-import { updateCursorPosition, getCurrentTabId } from '../services/presenceService';
+import { updateCursorPosition, getCurrentTabId, onConnectionStateChange } from '../services/presenceService';
 import { throttle } from '@/utils/performanceMonitor';
 
 interface UseCursorTrackingProps {
@@ -20,6 +21,7 @@ interface UseCursorTrackingProps {
 /**
  * useCursorTracking Hook
  * Tracks and syncs cursor position to Realtime Database
+ * Automatically pauses when offline and resumes when reconnected
  */
 export function useCursorTracking({
   stageRef,
@@ -27,7 +29,23 @@ export function useCursorTracking({
 }: UseCursorTrackingProps): void {
   const { user } = useAuth();
   const throttledUpdateRef = useRef<((x: number, y: number) => void) | null>(null);
-  const isWindowFocusedRef = useRef<boolean>(true); // Track window focus state
+  const isWindowFocusedRef = useRef<boolean>(true);
+  const isConnectedRef = useRef<boolean>(true); // Track connection state
+
+  // Monitor connection state
+  useEffect(() => {
+    const unsubscribe = onConnectionStateChange((connected) => {
+      isConnectedRef.current = connected;
+      
+      if (connected) {
+        console.log('[useCursorTracking] Connection restored - resuming cursor updates');
+      } else {
+        console.log('[useCursorTracking] Connection lost - pausing cursor updates');
+      }
+    });
+
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     if (!user || !enabled || !stageRef.current) {
@@ -53,8 +71,10 @@ export function useCursorTracking({
     const stage = stageRef.current;
 
     const handleMouseMove = () => {
-      // Only track cursor if window is focused
-      if (!isWindowFocusedRef.current || !throttledUpdateRef.current) return;
+      // Only track cursor if window is focused AND connected
+      if (!isWindowFocusedRef.current || !isConnectedRef.current || !throttledUpdateRef.current) {
+        return;
+      }
 
       const pointerPosition = stage.getPointerPosition();
       if (!pointerPosition) return;

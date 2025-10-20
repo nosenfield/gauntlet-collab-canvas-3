@@ -7,6 +7,7 @@
 import { Rect } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type { RectangleShape as RectangleShapeType } from '../types';
+import type { ToolType } from '../../common/store/toolStore';
 
 /**
  * Rectangle Shape Props
@@ -20,6 +21,7 @@ interface RectangleShapeProps {
   onCollectionDragStart?: (shapeId: string) => void; // For collection dragging start
   onCollectionDragMove?: (shapeId: string, x: number, y: number) => void; // For collection dragging move
   listening?: boolean; // Override listening state (disable events on non-driver shapes during collection drag)
+  currentTool?: ToolType; // Current active tool (for handling creation vs selection)
 }
 
 /**
@@ -38,9 +40,15 @@ export function RectangleShape({
   onCollectionDragStart,
   onCollectionDragMove,
   listening,
+  currentTool,
 }: RectangleShapeProps) {
   
   const handleClick = (e: KonvaEventObject<MouseEvent>) => {
+    // Don't handle clicks when a creation tool is active - let it bubble to stage
+    if (currentTool === 'rectangle' || currentTool === 'circle' || currentTool === 'line') {
+      return;
+    }
+    
     if (onClick) {
       const isShiftClick = e.evt.shiftKey;
       onClick(shape.id, isShiftClick);

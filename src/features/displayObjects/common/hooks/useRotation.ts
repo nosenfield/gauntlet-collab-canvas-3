@@ -3,9 +3,10 @@
  * 
  * Manages rotation transformation for selected collections.
  * Handles mouse tracking, angle calculation, optimistic updates, and Firestore sync.
+ * Broadcasts real-time rotation updates via Realtime Database for smooth multiplayer sync.
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import { useSelection } from '../store/selectionStore';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useAuth } from '@/features/auth/store/authStore';
@@ -14,6 +15,8 @@ import { rotateCollection, rotatePointAroundCenter, roundPosition, roundNumericP
 import { calculateCollectionOBB } from '../utils/boundingBoxUtils';
 import type { Point } from '../types';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
+import { updateTransformStates, clearTransformStates } from '@/features/presence/services/dragPositionService';
+import { throttle } from '@/utils/performanceMonitor';
 
 /**
  * useRotation Hook
@@ -68,6 +71,9 @@ export function useRotation(collectionCenter: Point | null) {
   
   // Track if there are uncommitted changes that need to be written
   const hasPendingWriteRef = useRef(false);
+  
+  // Throttled real-time transform broadcast (50ms = 20 updates/sec)
+  const throttledBroadcastRef = useRef<((transforms: Map<string, { x: number; y: number; rotation: number }>) => void) | null>(null);
   
   // Store original object states (for calculating deltas)
   const originalObjectsRef = useRef<ShapeDisplayObject[]>([]);
@@ -162,6 +168,15 @@ export function useRotation(collectionCenter: Point | null) {
         });
       });
       
+      // Broadcast to Realtime Database for smooth multiplayer sync (50ms throttled)
+      if (throttledBroadcastRef.current) {
+        const transforms = new Map<string, { x: number; y: number; rotation: number }>();
+        rotatedObjects.forEach(obj => {
+          transforms.set(obj.id, { x: obj.x, y: obj.y, rotation: obj.rotation });
+        });
+        throttledBroadcastRef.current(transforms);
+      }
+      
       // Mark that we have uncommitted changes
       hasPendingWriteRef.current = true;
       
@@ -200,10 +215,15 @@ export function useRotation(collectionCenter: Point | null) {
    * End rotation and finalize changes
    * Called on mouse up
    */
-  const endRotation = useCallback(() => {
+  const endRotation = useCallback(async () => {
     if (!isRotating || !initialCenterRef.current) return;
     
     console.log('[useRotation] Ended rotation at angle:', cumulativeAngleRef.current);
+    
+    // Clear real-time transform states from Realtime Database
+    if (user) {
+      await clearTransformStates(user.userId);
+    }
     
     // Clear debounce timer
     if (debounceTimerRef.current) {
@@ -259,6 +279,33 @@ export function useRotation(collectionCenter: Point | null) {
       endRotation();
     }
   }, [isRotating, endRotation]);
+  
+  // Initialize throttled broadcast function
+  useEffect(() => {
+    if (!user) {
+      throttledBroadcastRef.current = null;
+      return;
+    }
+    
+    // Create throttled function (50ms = 20 updates/second)
+    const throttledFn = throttle((...args: unknown[]) => {
+      const [transforms] = args as [Map<string, { x: number; y: number; rotation: number }>];
+      updateTransformStates(user.userId, transforms).catch((error) => {
+        console.debug('[useRotation] Transform update failed:', error);
+      });
+    }, 50);
+    
+    throttledBroadcastRef.current = (transforms: Map<string, { x: number; y: number; rotation: number }>) => {
+      throttledFn(transforms);
+    };
+    
+    return () => {
+      // Clear transform states on unmount
+      clearTransformStates(user.userId).catch(() => {
+        // Silent cleanup failure
+      });
+    };
+  }, [user]);
   
   return {
     startRotation,

@@ -14,6 +14,7 @@
 import { Line } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type { LineShape as LineShapeType } from '../types';
+import type { ToolType } from '../../common/store/toolStore';
 
 /**
  * Line Shape Props
@@ -27,6 +28,7 @@ interface LineShapeProps {
   onCollectionDragStart?: (shapeId: string) => void;
   onCollectionDragMove?: (shapeId: string, x: number, y: number) => void;
   listening?: boolean;
+  currentTool?: ToolType; // Current active tool (for handling creation vs selection)
 }
 
 /**
@@ -48,9 +50,15 @@ export function LineShape({
   onCollectionDragStart,
   onCollectionDragMove,
   listening,
+  currentTool,
 }: LineShapeProps) {
   
   const handleClick = (e: KonvaEventObject<MouseEvent>) => {
+    // Don't handle clicks when a creation tool is active - let it bubble to stage
+    if (currentTool === 'rectangle' || currentTool === 'circle' || currentTool === 'line') {
+      return;
+    }
+    
     if (onClick) {
       const isShiftClick = e.evt.shiftKey;
       onClick(shape.id, isShiftClick);

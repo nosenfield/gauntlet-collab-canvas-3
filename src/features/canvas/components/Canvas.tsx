@@ -46,7 +46,7 @@ export function Canvas(): React.ReactElement {
   const { user } = useAuth();
   
   // Tool and selection state for transform modal
-  const { isSelectMode } = useTool();
+  const { isSelectMode, currentTool } = useTool();
   const { hasSelection } = useSelection();
   
   // Track rotated collection corners during rotation (from TransformModal)
@@ -194,6 +194,7 @@ export function Canvas(): React.ReactElement {
           previewCircle={previewCircle}
           isDrawingLine={isDrawingLine}
           previewLine={previewLine}
+          currentTool={currentTool}
         />
       </Stage>
 

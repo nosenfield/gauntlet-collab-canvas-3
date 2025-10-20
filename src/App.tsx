@@ -5,6 +5,7 @@ import { ViewportProvider } from '@/features/canvas/store/viewportStore';
 import { Canvas } from '@/features/canvas/components/Canvas';
 import { usePresence } from '@/features/presence/hooks/usePresence';
 import { UserPresenceSidebar } from '@/features/presence/components/UserPresenceSidebar';
+import { ConnectionStatusBanner } from '@/features/presence/components/ConnectionStatusBanner';
 import { ToolProvider } from '@/features/displayObjects/common/store/toolStore';
 import { DisplayObjectToolbar } from '@/features/displayObjects/common/components/DisplayObjectToolbar';
 // import { ZIndexControls } from '@/features/displayObjects/common/components/ZIndexControls';
@@ -64,6 +65,7 @@ function App() {
         <ShapesProvider>
           <TextsProvider>
             <SelectionProvider>
+              <ConnectionStatusBanner />
               <AuthModal />
               <AppContent />
             </SelectionProvider>

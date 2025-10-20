@@ -5,15 +5,17 @@
  * - Creates presence on mount
  * - Heartbeat every 5 seconds
  * - Removes presence on unmount
+ * - Re-establishes presence on reconnection after network drops
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/features/auth/store/authStore';
 import {
   createTabPresence,
   updatePresenceHeartbeat,
   removeTabPresence,
   getCurrentTabId,
+  onConnectionStateChange,
 } from '../services/presenceService';
 
 const HEARTBEAT_INTERVAL = 5000; // 5 seconds
@@ -22,6 +24,7 @@ const HEARTBEAT_INTERVAL = 5000; // 5 seconds
  * usePresence Hook
  * Automatically manages user presence for authenticated user
  * Each tab creates its own presence entry with automatic onDisconnect cleanup
+ * Handles network drops by re-establishing presence on reconnection
  */
 export function usePresence(): void {
   const { user } = useAuth();
@@ -29,56 +32,93 @@ export function usePresence(): void {
   const isInitializedRef = useRef(false);
   const userIdRef = useRef<string | null>(null);
   const tabIdRef = useRef<string | null>(null);
+  const wasDisconnectedRef = useRef(false);
 
-  useEffect(() => {
-    if (!user) {
-      return;
-    }
+  /**
+   * Initialize or re-initialize presence
+   * Used both on mount and on reconnection
+   */
+  const initializePresence = useCallback(async () => {
+    if (!user) return;
 
-    // Prevent multiple initializations
-    if (isInitializedRef.current) {
-      return;
-    }
+    try {
+      // Get or generate tab ID (persisted in sessionStorage)
+      const tabId = getCurrentTabId();
 
-    let isMounted = true;
+      console.log('📝 Creating tab presence:', tabId);
+      
+      // Store for cleanup
+      userIdRef.current = user.userId;
+      tabIdRef.current = tabId;
+      
+      // Create tab-specific presence with automatic cleanup
+      await createTabPresence(user, tabId);
 
-    const initializePresence = async () => {
-      try {
-        // Get or generate tab ID (persisted in sessionStorage)
-        const tabId = getCurrentTabId();
+      isInitializedRef.current = true;
 
-        console.log('📝 Creating tab presence:', tabId);
-        
-        // Store for cleanup
-        userIdRef.current = user.userId;
-        tabIdRef.current = tabId;
-        
-        // Create tab-specific presence with automatic cleanup
-        await createTabPresence(user, tabId);
-
-        if (!isMounted) return;
-
-        isInitializedRef.current = true;
-
-        // Start heartbeat
-        heartbeatIntervalRef.current = setInterval(() => {
-          updatePresenceHeartbeat(user.userId, tabId).catch((error) => {
-            console.error('❌ Heartbeat failed:', error);
-          });
-        }, HEARTBEAT_INTERVAL);
-
-        console.log('✅ Presence initialized - onDisconnect will auto-cleanup');
-      } catch (error) {
-        console.error('❌ Failed to initialize presence:', error);
+      // Clear existing heartbeat if any
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
       }
-    };
+
+      // Start heartbeat
+      heartbeatIntervalRef.current = setInterval(() => {
+        updatePresenceHeartbeat(user.userId, tabId).catch((error) => {
+          console.error('❌ Heartbeat failed:', error);
+        });
+      }, HEARTBEAT_INTERVAL);
+
+      console.log('✅ Presence initialized - onDisconnect will auto-cleanup');
+    } catch (error) {
+      console.error('❌ Failed to initialize presence:', error);
+      // Reset initialization flag so we can try again
+      isInitializedRef.current = false;
+    }
+  }, [user]);
+
+  // Initial presence setup
+  useEffect(() => {
+    if (!user || isInitializedRef.current) {
+      return;
+    }
 
     initializePresence();
+  }, [user, initializePresence]);
 
-    // Cleanup on unmount
+  // Monitor connection state and re-establish presence on reconnection
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = onConnectionStateChange((isConnected) => {
+      if (!isConnected) {
+        // Connection lost
+        wasDisconnectedRef.current = true;
+        console.log('🔴 [usePresence] Connection lost - presence will be auto-removed by onDisconnect');
+        
+        // Stop heartbeat to save resources
+        if (heartbeatIntervalRef.current) {
+          clearInterval(heartbeatIntervalRef.current);
+          heartbeatIntervalRef.current = null;
+        }
+        
+        // Mark as not initialized so we can re-establish on reconnect
+        isInitializedRef.current = false;
+      } else if (wasDisconnectedRef.current) {
+        // Connection restored after being disconnected
+        console.log('🟢 [usePresence] Connection restored - re-establishing presence');
+        wasDisconnectedRef.current = false;
+        
+        // Re-initialize presence
+        initializePresence();
+      }
+    });
+
+    return unsubscribe;
+  }, [user, initializePresence]);
+
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      isMounted = false;
-
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
@@ -97,6 +137,7 @@ export function usePresence(): void {
       isInitializedRef.current = false;
       userIdRef.current = null;
       tabIdRef.current = null;
+      wasDisconnectedRef.current = false;
     };
-  }, [user]);
+  }, []);
 }

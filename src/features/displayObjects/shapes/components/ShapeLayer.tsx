@@ -13,6 +13,7 @@ import { CircleShape } from './CircleShape';
 import { LineShape } from './LineShape';
 import { DisplayObjectLayer, type ObjectRenderProps } from '../../common/components/DisplayObjectLayer';
 import type { ShapeDisplayObject } from '../types';
+import type { ToolType } from '../../common/store/toolStore';
 
 /**
  * Shape Layer Props
@@ -28,6 +29,9 @@ interface ShapeLayerProps {
   startCollectionDrag: (driverShapeId: string) => void;
   moveCollectionDrag: (driverShapeId: string, x: number, y: number) => void;
   endCollectionDrag: () => void;
+  
+  // Current tool
+  currentTool?: ToolType;
 }
 
 /**
@@ -44,6 +48,7 @@ export function ShapeLayer({
   startCollectionDrag,
   moveCollectionDrag,
   endCollectionDrag,
+  currentTool,
 }: ShapeLayerProps) {
   const { shapes, isLoading } = useShapes();
 
@@ -103,6 +108,7 @@ export function ShapeLayer({
       startCollectionDrag={startCollectionDrag}
       moveCollectionDrag={moveCollectionDrag}
       endCollectionDrag={endCollectionDrag}
+      currentTool={currentTool}
       layerName="shapes-layer"
     />
   );

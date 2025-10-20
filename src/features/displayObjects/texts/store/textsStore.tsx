@@ -8,6 +8,8 @@
 import { createContext, useContext, useReducer, useEffect, useCallback, type ReactNode } from 'react';
 import type { TextDisplayObject } from '../types';
 import { subscribeToTexts } from '../services/textService';
+import { subscribeToDragPositions } from '@/features/presence/services/dragPositionService';
+import { useAuth } from '@/features/auth/store/authStore';
 
 /**
  * Texts State
@@ -128,6 +130,7 @@ interface TextsProviderProps {
  */
 export function TextsProvider({ children }: TextsProviderProps): React.ReactElement {
   const [state, dispatch] = useReducer(textsReducer, initialTextsState);
+  const { user } = useAuth();
   
   // Subscribe to Firestore texts collection
   useEffect(() => {
@@ -144,6 +147,48 @@ export function TextsProvider({ children }: TextsProviderProps): React.ReactElem
       unsubscribe();
     };
   }, []);
+  
+  // Subscribe to real-time transform updates from Realtime Database
+  // This provides smooth 50ms updates for text objects being transformed by other users
+  useEffect(() => {
+    if (!user) return;
+    
+    console.log('[TextsStore] Setting up transform state subscription');
+    
+    const unsubscribe = subscribeToDragPositions((updates) => {
+      // Only apply transforms from other users
+      const otherUserUpdates = updates.filter(update => update.userId !== user.userId);
+      
+      if (otherUserUpdates.length === 0) return;
+      
+      // Apply transform updates locally (optimistic update)
+      otherUserUpdates.forEach(update => {
+        const transformUpdates: Partial<TextDisplayObject> = {};
+        
+        // Only update properties that are defined
+        if (update.x !== undefined) transformUpdates.x = update.x;
+        if (update.y !== undefined) transformUpdates.y = update.y;
+        if (update.rotation !== undefined) transformUpdates.rotation = update.rotation;
+        if (update.scaleX !== undefined) transformUpdates.scaleX = update.scaleX;
+        if (update.scaleY !== undefined) transformUpdates.scaleY = update.scaleY;
+        
+        if (Object.keys(transformUpdates).length > 0) {
+          dispatch({
+            type: 'UPDATE_TEXT',
+            payload: {
+              id: update.objectId,
+              updates: transformUpdates,
+            },
+          });
+        }
+      });
+    });
+    
+    return () => {
+      console.log('[TextsStore] Cleaning up transform state subscription');
+      unsubscribe();
+    };
+  }, [user]);
   
   /**
    * Add a text to local state

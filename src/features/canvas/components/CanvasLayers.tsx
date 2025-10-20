@@ -24,6 +24,7 @@ import { RemoteCursors } from '@/features/presence/components/RemoteCursors';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
 import type { TextDisplayObject } from '@/features/displayObjects/texts/types';
 import type { Point, TransformableObject } from '@/features/displayObjects/common/types';
+import type { ToolType } from '@/features/displayObjects/common/store/toolStore';
 
 interface CanvasLayersProps {
   // Grid props
@@ -67,6 +68,9 @@ interface CanvasLayersProps {
   // Preview line props
   isDrawingLine: boolean;
   previewLine: { x: number; y: number; points: number[] } | null;
+  
+  // Current tool
+  currentTool?: ToolType;
 }
 
 /**
@@ -117,6 +121,9 @@ export function CanvasLayers({
   // Preview line
   isDrawingLine,
   previewLine,
+  
+  // Current tool
+  currentTool,
 }: CanvasLayersProps): React.ReactElement {
   return (
     <>
@@ -140,6 +147,7 @@ export function CanvasLayers({
         startCollectionDrag={startCollectionDrag}
         moveCollectionDrag={moveCollectionDrag}
         endCollectionDrag={endCollectionDrag}
+        currentTool={currentTool}
       />
       
       {/* Layer 2.5: Text Objects (interactive) */}
@@ -152,6 +160,7 @@ export function CanvasLayers({
         startCollectionDrag={startCollectionDrag}
         moveCollectionDrag={moveCollectionDrag}
         endCollectionDrag={endCollectionDrag}
+        currentTool={currentTool}
       />
       
       {/* Layer 3: Bounding Box Layer - Selection highlights */}
