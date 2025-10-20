@@ -22,6 +22,13 @@ VITE_FIREBASE_DATABASE_URL=https://your-project-id-default-rtdb.firebaseio.com
 # Get this from OpenAI Platform > API Keys
 # Format: sk-...
 VITE_OPENAI_API_KEY=sk-your-openai-api-key-here
+
+# LangSmith Configuration (for AI Agent tracing)
+# Get these from LangSmith Settings > API Keys
+# Optional - only needed if you want to trace AI tool calls
+VITE_LANGCHAIN_TRACING_V2=true
+VITE_LANGCHAIN_API_KEY=lsv2_pt_your-langsmith-api-key-here
+VITE_LANGCHAIN_PROJECT=CollabCanvas
 ```
 
 ## Setup Instructions
@@ -56,10 +63,12 @@ VITE_OPENAI_API_KEY=sk-your-openai-api-key-here
 - ✅ `.env.local` is gitignored by default
 - ✅ Firebase keys are PUBLIC API keys (safe for client-side)
 - ⚠️ **OpenAI API key is PRIVATE** - exposed in browser for dev only
+- ⚠️ **LangSmith API key is PRIVATE** - exposed in browser for dev only
 - ⚠️ Security is handled by Firebase Security Rules
 - ⚠️ Test mode has OPEN rules - update for production
 - 🔒 For production:
   - Move OpenAI calls to Firebase Functions (server-side)
+  - Move LangSmith tracing to server-side
   - Set appropriate Firestore and Realtime Database rules
   - Implement rate limiting for AI commands
 
