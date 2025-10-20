@@ -88,33 +88,45 @@ When user says "the [descriptor] [object]":
 - If user wants a single specific object, they'll say "the biggest" or provide more details
 - Don't artificially limit selections with both min AND max unless explicitly needed
 
-TOOL CALL CHAINING:
-CRITICAL: Most user commands require MULTIPLE tool calls. You can and should return multiple tool calls in ONE response.
+TOOL CALL CHAINING - CRITICAL:
+⚠️ MOST COMMANDS REQUIRE MULTIPLE TOOL CALLS IN ONE RESPONSE ⚠️
 
-Examples of commands that need TWO tool calls:
-- "Move the red circle 500px right" → 
-  Tool call 1: select_objects({type: "circle", fillColor: "#FF0000"})
-  Tool call 2: move_objects({offsetX: 500})
+YOU MUST RETURN ARRAY OF TOOL CALLS, NOT JUST ONE!
 
-- "Move the big red circle to the right" → 
-  Tool call 1: select_objects({type: "circle", fillColor: "#FF0000", minWidth: 150, minHeight: 150})
-  Tool call 2: move_objects({offsetX: 500})
+Commands that REQUIRE TWO tool calls (return BOTH in one response):
 
-- "Center the blue square" → 
-  Tool call 1: select_objects({type: "rectangle", fillColor: "#3B82F6"})
-  Tool call 2: move_objects({alignToCenter: true})
+1. "Move the red circle 500px right" → 
+   [select_objects({type: "circle", fillColor: "#FF0000"}), 
+    move_objects({offsetX: 500})]
 
-PATTERN:
-If the user mentions a SPECIFIC object (by color, size, type, etc.) AND wants to DO something with it:
-→ Return BOTH tool calls in your response:
-  1. select_objects to find it
-  2. The action tool (move_objects, etc.)
+2. "Move the big red circle to the right" → 
+   [select_objects({type: "circle", fillColor: "#FF0000", minWidth: 150}), 
+    move_objects({offsetX: 500})]
 
-If the user just wants to create something new:
-→ Return ONE tool call:
-  1. create_rectangle / create_circle / create_text
+3. "Move the textfield 100px left" or "Move the text 100px left" → 
+   [select_objects({category: "text"}), 
+    move_objects({offsetX: -100})]
 
-IMPORTANT: Return multiple tool calls in the SAME response, not just one!
+4. "Center the blue square" → 
+   [select_objects({type: "rectangle", fillColor: "#3B82F6"}), 
+    move_objects({alignToCenter: true})]
+
+5. "Move all rectangles right" → 
+   [select_objects({type: "rectangle"}), 
+    move_objects({offsetX: 200})]
+
+PATTERN RECOGNITION:
+- Does command mention EXISTING object? (red circle, the text, big rectangle, etc.)
+- Does command want to DO something? (move, center, reposition, etc.)
+- If YES to BOTH → Return TWO tool calls [select_objects, move_objects]
+
+Commands that need ONE tool call:
+- "Create a red circle" → [create_circle(...)]
+- "Make a blue rectangle" → [create_rectangle(...)]
+- "Add text that says hello" → [create_text(...)]
+
+IMPORTANT: When you return multiple tool calls, they will be executed sequentially!
+First call selects the objects, second call operates on selected objects.
 
 Be intelligent about interpreting user intent while staying within canvas bounds.`;
 
@@ -140,6 +152,43 @@ export async function processCommand(userCommand: string): Promise<AIResponse> {
           role: 'system',
           content: SYSTEM_PROMPT,
         },
+        // Add a few-shot example to teach chaining
+        {
+          role: 'user',
+          content: 'Move the red circle 200px right',
+        },
+        {
+          role: 'assistant',
+          content: null,
+          tool_calls: [
+            {
+              id: 'example1',
+              type: 'function' as const,
+              function: {
+                name: 'select_objects',
+                arguments: JSON.stringify({ category: 'shape', type: 'circle', fillColor: '#FF0000' }),
+              },
+            },
+            {
+              id: 'example2',
+              type: 'function' as const,
+              function: {
+                name: 'move_objects',
+                arguments: JSON.stringify({ offsetX: 200 }),
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: 'Selected 1 object(s)',
+          tool_call_id: 'example1',
+        },
+        {
+          role: 'tool',
+          content: 'Moved 1 object(s)',
+          tool_call_id: 'example2',
+        },
         {
           role: 'user',
           content: userCommand,
@@ -147,7 +196,7 @@ export async function processCommand(userCommand: string): Promise<AIResponse> {
       ],
       tools: allTools,
       tool_choice: 'auto', // Let model decide if tool call needed
-      temperature: 0.3, // Lower temperature for more consistent tool call chaining
+      temperature: 0.1, // Very low temperature for consistent behavior
       parallel_tool_calls: true, // Allow multiple tool calls in one response
     });
 

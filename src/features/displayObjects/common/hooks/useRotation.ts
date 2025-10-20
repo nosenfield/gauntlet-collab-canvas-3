@@ -9,12 +9,15 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { useSelection } from '../store/selectionStore';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
+import { useTexts } from '@/features/displayObjects/texts/store/textsStore';
 import { useAuth } from '@/features/auth/store/authStore';
 import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
+import { updateTextsBatch } from '@/features/displayObjects/texts/services/textService';
 import { rotateCollection, rotatePointAroundCenter, roundPosition, roundNumericProperty } from '../utils/transformMath';
 import { calculateCollectionOBB } from '../utils/boundingBoxUtils';
 import type { Point } from '../types';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
+import type { TextDisplayObject } from '@/features/displayObjects/texts/types';
 import { updateTransformStates, clearTransformStates } from '@/features/presence/services/dragPositionService';
 import { throttle } from '@/utils/performanceMonitor';
 
@@ -52,6 +55,7 @@ import { throttle } from '@/utils/performanceMonitor';
 export function useRotation(collectionCenter: Point | null) {
   const { selectedIds } = useSelection();
   const { shapes, updateShapeLocal } = useShapes();
+  const { texts, updateTextLocal } = useTexts();
   const { user } = useAuth();
   
   // Rotation state
@@ -76,7 +80,8 @@ export function useRotation(collectionCenter: Point | null) {
   const throttledBroadcastRef = useRef<((transforms: Map<string, { x: number; y: number; rotation: number }>) => void) | null>(null);
   
   // Store original object states (for calculating deltas)
-  const originalObjectsRef = useRef<ShapeDisplayObject[]>([]);
+  const originalShapesRef = useRef<ShapeDisplayObject[]>([]);
+  const originalTextsRef = useRef<TextDisplayObject[]>([]);
   
   // Store initial collection OBB corners (for rotating the selection box)
   const initialCollectionCornersRef = useRef<Point[] | null>(null);
@@ -103,12 +108,15 @@ export function useRotation(collectionCenter: Point | null) {
     // Store initial collection center (fixed pivot point)
     initialCenterRef.current = { ...collectionCenter };
     
-    // Store original object states
+    // Store original object states (both shapes and texts)
     const selectedShapes = shapes.filter(s => selectedIds.includes(s.id));
-    originalObjectsRef.current = selectedShapes;
+    const selectedTexts = texts.filter(t => selectedIds.includes(t.id));
+    originalShapesRef.current = selectedShapes;
+    originalTextsRef.current = selectedTexts;
     
-    // Calculate and store initial collection OBB corners
-    const collectionOBB = calculateCollectionOBB(selectedShapes);
+    // Calculate and store initial collection OBB corners (from both shapes and texts)
+    const allObjects = [...selectedShapes, ...selectedTexts];
+    const collectionOBB = calculateCollectionOBB(allObjects);
     initialCollectionCornersRef.current = collectionOBB?.corners || null;
     setRotatedCollectionCorners(collectionOBB?.corners || null);
     
@@ -119,7 +127,7 @@ export function useRotation(collectionCenter: Point | null) {
     setCurrentAngle(0);
     
     console.log('[useRotation] Started rotation at', e.clientX, e.clientY, 'pivot:', initialCenterRef.current);
-  }, [collectionCenter, selectedIds, shapes]);
+  }, [collectionCenter, selectedIds, shapes, texts]);
   
   /**
    * Update rotation based on mouse movement
@@ -152,16 +160,29 @@ export function useRotation(collectionCenter: Point | null) {
     
     // Apply rotation to selected objects (optimistic update)
     // Use INITIAL center as fixed pivot point
-    if (Math.abs(angleDelta) > 0 && originalObjectsRef.current.length > 0) {
-      const rotatedObjects = rotateCollection(
-        originalObjectsRef.current,
-        cumulativeAngleRef.current,
-        initialCenterRef.current
-      );
+    const hasObjects = originalShapesRef.current.length > 0 || originalTextsRef.current.length > 0;
+    if (Math.abs(angleDelta) > 0 && hasObjects) {
+      // Rotate shapes
+      const rotatedShapes = originalShapesRef.current.length > 0
+        ? rotateCollection(originalShapesRef.current, cumulativeAngleRef.current, initialCenterRef.current)
+        : [];
+      
+      // Rotate texts
+      const rotatedTexts = originalTextsRef.current.length > 0
+        ? rotateCollection(originalTextsRef.current, cumulativeAngleRef.current, initialCenterRef.current)
+        : [];
       
       // Update local state immediately (optimistic)
-      rotatedObjects.forEach(obj => {
+      rotatedShapes.forEach(obj => {
         updateShapeLocal(obj.id, {
+          x: obj.x,
+          y: obj.y,
+          rotation: obj.rotation,
+        });
+      });
+      
+      rotatedTexts.forEach(obj => {
+        updateTextLocal(obj.id, {
           x: obj.x,
           y: obj.y,
           rotation: obj.rotation,
@@ -171,7 +192,7 @@ export function useRotation(collectionCenter: Point | null) {
       // Broadcast to Realtime Database for smooth multiplayer sync (50ms throttled)
       if (throttledBroadcastRef.current) {
         const transforms = new Map<string, { x: number; y: number; rotation: number }>();
-        rotatedObjects.forEach(obj => {
+        [...rotatedShapes, ...rotatedTexts].forEach(obj => {
           transforms.set(obj.id, { x: obj.x, y: obj.y, rotation: obj.rotation });
         });
         throttledBroadcastRef.current(transforms);
@@ -188,18 +209,37 @@ export function useRotation(collectionCenter: Point | null) {
       debounceTimerRef.current = setTimeout(() => {
         // Write to Firestore using batch update (1 snapshot event instead of N)
         if (user) {
-          const batchUpdates = rotatedObjects.map(obj => ({
-            shapeId: obj.id,
-            updates: {
-              x: roundPosition(obj.x),
-              y: roundPosition(obj.y),
-              rotation: roundNumericProperty(obj.rotation),
-            },
-          }));
+          // Batch update shapes
+          if (rotatedShapes.length > 0) {
+            const shapeBatchUpdates = rotatedShapes.map(obj => ({
+              shapeId: obj.id,
+              updates: {
+                x: roundPosition(obj.x),
+                y: roundPosition(obj.y),
+                rotation: roundNumericProperty(obj.rotation),
+              },
+            }));
+            
+            updateShapesBatch(user.userId, shapeBatchUpdates).catch(error => {
+              console.error('[useRotation] Failed to batch update shapes:', error);
+            });
+          }
           
-          updateShapesBatch(user.userId, batchUpdates).catch(error => {
-            console.error('[useRotation] Failed to batch update shapes:', error);
-          });
+          // Batch update texts
+          if (rotatedTexts.length > 0) {
+            const textBatchUpdates = rotatedTexts.map(obj => ({
+              textId: obj.id,
+              updates: {
+                x: roundPosition(obj.x),
+                y: roundPosition(obj.y),
+                rotation: roundNumericProperty(obj.rotation),
+              },
+            }));
+            
+            updateTextsBatch(user.userId, textBatchUpdates).catch(error => {
+              console.error('[useRotation] Failed to batch update texts:', error);
+            });
+          }
           
           // Clear pending write flag after successful write
           hasPendingWriteRef.current = false;
@@ -209,7 +249,7 @@ export function useRotation(collectionCenter: Point | null) {
     
     // Update last mouse position
     lastMousePosRef.current = currentMousePos;
-  }, [isRotating, updateShapeLocal, user]);
+  }, [isRotating, updateShapeLocal, updateTextLocal, user]);
   
   /**
    * End rotation and finalize changes
@@ -233,25 +273,49 @@ export function useRotation(collectionCenter: Point | null) {
     
     // Final write to Firestore ONLY if there are uncommitted changes
     // (i.e., the debounce timer hasn't fired yet)
-    if (hasPendingWriteRef.current && originalObjectsRef.current.length > 0 && user) {
-      const rotatedObjects = rotateCollection(
-        originalObjectsRef.current,
-        cumulativeAngleRef.current,
-        initialCenterRef.current
-      );
+    const hasObjects = originalShapesRef.current.length > 0 || originalTextsRef.current.length > 0;
+    if (hasPendingWriteRef.current && hasObjects && user) {
+      // Rotate shapes
+      const rotatedShapes = originalShapesRef.current.length > 0
+        ? rotateCollection(originalShapesRef.current, cumulativeAngleRef.current, initialCenterRef.current)
+        : [];
       
-      const batchUpdates = rotatedObjects.map(obj => ({
-        shapeId: obj.id,
-        updates: {
-          x: roundPosition(obj.x),
-          y: roundPosition(obj.y),
-          rotation: roundNumericProperty(obj.rotation),
-        },
-      }));
+      // Rotate texts
+      const rotatedTexts = originalTextsRef.current.length > 0
+        ? rotateCollection(originalTextsRef.current, cumulativeAngleRef.current, initialCenterRef.current)
+        : [];
       
-      updateShapesBatch(user.userId, batchUpdates).catch(error => {
-        console.error('[useRotation] Failed to batch update shapes:', error);
-      });
+      // Batch update shapes
+      if (rotatedShapes.length > 0) {
+        const shapeBatchUpdates = rotatedShapes.map(obj => ({
+          shapeId: obj.id,
+          updates: {
+            x: roundPosition(obj.x),
+            y: roundPosition(obj.y),
+            rotation: roundNumericProperty(obj.rotation),
+          },
+        }));
+        
+        updateShapesBatch(user.userId, shapeBatchUpdates).catch(error => {
+          console.error('[useRotation] Failed to batch update shapes:', error);
+        });
+      }
+      
+      // Batch update texts
+      if (rotatedTexts.length > 0) {
+        const textBatchUpdates = rotatedTexts.map(obj => ({
+          textId: obj.id,
+          updates: {
+            x: roundPosition(obj.x),
+            y: roundPosition(obj.y),
+            rotation: roundNumericProperty(obj.rotation),
+          },
+        }));
+        
+        updateTextsBatch(user.userId, textBatchUpdates).catch(error => {
+          console.error('[useRotation] Failed to batch update texts:', error);
+        });
+      }
       
       hasPendingWriteRef.current = false;
     } else if (!hasPendingWriteRef.current) {
@@ -263,7 +327,8 @@ export function useRotation(collectionCenter: Point | null) {
     startMousePosRef.current = null;
     lastMousePosRef.current = null;
     initialCenterRef.current = null;
-    originalObjectsRef.current = [];
+    originalShapesRef.current = [];
+    originalTextsRef.current = [];
     initialCollectionCornersRef.current = null;
     setRotatedCollectionCorners(null);
     

@@ -9,11 +9,14 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { useSelection } from '../store/selectionStore';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
+import { useTexts } from '@/features/displayObjects/texts/store/textsStore';
 import { useAuth } from '@/features/auth/store/authStore';
 import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
+import { updateTextsBatch } from '@/features/displayObjects/texts/services/textService';
 import { scaleCollection, roundPosition, roundNumericProperty } from '../utils/transformMath';
 import type { Point } from '../types';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
+import type { TextDisplayObject } from '@/features/displayObjects/texts/types';
 import { updateTransformStates, clearTransformStates } from '@/features/presence/services/dragPositionService';
 import { throttle } from '@/utils/performanceMonitor';
 
@@ -34,6 +37,7 @@ import { throttle } from '@/utils/performanceMonitor';
 export function useScale(collectionCenter: Point | null) {
   const { selectedIds } = useSelection();
   const { shapes, updateShapeLocal } = useShapes();
+  const { texts, updateTextLocal } = useTexts();
   const { user } = useAuth();
   
   // Scale state
@@ -58,7 +62,8 @@ export function useScale(collectionCenter: Point | null) {
   const throttledBroadcastRef = useRef<((transforms: Map<string, { x: number; y: number; scaleX: number; scaleY: number }>) => void) | null>(null);
   
   // Store original object states (for calculating deltas)
-  const originalObjectsRef = useRef<ShapeDisplayObject[]>([]);
+  const originalShapesRef = useRef<ShapeDisplayObject[]>([]);
+  const originalTextsRef = useRef<TextDisplayObject[]>([]);
   
   /**
    * Start scale tracking
@@ -79,9 +84,11 @@ export function useScale(collectionCenter: Point | null) {
     // Store initial collection center (fixed pivot point)
     initialCenterRef.current = { ...collectionCenter };
     
-    // Store original object states
+    // Store original object states (both shapes and texts)
     const selectedShapes = shapes.filter(s => selectedIds.includes(s.id));
-    originalObjectsRef.current = selectedShapes;
+    const selectedTexts = texts.filter(t => selectedIds.includes(t.id));
+    originalShapesRef.current = selectedShapes;
+    originalTextsRef.current = selectedTexts;
     
     // Reset pending write flag
     hasPendingWriteRef.current = false;
@@ -90,7 +97,7 @@ export function useScale(collectionCenter: Point | null) {
     setCurrentScale(1.0);
     
     console.log('[useScale] Started scaling at', e.clientX, e.clientY, 'pivot:', initialCenterRef.current);
-  }, [collectionCenter, selectedIds, shapes]);
+  }, [collectionCenter, selectedIds, shapes, texts]);
   
   /**
    * Update scale based on mouse movement
@@ -119,16 +126,30 @@ export function useScale(collectionCenter: Point | null) {
     
     // Apply scale to selected objects (optimistic update)
     // Use INITIAL center as fixed pivot point
-    if (Math.abs(scaleDelta) > 0 && originalObjectsRef.current.length > 0) {
-      const scaledObjects = scaleCollection(
-        originalObjectsRef.current,
-        cumulativeScaleRef.current,
-        initialCenterRef.current
-      );
+    const hasObjects = originalShapesRef.current.length > 0 || originalTextsRef.current.length > 0;
+    if (Math.abs(scaleDelta) > 0 && hasObjects) {
+      // Scale shapes
+      const scaledShapes = originalShapesRef.current.length > 0
+        ? scaleCollection(originalShapesRef.current, cumulativeScaleRef.current, initialCenterRef.current)
+        : [];
+      
+      // Scale texts
+      const scaledTexts = originalTextsRef.current.length > 0
+        ? scaleCollection(originalTextsRef.current, cumulativeScaleRef.current, initialCenterRef.current)
+        : [];
       
       // Update local state immediately (optimistic)
-      scaledObjects.forEach(obj => {
+      scaledShapes.forEach(obj => {
         updateShapeLocal(obj.id, {
+          x: obj.x,
+          y: obj.y,
+          scaleX: obj.scaleX,
+          scaleY: obj.scaleY,
+        });
+      });
+      
+      scaledTexts.forEach(obj => {
+        updateTextLocal(obj.id, {
           x: obj.x,
           y: obj.y,
           scaleX: obj.scaleX,
@@ -139,7 +160,7 @@ export function useScale(collectionCenter: Point | null) {
       // Broadcast to Realtime Database for smooth multiplayer sync (50ms throttled)
       if (throttledBroadcastRef.current) {
         const transforms = new Map<string, { x: number; y: number; scaleX: number; scaleY: number }>();
-        scaledObjects.forEach(obj => {
+        [...scaledShapes, ...scaledTexts].forEach(obj => {
           transforms.set(obj.id, { x: obj.x, y: obj.y, scaleX: obj.scaleX, scaleY: obj.scaleY });
         });
         throttledBroadcastRef.current(transforms);
@@ -156,19 +177,39 @@ export function useScale(collectionCenter: Point | null) {
       debounceTimerRef.current = setTimeout(() => {
         // Write to Firestore using batch update (1 snapshot event instead of N)
         if (user) {
-          const batchUpdates = scaledObjects.map(obj => ({
-            shapeId: obj.id,
-            updates: {
-              x: roundPosition(obj.x),
-              y: roundPosition(obj.y),
-              scaleX: roundNumericProperty(obj.scaleX),
-              scaleY: roundNumericProperty(obj.scaleY),
-            },
-          }));
+          // Batch update shapes
+          if (scaledShapes.length > 0) {
+            const shapeBatchUpdates = scaledShapes.map(obj => ({
+              shapeId: obj.id,
+              updates: {
+                x: roundPosition(obj.x),
+                y: roundPosition(obj.y),
+                scaleX: roundNumericProperty(obj.scaleX),
+                scaleY: roundNumericProperty(obj.scaleY),
+              },
+            }));
+            
+            updateShapesBatch(user.userId, shapeBatchUpdates).catch(error => {
+              console.error('[useScale] Failed to batch update shapes:', error);
+            });
+          }
           
-          updateShapesBatch(user.userId, batchUpdates).catch(error => {
-            console.error('[useScale] Failed to batch update shapes:', error);
-          });
+          // Batch update texts
+          if (scaledTexts.length > 0) {
+            const textBatchUpdates = scaledTexts.map(obj => ({
+              textId: obj.id,
+              updates: {
+                x: roundPosition(obj.x),
+                y: roundPosition(obj.y),
+                scaleX: roundNumericProperty(obj.scaleX),
+                scaleY: roundNumericProperty(obj.scaleY),
+              },
+            }));
+            
+            updateTextsBatch(user.userId, textBatchUpdates).catch(error => {
+              console.error('[useScale] Failed to batch update texts:', error);
+            });
+          }
           
           // Clear pending write flag after successful write
           hasPendingWriteRef.current = false;
@@ -178,7 +219,7 @@ export function useScale(collectionCenter: Point | null) {
     
     // Update last mouse position
     lastMousePosRef.current = currentMousePos;
-  }, [isScaling, updateShapeLocal, user]);
+  }, [isScaling, updateShapeLocal, updateTextLocal, user]);
   
   /**
    * End scale and finalize changes
@@ -202,26 +243,51 @@ export function useScale(collectionCenter: Point | null) {
     
     // Final write to Firestore ONLY if there are uncommitted changes
     // (i.e., the debounce timer hasn't fired yet)
-    if (hasPendingWriteRef.current && originalObjectsRef.current.length > 0 && user) {
-      const scaledObjects = scaleCollection(
-        originalObjectsRef.current,
-        cumulativeScaleRef.current,
-        initialCenterRef.current
-      );
+    const hasObjects = originalShapesRef.current.length > 0 || originalTextsRef.current.length > 0;
+    if (hasPendingWriteRef.current && hasObjects && user) {
+      // Scale shapes
+      const scaledShapes = originalShapesRef.current.length > 0
+        ? scaleCollection(originalShapesRef.current, cumulativeScaleRef.current, initialCenterRef.current)
+        : [];
       
-      const batchUpdates = scaledObjects.map(obj => ({
-        shapeId: obj.id,
-        updates: {
-          x: roundPosition(obj.x),
-          y: roundPosition(obj.y),
-          scaleX: roundNumericProperty(obj.scaleX),
-          scaleY: roundNumericProperty(obj.scaleY),
-        },
-      }));
+      // Scale texts
+      const scaledTexts = originalTextsRef.current.length > 0
+        ? scaleCollection(originalTextsRef.current, cumulativeScaleRef.current, initialCenterRef.current)
+        : [];
       
-      updateShapesBatch(user.userId, batchUpdates).catch(error => {
-        console.error('[useScale] Failed to batch update shapes:', error);
-      });
+      // Batch update shapes
+      if (scaledShapes.length > 0) {
+        const shapeBatchUpdates = scaledShapes.map(obj => ({
+          shapeId: obj.id,
+          updates: {
+            x: roundPosition(obj.x),
+            y: roundPosition(obj.y),
+            scaleX: roundNumericProperty(obj.scaleX),
+            scaleY: roundNumericProperty(obj.scaleY),
+          },
+        }));
+        
+        updateShapesBatch(user.userId, shapeBatchUpdates).catch(error => {
+          console.error('[useScale] Failed to batch update shapes:', error);
+        });
+      }
+      
+      // Batch update texts
+      if (scaledTexts.length > 0) {
+        const textBatchUpdates = scaledTexts.map(obj => ({
+          textId: obj.id,
+          updates: {
+            x: roundPosition(obj.x),
+            y: roundPosition(obj.y),
+            scaleX: roundNumericProperty(obj.scaleX),
+            scaleY: roundNumericProperty(obj.scaleY),
+          },
+        }));
+        
+        updateTextsBatch(user.userId, textBatchUpdates).catch(error => {
+          console.error('[useScale] Failed to batch update texts:', error);
+        });
+      }
       
       hasPendingWriteRef.current = false;
     } else if (!hasPendingWriteRef.current) {
@@ -233,7 +299,8 @@ export function useScale(collectionCenter: Point | null) {
     startMousePosRef.current = null;
     lastMousePosRef.current = null;
     initialCenterRef.current = null;
-    originalObjectsRef.current = [];
+    originalShapesRef.current = [];
+    originalTextsRef.current = [];
     
     // Don't reset currentScale immediately - let CSS animation finish
     setTimeout(() => setCurrentScale(1.0), 200);
