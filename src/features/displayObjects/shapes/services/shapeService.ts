@@ -149,6 +149,50 @@ export const deleteShape = async (shapeId: string): Promise<void> => {
 };
 
 /**
+ * Delete multiple shapes in a single batch operation
+ * 
+ * More efficient than calling deleteShape() multiple times
+ * Uses Firestore batch writes (max 500 operations per batch)
+ * 
+ * @param shapeIds - Array of shape IDs to delete
+ * @returns Promise resolving to the number of shapes deleted
+ */
+export const deleteShapes = async (shapeIds: string[]): Promise<number> => {
+  try {
+    if (shapeIds.length === 0) {
+      console.log('[ShapeService] No shapes to delete');
+      return 0;
+    }
+
+    console.log(`[ShapeService] Batch deleting ${shapeIds.length} shapes...`);
+
+    // Firestore batches support max 500 operations
+    const BATCH_SIZE = 500;
+    let totalDeleted = 0;
+
+    // Process in chunks of 500
+    for (let i = 0; i < shapeIds.length; i += BATCH_SIZE) {
+      const batch = writeBatch(firestore);
+      const chunk = shapeIds.slice(i, i + BATCH_SIZE);
+
+      chunk.forEach((shapeId) => {
+        const shapeRef = getShapeDoc(shapeId);
+        batch.delete(shapeRef);
+      });
+
+      await batch.commit();
+      totalDeleted += chunk.length;
+    }
+
+    console.log(`[ShapeService] Successfully batch deleted ${totalDeleted} shapes`);
+    return totalDeleted;
+  } catch (error) {
+    console.error('[ShapeService] Error batch deleting shapes:', error);
+    throw error;
+  }
+};
+
+/**
  * Delete all shapes
  * 
  * Uses batch delete for efficiency
@@ -325,18 +369,26 @@ export const updateShapesBatch = async (
 /**
  * Update Z-index for multiple shapes (reordering)
  * 
+ * Uses batch writes for atomic updates and reduced network overhead.
+ * Triggers only ONE real-time update event instead of N events.
+ * 
  * @param updates - Array of {shapeId, zIndex} pairs
  */
 export const updateZIndexes = async (
   updates: Array<{ shapeId: string; zIndex: number }>
 ): Promise<void> => {
   try {
-    // Note: In a production app, use batch writes for atomic updates
-    await Promise.all(
-      updates.map(({ shapeId, zIndex }) =>
-        updateDoc(getShapeDoc(shapeId), { zIndex })
-      )
-    );
+    if (updates.length === 0) {
+      return;
+    }
+
+    const batch = writeBatch(firestore);
+    
+    updates.forEach(({ shapeId, zIndex }) => {
+      batch.update(getShapeDoc(shapeId), { zIndex });
+    });
+    
+    await batch.commit();
     console.log('[ShapeService] Z-indexes updated for', updates.length, 'shapes');
   } catch (error) {
     console.error('[ShapeService] Error updating z-indexes:', error);

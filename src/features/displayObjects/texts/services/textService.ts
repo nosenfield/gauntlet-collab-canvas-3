@@ -173,6 +173,50 @@ export const deleteText = async (textId: string): Promise<void> => {
 };
 
 /**
+ * Delete multiple text objects in a single batch operation
+ * 
+ * More efficient than calling deleteText() multiple times
+ * Uses Firestore batch writes (max 500 operations per batch)
+ * 
+ * @param textIds - Array of text IDs to delete
+ * @returns Promise resolving to the number of texts deleted
+ */
+export const deleteTexts = async (textIds: string[]): Promise<number> => {
+  try {
+    if (textIds.length === 0) {
+      console.log('[TextService] No texts to delete');
+      return 0;
+    }
+
+    console.log(`[TextService] Batch deleting ${textIds.length} texts...`);
+
+    // Firestore batches support max 500 operations
+    const BATCH_SIZE = 500;
+    let totalDeleted = 0;
+
+    // Process in chunks of 500
+    for (let i = 0; i < textIds.length; i += BATCH_SIZE) {
+      const batch = writeBatch(firestore);
+      const chunk = textIds.slice(i, i + BATCH_SIZE);
+
+      chunk.forEach((textId) => {
+        const textRef = getTextDoc(textId);
+        batch.delete(textRef);
+      });
+
+      await batch.commit();
+      totalDeleted += chunk.length;
+    }
+
+    console.log(`[TextService] Successfully batch deleted ${totalDeleted} texts`);
+    return totalDeleted;
+  } catch (error) {
+    console.error('[TextService] Error batch deleting texts:', error);
+    throw error;
+  }
+};
+
+/**
  * Delete all text objects
  * 
  * Uses batch delete for efficiency
@@ -213,18 +257,26 @@ export const deleteAllTexts = async (): Promise<number> => {
 /**
  * Update Z-index for multiple texts (reordering)
  * 
+ * Uses batch writes for atomic updates and reduced network overhead.
+ * Triggers only ONE real-time update event instead of N events.
+ * 
  * @param updates - Array of {textId, zIndex} pairs
  */
 export const updateZIndexes = async (
   updates: Array<{ textId: string; zIndex: number }>
 ): Promise<void> => {
   try {
-    // Note: In a production app, use batch writes for atomic updates
-    await Promise.all(
-      updates.map(({ textId, zIndex }) =>
-        updateDoc(getTextDoc(textId), { zIndex })
-      )
-    );
+    if (updates.length === 0) {
+      return;
+    }
+
+    const batch = writeBatch(firestore);
+    
+    updates.forEach(({ textId, zIndex }) => {
+      batch.update(getTextDoc(textId), { zIndex });
+    });
+    
+    await batch.commit();
     console.log('[TextService] Z-indexes updated for', updates.length, 'texts');
   } catch (error) {
     console.error('[TextService] Error updating z-indexes:', error);
