@@ -59,6 +59,18 @@ export async function executeTool(
       case 'move_objects':
         return await executeMoveObjects(args, userId, context);
       
+      case 'scale_objects':
+        return await executeScaleObjects(args, userId, context);
+      
+      case 'rotate_objects':
+        return await executeRotateObjects(args, userId, context);
+      
+      case 'change_fill_color':
+        return await executeChangeFillColor(args, userId, context);
+      
+      case 'change_stroke_color':
+        return await executeChangeStrokeColor(args, userId, context);
+      
       default:
         console.error(`[ToolExecutor] Unknown tool: ${toolName}`);
         return {
@@ -822,6 +834,555 @@ async function executeMoveObjects(
       success: false,
       createdObjectIds: [],
       error: error instanceof Error ? error.message : 'Failed to move objects',
+    };
+  }
+}
+
+/**
+ * Execute scale objects tool
+ * 
+ * Scales selected objects by modifying scaleX and scaleY
+ * 
+ * @param args - Scale parameters from OpenAI
+ * @param userId - ID of the user performing the scale
+ * @param context - Context containing shapes, texts, and selected IDs
+ * @returns Promise resolving to execution result
+ */
+async function executeScaleObjects(
+  args: Record<string, any>,
+  userId: string,
+  context?: {
+    shapes?: ShapeDisplayObject[];
+    texts?: TextDisplayObject[];
+    setSelection?: SelectionCallback;
+    selectedIds?: string[];
+  }
+): Promise<ToolExecutionResult> {
+  try {
+    // Validate context
+    if (!context || !context.shapes || !context.texts || !context.selectedIds) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'Scale context not available',
+      };
+    }
+
+    const { shapes, texts, selectedIds } = context;
+
+    // Check if any objects are selected
+    if (selectedIds.length === 0) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'No objects selected. Please select objects first.',
+      };
+    }
+
+    console.log('[ToolExecutor] Scaling objects with params:', args);
+    console.log('[ToolExecutor] Selected IDs:', selectedIds);
+
+    // Get selected objects
+    const selectedShapes = shapes.filter(s => selectedIds.includes(s.id));
+    const selectedTexts = texts.filter(t => selectedIds.includes(t.id));
+
+    if (selectedShapes.length === 0 && selectedTexts.length === 0) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'Selected objects not found',
+      };
+    }
+
+    // Determine scale values
+    let scaleX = args.scaleX;
+    let scaleY = args.scaleY;
+
+    // Handle uniform scaling
+    if (args.uniform === true && scaleX !== undefined) {
+      scaleY = scaleX;
+    }
+
+    // Validate at least one scale value is provided
+    if (scaleX === undefined && scaleY === undefined) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'Must provide at least scaleX or scaleY parameter',
+      };
+    }
+
+    // Constrain scale values (0.1 to 10.0)
+    if (scaleX !== undefined) {
+      scaleX = Math.max(0.1, Math.min(10.0, scaleX));
+    }
+    if (scaleY !== undefined) {
+      scaleY = Math.max(0.1, Math.min(10.0, scaleY));
+    }
+
+    // Prepare batch updates
+    const shapeUpdates: Array<{ shapeId: string; updates: UpdateShapeData }> = [];
+    const textUpdates: Array<{ textId: string; updates: UpdateTextData }> = [];
+
+    // Update shapes
+    for (const shape of selectedShapes) {
+      const updates: UpdateShapeData = {};
+      
+      // Only update provided scale values
+      if (scaleX !== undefined) {
+        updates.scaleX = scaleX;
+      }
+      if (scaleY !== undefined) {
+        updates.scaleY = scaleY;
+      }
+      
+      shapeUpdates.push({
+        shapeId: shape.id,
+        updates,
+      });
+    }
+
+    // Update texts
+    for (const text of selectedTexts) {
+      const updates: UpdateTextData = {};
+      
+      // Only update provided scale values
+      if (scaleX !== undefined) {
+        updates.scaleX = scaleX;
+      }
+      if (scaleY !== undefined) {
+        updates.scaleY = scaleY;
+      }
+      
+      textUpdates.push({
+        textId: text.id,
+        updates,
+      });
+    }
+
+    // Execute batch updates
+    const updatePromises: Promise<void>[] = [];
+    
+    if (shapeUpdates.length > 0) {
+      updatePromises.push(updateShapesBatch(userId, shapeUpdates));
+    }
+    
+    if (textUpdates.length > 0) {
+      updatePromises.push(updateTextsBatch(userId, textUpdates));
+    }
+
+    await Promise.all(updatePromises);
+
+    const totalObjects = selectedShapes.length + selectedTexts.length;
+    const scaleDesc = args.uniform 
+      ? `scale ${scaleX}` 
+      : `scaleX ${scaleX ?? 'unchanged'}, scaleY ${scaleY ?? 'unchanged'}`;
+    
+    console.log(`[ToolExecutor] Scaled ${totalObjects} objects successfully`);
+
+    return {
+      success: true,
+      createdObjectIds: [],
+      message: `Scaled ${totalObjects} object(s) to ${scaleDesc}`,
+    };
+  } catch (error) {
+    console.error('[ToolExecutor] Error scaling objects:', error);
+    return {
+      success: false,
+      createdObjectIds: [],
+      error: error instanceof Error ? error.message : 'Failed to scale objects',
+    };
+  }
+}
+
+/**
+ * Execute rotate objects tool
+ * 
+ * Rotates selected objects either to an absolute angle or by a relative amount
+ * 
+ * @param args - Rotation parameters from OpenAI
+ * @param userId - ID of the user performing the rotation
+ * @param context - Context containing shapes, texts, and selected IDs
+ * @returns Promise resolving to execution result
+ */
+async function executeRotateObjects(
+  args: Record<string, any>,
+  userId: string,
+  context?: {
+    shapes?: ShapeDisplayObject[];
+    texts?: TextDisplayObject[];
+    setSelection?: SelectionCallback;
+    selectedIds?: string[];
+  }
+): Promise<ToolExecutionResult> {
+  try {
+    // Validate context
+    if (!context || !context.shapes || !context.texts || !context.selectedIds) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'Rotation context not available',
+      };
+    }
+
+    const { shapes, texts, selectedIds } = context;
+
+    // Check if any objects are selected
+    if (selectedIds.length === 0) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'No objects selected. Please select objects first.',
+      };
+    }
+
+    console.log('[ToolExecutor] Rotating objects with params:', args);
+    console.log('[ToolExecutor] Selected IDs:', selectedIds);
+
+    // Get selected objects
+    const selectedShapes = shapes.filter(s => selectedIds.includes(s.id));
+    const selectedTexts = texts.filter(t => selectedIds.includes(t.id));
+
+    if (selectedShapes.length === 0 && selectedTexts.length === 0) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'Selected objects not found',
+      };
+    }
+
+    // Determine rotation mode (absolute or relative)
+    const hasAbsolute = args.angle !== undefined;
+    const hasRelative = args.delta !== undefined;
+
+    if (!hasAbsolute && !hasRelative) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'Must provide either angle (absolute) or delta (relative) parameter',
+      };
+    }
+
+    // Prepare batch updates
+    const shapeUpdates: Array<{ shapeId: string; updates: UpdateShapeData }> = [];
+    const textUpdates: Array<{ textId: string; updates: UpdateTextData }> = [];
+
+    let rotationDescription = '';
+
+    if (hasAbsolute) {
+      // Absolute rotation - set to specific angle
+      const targetAngle = args.angle;
+      rotationDescription = `${targetAngle}°`;
+
+      // Update shapes
+      for (const shape of selectedShapes) {
+        shapeUpdates.push({
+          shapeId: shape.id,
+          updates: { rotation: targetAngle },
+        });
+      }
+
+      // Update texts
+      for (const text of selectedTexts) {
+        textUpdates.push({
+          textId: text.id,
+          updates: { rotation: targetAngle },
+        });
+      }
+    } else {
+      // Relative rotation - add to current rotation
+      const delta = args.delta;
+      rotationDescription = `${delta > 0 ? '+' : ''}${delta}°`;
+
+      // Update shapes
+      for (const shape of selectedShapes) {
+        const newRotation = shape.rotation + delta;
+        shapeUpdates.push({
+          shapeId: shape.id,
+          updates: { rotation: newRotation },
+        });
+      }
+
+      // Update texts
+      for (const text of selectedTexts) {
+        const newRotation = text.rotation + delta;
+        textUpdates.push({
+          textId: text.id,
+          updates: { rotation: newRotation },
+        });
+      }
+    }
+
+    // Execute batch updates
+    const updatePromises: Promise<void>[] = [];
+    
+    if (shapeUpdates.length > 0) {
+      updatePromises.push(updateShapesBatch(userId, shapeUpdates));
+    }
+    
+    if (textUpdates.length > 0) {
+      updatePromises.push(updateTextsBatch(userId, textUpdates));
+    }
+
+    await Promise.all(updatePromises);
+
+    const totalObjects = selectedShapes.length + selectedTexts.length;
+    console.log(`[ToolExecutor] Rotated ${totalObjects} objects successfully`);
+
+    return {
+      success: true,
+      createdObjectIds: [],
+      message: `Rotated ${totalObjects} object(s) to ${rotationDescription}`,
+    };
+  } catch (error) {
+    console.error('[ToolExecutor] Error rotating objects:', error);
+    return {
+      success: false,
+      createdObjectIds: [],
+      error: error instanceof Error ? error.message : 'Failed to rotate objects',
+    };
+  }
+}
+
+/**
+ * Execute change fill color tool
+ * 
+ * Changes the fill color of shapes or text color of text objects
+ * 
+ * @param args - Color parameters from OpenAI
+ * @param userId - ID of the user performing the change
+ * @param context - Context containing shapes, texts, and selected IDs
+ * @returns Promise resolving to execution result
+ */
+async function executeChangeFillColor(
+  args: Record<string, any>,
+  userId: string,
+  context?: {
+    shapes?: ShapeDisplayObject[];
+    texts?: TextDisplayObject[];
+    setSelection?: SelectionCallback;
+    selectedIds?: string[];
+  }
+): Promise<ToolExecutionResult> {
+  try {
+    // Validate context
+    if (!context || !context.shapes || !context.texts || !context.selectedIds) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'Color change context not available',
+      };
+    }
+
+    const { shapes, texts, selectedIds } = context;
+
+    // Check if any objects are selected
+    if (selectedIds.length === 0) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'No objects selected. Please select objects first.',
+      };
+    }
+
+    // Validate color parameter
+    if (!args.color || typeof args.color !== 'string') {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'Color parameter is required and must be a hex string (e.g., "#FF0000")',
+      };
+    }
+
+    const color = args.color.toUpperCase();
+
+    // Basic hex color validation
+    if (!color.match(/^#[0-9A-F]{6}$/)) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: `Invalid color format: ${args.color}. Must be hex format like #FF0000`,
+      };
+    }
+
+    console.log('[ToolExecutor] Changing fill color with params:', args);
+    console.log('[ToolExecutor] Selected IDs:', selectedIds);
+
+    // Get selected objects
+    const selectedShapes = shapes.filter(s => selectedIds.includes(s.id));
+    const selectedTexts = texts.filter(t => selectedIds.includes(t.id));
+
+    // Filter out lines (they don't have fill color)
+    const shapesWithFill = selectedShapes.filter(s => s.type !== 'line');
+
+    if (shapesWithFill.length === 0 && selectedTexts.length === 0) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'No objects with fill color selected. Lines do not have fill color.',
+      };
+    }
+
+    // Prepare batch updates
+    const shapeUpdates: Array<{ shapeId: string; updates: UpdateShapeData }> = [];
+    const textUpdates: Array<{ textId: string; updates: UpdateTextData }> = [];
+
+    // Update shapes with fill color
+    for (const shape of shapesWithFill) {
+      shapeUpdates.push({
+        shapeId: shape.id,
+        updates: { fillColor: color },
+      });
+    }
+
+    // Update texts (text color is equivalent to fill color)
+    for (const text of selectedTexts) {
+      textUpdates.push({
+        textId: text.id,
+        updates: { color },
+      });
+    }
+
+    // Execute batch updates
+    const updatePromises: Promise<void>[] = [];
+    
+    if (shapeUpdates.length > 0) {
+      updatePromises.push(updateShapesBatch(userId, shapeUpdates));
+    }
+    
+    if (textUpdates.length > 0) {
+      updatePromises.push(updateTextsBatch(userId, textUpdates));
+    }
+
+    await Promise.all(updatePromises);
+
+    const totalObjects = shapesWithFill.length + selectedTexts.length;
+    console.log(`[ToolExecutor] Changed fill color for ${totalObjects} objects successfully`);
+
+    // Provide helpful message if lines were skipped
+    let message = `Changed fill color to ${color} for ${totalObjects} object(s)`;
+    const skippedLines = selectedShapes.length - shapesWithFill.length;
+    if (skippedLines > 0) {
+      message += `. Note: ${skippedLines} line(s) skipped (lines don't have fill color, use change_stroke_color instead)`;
+    }
+
+    return {
+      success: true,
+      createdObjectIds: [],
+      message,
+    };
+  } catch (error) {
+    console.error('[ToolExecutor] Error changing fill color:', error);
+    return {
+      success: false,
+      createdObjectIds: [],
+      error: error instanceof Error ? error.message : 'Failed to change fill color',
+    };
+  }
+}
+
+/**
+ * Execute change stroke color tool
+ * 
+ * Changes the stroke/border color of shapes
+ * 
+ * @param args - Color parameters from OpenAI
+ * @param userId - ID of the user performing the change
+ * @param context - Context containing shapes, texts, and selected IDs
+ * @returns Promise resolving to execution result
+ */
+async function executeChangeStrokeColor(
+  args: Record<string, any>,
+  userId: string,
+  context?: {
+    shapes?: ShapeDisplayObject[];
+    texts?: TextDisplayObject[];
+    setSelection?: SelectionCallback;
+    selectedIds?: string[];
+  }
+): Promise<ToolExecutionResult> {
+  try {
+    // Validate context
+    if (!context || !context.shapes || !context.texts || !context.selectedIds) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'Color change context not available',
+      };
+    }
+
+    const { shapes, selectedIds } = context;
+
+    // Check if any objects are selected
+    if (selectedIds.length === 0) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'No objects selected. Please select objects first.',
+      };
+    }
+
+    // Validate color parameter
+    if (!args.color || typeof args.color !== 'string') {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'Color parameter is required and must be a hex string (e.g., "#FF0000")',
+      };
+    }
+
+    const color = args.color.toUpperCase();
+
+    // Basic hex color validation
+    if (!color.match(/^#[0-9A-F]{6}$/)) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: `Invalid color format: ${args.color}. Must be hex format like #FF0000`,
+      };
+    }
+
+    console.log('[ToolExecutor] Changing stroke color with params:', args);
+    console.log('[ToolExecutor] Selected IDs:', selectedIds);
+
+    // Get selected shapes only (text objects don't have stroke)
+    const selectedShapes = shapes.filter(s => selectedIds.includes(s.id));
+
+    if (selectedShapes.length === 0) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'No shapes selected. Text objects do not have stroke color.',
+      };
+    }
+
+    // Prepare batch updates
+    const shapeUpdates: Array<{ shapeId: string; updates: UpdateShapeData }> = [];
+
+    // Update all shapes
+    for (const shape of selectedShapes) {
+      shapeUpdates.push({
+        shapeId: shape.id,
+        updates: { strokeColor: color },
+      });
+    }
+
+    // Execute batch updates
+    await updateShapesBatch(userId, shapeUpdates);
+
+    console.log(`[ToolExecutor] Changed stroke color for ${selectedShapes.length} shapes successfully`);
+
+    return {
+      success: true,
+      createdObjectIds: [],
+      message: `Changed stroke color to ${color} for ${selectedShapes.length} shape(s)`,
+    };
+  } catch (error) {
+    console.error('[ToolExecutor] Error changing stroke color:', error);
+    return {
+      success: false,
+      createdObjectIds: [],
+      error: error instanceof Error ? error.message : 'Failed to change stroke color',
     };
   }
 }

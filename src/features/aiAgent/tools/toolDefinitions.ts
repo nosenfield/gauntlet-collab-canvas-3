@@ -315,6 +315,114 @@ export const moveObjectsTool: ChatCompletionTool = {
 };
 
 /**
+ * Scale Objects Tool
+ * 
+ * Scales selected display objects by modifying scaleX and scaleY properties
+ * Supports uniform and non-uniform scaling
+ */
+export const scaleObjectsTool: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'scale_objects',
+    description: 'Scales selected display objects by modifying their scaleX and scaleY properties. Use this when the user wants to scale, resize, make bigger, make smaller, or change the size of selected objects. Supports uniform scaling (both dimensions) or non-uniform scaling (independent dimensions). Scale values: 1.0 = original size, 2.0 = double size, 0.5 = half size.',
+    parameters: {
+      type: 'object',
+      properties: {
+        scaleX: {
+          type: 'number',
+          description: 'Scale factor for horizontal dimension. 1.0 = original width, 2.0 = double width, 0.5 = half width. Constrained to range 0.1 to 10.0. Required unless scaleY is provided.',
+        },
+        scaleY: {
+          type: 'number',
+          description: 'Scale factor for vertical dimension. 1.0 = original height, 2.0 = double height, 0.5 = half height. Constrained to range 0.1 to 10.0. If not provided and scaleX is set, scaleY remains unchanged (unless uniform=true).',
+        },
+        uniform: {
+          type: 'boolean',
+          description: 'If true, applies scaleX to both dimensions for uniform scaling. Use this when user says "scale to 2x" or "make it bigger" without specifying different values for width/height. Default is false.',
+        },
+      },
+      required: [], // At least scaleX or scaleY should be provided
+    },
+  },
+};
+
+/**
+ * Rotate Objects Tool
+ * 
+ * Rotates selected display objects
+ * Supports absolute angle or relative rotation
+ */
+export const rotateObjectsTool: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'rotate_objects',
+    description: 'Rotates selected display objects. Use this when the user wants to rotate, turn, or spin selected objects. Supports absolute angle (set to specific degrees) or relative rotation (add/subtract degrees). Angles are in degrees: 0° = no rotation, 90° = quarter turn clockwise, 180° = upside down, 270° = quarter turn counter-clockwise.',
+    parameters: {
+      type: 'object',
+      properties: {
+        angle: {
+          type: 'number',
+          description: 'Absolute rotation angle in degrees. Sets all selected objects to this exact angle. Use this when user specifies a target angle like "rotate to 90 degrees" or "set rotation to 45 degrees". Positive values = clockwise, negative = counter-clockwise.',
+        },
+        delta: {
+          type: 'number',
+          description: 'Relative rotation amount in degrees. Adds this value to current rotation of each object. Use this when user says "rotate by 45 degrees" or "turn 90 degrees clockwise". Positive values = clockwise, negative = counter-clockwise. Cannot be used with "angle" parameter.',
+        },
+      },
+      required: [], // Either angle or delta must be provided
+    },
+  },
+};
+
+/**
+ * Change Fill Color Tool
+ * 
+ * Changes the fill color of shapes or text color of text objects
+ * Lines are skipped (they don't have fill color)
+ */
+export const changeFillColorTool: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'change_fill_color',
+    description: 'Changes the fill color of selected shapes or the text color of selected text objects. Use this when the user wants to change, set, or update the color/fill of selected objects. For shapes (rectangles, circles): changes fill color. For text objects: changes text color. Lines are automatically skipped (they don\'t have fill color - use change_stroke_color for lines).',
+    parameters: {
+      type: 'object',
+      properties: {
+        color: {
+          type: 'string',
+          description: 'New fill color as hex string (e.g., "#FF0000" for red, "#00FF00" for green). Must be in format #RRGGBB. Common colors: red=#FF0000, green=#00FF00, blue=#3B82F6, yellow=#FFFF00, purple=#A855F7, orange=#F97316, white=#FFFFFF, black=#000000, gray=#808080.',
+        },
+      },
+      required: ['color'],
+    },
+  },
+};
+
+/**
+ * Change Stroke Color Tool
+ * 
+ * Changes the stroke/border color of shapes
+ * Only affects shapes (rectangles, circles, lines)
+ */
+export const changeStrokeColorTool: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'change_stroke_color',
+    description: 'Changes the stroke/border/outline color of selected shapes. Use this when the user wants to change the border, stroke, outline, or line color of selected shapes. Works with rectangles, circles, and lines. Text objects do not have stroke color and will be skipped.',
+    parameters: {
+      type: 'object',
+      properties: {
+        color: {
+          type: 'string',
+          description: 'New stroke color as hex string (e.g., "#000000" for black, "#FF0000" for red). Must be in format #RRGGBB. Common colors: black=#000000, white=#FFFFFF, red=#FF0000, blue=#3B82F6, gray=#808080.',
+        },
+      },
+      required: ['color'],
+    },
+  },
+};
+
+/**
  * All Available Tools
  * 
  * Array of all tools available to the AI agent
@@ -326,4 +434,8 @@ export const allTools: ChatCompletionTool[] = [
   textCreationTool,
   selectObjectsTool,
   moveObjectsTool,
+  scaleObjectsTool,
+  rotateObjectsTool,
+  changeFillColorTool,
+  changeStrokeColorTool,
 ];
