@@ -402,12 +402,47 @@ async function executeSelectObjects(
     const matchedIds: string[] = [];
 
     console.log('[ToolExecutor] Selecting objects with criteria:', args);
+    console.log(`[ToolExecutor] Available shapes: ${shapes.length}`);
 
     // Filter shapes
     if (!args.category || args.category === 'shape') {
       for (const shape of shapes) {
+        // Debug log for all shapes
+        const scaleX = shape.scaleX ?? 1;
+        const scaleY = shape.scaleY ?? 1;
+        console.log(`[ToolExecutor] Checking ${shape.type}:`, {
+          id: shape.id,
+          type: shape.type,
+          ...(shape.type === 'circle' && {
+            baseRadius: shape.radius,
+            baseWidth: shape.width,
+            baseHeight: shape.height,
+          }),
+          ...('width' in shape && 'height' in shape && shape.type !== 'circle' && {
+            baseWidth: shape.width,
+            baseHeight: shape.height,
+          }),
+          scaleX,
+          scaleY,
+          ...('width' in shape && 'height' in shape && {
+            actualWidth: shape.width * scaleX,
+            actualHeight: shape.height * scaleY,
+          }),
+          fillColor: shape.fillColor,
+          colorMatch: args.fillColor ? matchesColorSemantically(shape.fillColor, args.fillColor) : 'N/A',
+          criteria: args
+        });
+        
         if (matchesShapeCriteria(shape, args)) {
           matchedIds.push(shape.id);
+          // Log matched shape details for debugging
+          const scaleX = shape.scaleX ?? 1;
+          const scaleY = shape.scaleY ?? 1;
+          if (shape.type === 'circle') {
+            console.log(`[ToolExecutor] Matched circle: id=${shape.id}, radius=${shape.radius}, scale=(${scaleX}, ${scaleY}), actualRadius=${shape.radius * ((scaleX + scaleY) / 2)}`);
+          } else if ('width' in shape && 'height' in shape) {
+            console.log(`[ToolExecutor] Matched shape: id=${shape.id}, type=${shape.type}, dimensions=${shape.width}x${shape.height}, scale=(${scaleX}, ${scaleY}), actual=${shape.width * scaleX}x${shape.height * scaleY}`);
+          }
         }
       }
     }
@@ -451,7 +486,55 @@ async function executeSelectObjects(
 }
 
 /**
+ * Check if a color is semantically "red", "green", "blue", etc.
+ * More flexible than exact hex matching
+ */
+function matchesColorSemantically(shapeColor: string, criteriaColor: string): boolean {
+  // Normalize both colors
+  const normalizedCriteria = criteriaColor.toUpperCase().replace('#', '');
+  const normalizedShape = shapeColor.toUpperCase().replace('#', '');
+  
+  // Parse RGB components
+  const parseRGB = (hex: string) => {
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return { r, g, b };
+  };
+  
+  try {
+    const criteria = parseRGB(normalizedCriteria);
+    const shape = parseRGB(normalizedShape);
+    
+    // Determine which channel is dominant in criteria color
+    const maxCriteria = Math.max(criteria.r, criteria.g, criteria.b);
+    
+    // Check if shape color has the same dominant channel
+    // Allow for some tolerance (shape's dominant channel should be at least 2x the others)
+    if (criteria.r === maxCriteria && criteria.r > criteria.g + 50 && criteria.r > criteria.b + 50) {
+      // Criteria is predominantly RED
+      return shape.r > shape.g && shape.r > shape.b;
+    }
+    if (criteria.g === maxCriteria && criteria.g > criteria.r + 50 && criteria.g > criteria.b + 50) {
+      // Criteria is predominantly GREEN
+      return shape.g > shape.r && shape.g > shape.b;
+    }
+    if (criteria.b === maxCriteria && criteria.b > criteria.r + 50 && criteria.b > criteria.g + 50) {
+      // Criteria is predominantly BLUE
+      return shape.b > shape.r && shape.b > shape.g;
+    }
+    
+    // For other colors (white, black, gray, etc.), use exact match
+    return normalizedShape === normalizedCriteria;
+  } catch {
+    // Fallback to exact match if parsing fails
+    return normalizedShape === normalizedCriteria;
+  }
+}
+
+/**
  * Check if a shape matches the given criteria
+ * Accounts for scale multipliers when comparing dimensions
  */
 function matchesShapeCriteria(shape: ShapeDisplayObject, criteria: Record<string, any>): boolean {
   // Type filter
@@ -459,50 +542,57 @@ function matchesShapeCriteria(shape: ShapeDisplayObject, criteria: Record<string
     return false;
   }
 
-  // Fill color filter (case-insensitive hex comparison)
+  // Fill color filter (semantic color matching)
   if (criteria.fillColor) {
-    const normalizedCriteria = criteria.fillColor.toUpperCase();
-    const normalizedShape = shape.fillColor.toUpperCase();
-    if (normalizedShape !== normalizedCriteria) {
+    if (!matchesColorSemantically(shape.fillColor, criteria.fillColor)) {
       return false;
     }
   }
 
-  // Stroke color filter (case-insensitive hex comparison)
+  // Stroke color filter (semantic color matching)
   if (criteria.strokeColor) {
-    const normalizedCriteria = criteria.strokeColor.toUpperCase();
-    const normalizedShape = shape.strokeColor.toUpperCase();
-    if (normalizedShape !== normalizedCriteria) {
+    if (!matchesColorSemantically(shape.strokeColor, criteria.strokeColor)) {
       return false;
     }
   }
 
-  // Width filters (for rectangles)
+  // Get scale multipliers (default to 1 if not set)
+  const scaleX = shape.scaleX ?? 1;
+  const scaleY = shape.scaleY ?? 1;
+
+  // Width filters (for rectangles and circles)
   if ('width' in shape) {
-    if (criteria.minWidth !== undefined && shape.width < criteria.minWidth) {
+    const actualWidth = shape.width * scaleX;
+    if (criteria.minWidth !== undefined && actualWidth < criteria.minWidth) {
       return false;
     }
-    if (criteria.maxWidth !== undefined && shape.width > criteria.maxWidth) {
+    if (criteria.maxWidth !== undefined && actualWidth > criteria.maxWidth) {
       return false;
     }
   }
 
-  // Height filters (for rectangles)
+  // Height filters (for rectangles and circles)
   if ('height' in shape) {
-    if (criteria.minHeight !== undefined && shape.height < criteria.minHeight) {
+    const actualHeight = shape.height * scaleY;
+    if (criteria.minHeight !== undefined && actualHeight < criteria.minHeight) {
       return false;
     }
-    if (criteria.maxHeight !== undefined && shape.height > criteria.maxHeight) {
+    if (criteria.maxHeight !== undefined && actualHeight > criteria.maxHeight) {
       return false;
     }
   }
 
   // Radius filters (for circles)
   if (shape.type === 'circle') {
-    if (criteria.minRadius !== undefined && shape.radius < criteria.minRadius) {
+    // For circles, use the average of scaleX and scaleY for radius
+    // (in case they're scaled non-uniformly)
+    const averageScale = (scaleX + scaleY) / 2;
+    const actualRadius = shape.radius * averageScale;
+    
+    if (criteria.minRadius !== undefined && actualRadius < criteria.minRadius) {
       return false;
     }
-    if (criteria.maxRadius !== undefined && shape.radius > criteria.maxRadius) {
+    if (criteria.maxRadius !== undefined && actualRadius > criteria.maxRadius) {
       return false;
     }
   }
@@ -512,13 +602,12 @@ function matchesShapeCriteria(shape: ShapeDisplayObject, criteria: Record<string
 
 /**
  * Check if a text object matches the given criteria
+ * Accounts for scale multipliers when comparing dimensions
  */
 function matchesTextCriteria(text: TextDisplayObject, criteria: Record<string, any>): boolean {
-  // Color filter (case-insensitive hex comparison)
+  // Color filter (semantic color matching)
   if (criteria.color) {
-    const normalizedCriteria = criteria.color.toUpperCase();
-    const normalizedText = text.color.toUpperCase();
-    if (normalizedText !== normalizedCriteria) {
+    if (!matchesColorSemantically(text.color, criteria.color)) {
       return false;
     }
   }
@@ -532,19 +621,25 @@ function matchesTextCriteria(text: TextDisplayObject, criteria: Record<string, a
     }
   }
 
+  // Get scale multipliers (default to 1 if not set)
+  const scaleX = text.scaleX ?? 1;
+  const scaleY = text.scaleY ?? 1;
+
   // Width filters
-  if (criteria.minWidth !== undefined && text.width < criteria.minWidth) {
+  const actualWidth = text.width * scaleX;
+  if (criteria.minWidth !== undefined && actualWidth < criteria.minWidth) {
     return false;
   }
-  if (criteria.maxWidth !== undefined && text.width > criteria.maxWidth) {
+  if (criteria.maxWidth !== undefined && actualWidth > criteria.maxWidth) {
     return false;
   }
 
   // Height filters
-  if (criteria.minHeight !== undefined && text.height < criteria.minHeight) {
+  const actualHeight = text.height * scaleY;
+  if (criteria.minHeight !== undefined && actualHeight < criteria.minHeight) {
     return false;
   }
-  if (criteria.maxHeight !== undefined && text.height > criteria.maxHeight) {
+  if (criteria.maxHeight !== undefined && actualHeight > criteria.maxHeight) {
     return false;
   }
 
@@ -610,6 +705,7 @@ async function executeMoveObjects(
     }
 
     // Calculate current bounding box center of selected objects
+    // Account for scale multipliers to get actual visual bounds
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     
     for (const obj of allSelectedObjects) {
@@ -621,8 +717,13 @@ async function executeMoveObjects(
       let objMaxY = obj.y;
       
       if ('width' in obj && 'height' in obj) {
-        objMaxX = obj.x + obj.width;
-        objMaxY = obj.y + obj.height;
+        const scaleX = obj.scaleX ?? 1;
+        const scaleY = obj.scaleY ?? 1;
+        const actualWidth = obj.width * scaleX;
+        const actualHeight = obj.height * scaleY;
+        
+        objMaxX = obj.x + actualWidth;
+        objMaxY = obj.y + actualHeight;
       }
       
       minX = Math.min(minX, objMinX);

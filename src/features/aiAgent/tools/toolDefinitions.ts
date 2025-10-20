@@ -75,7 +75,7 @@ export const circleCreationTool: ChatCompletionTool = {
       properties: {
         radius: {
           type: 'number',
-          description: 'Radius of the circle in pixels. Default is 50 if not specified. Use larger values (100-200) for "large" circles.',
+          description: 'Radius of the circle in pixels. Default is 50 (creates a 100x100 circle) if not specified. IMPORTANT: Users think in diameter - a "200px circle" means radius=100. Use larger values (100-200) for "large" circles.',
         },
         x: {
           type: 'number',
@@ -246,27 +246,27 @@ export const selectObjectsTool: ChatCompletionTool = {
         },
         minWidth: {
           type: 'number',
-          description: 'Filter objects with width greater than or equal to this value (in pixels).',
+          description: 'Filter objects with width greater than or equal to this value (in pixels). For circles, width = diameter = radius * 2.',
         },
         maxWidth: {
           type: 'number',
-          description: 'Filter objects with width less than or equal to this value (in pixels).',
+          description: 'Filter objects with width less than or equal to this value (in pixels). For circles, width = diameter = radius * 2.',
         },
         minHeight: {
           type: 'number',
-          description: 'Filter objects with height greater than or equal to this value (in pixels).',
+          description: 'Filter objects with height greater than or equal to this value (in pixels). For circles, height = diameter = radius * 2.',
         },
         maxHeight: {
           type: 'number',
-          description: 'Filter objects with height less than or equal to this value (in pixels).',
+          description: 'Filter objects with height less than or equal to this value (in pixels). For circles, height = diameter = radius * 2.',
         },
         minRadius: {
           type: 'number',
-          description: 'Filter circles with radius greater than or equal to this value (in pixels).',
+          description: '[RARELY USED] Filter circles with radius greater than or equal to this value. IMPORTANT: Users describe circles by diameter (width/height), not radius. A "100x100 circle" has radius=50. Prefer using minWidth/minHeight instead.',
         },
         maxRadius: {
           type: 'number',
-          description: 'Filter circles with radius less than or equal to this value (in pixels).',
+          description: '[RARELY USED] Filter circles with radius less than or equal to this value. IMPORTANT: Users describe circles by diameter (width/height), not radius. A "100x100 circle" has radius=50. Prefer using maxWidth/maxHeight instead.',
         },
       },
       required: [], // All parameters optional - at least one should be provided

@@ -74,17 +74,27 @@ export function useAIAgent() {
         // Step 3: Execute tool calls
         if (response.toolCalls) {
           const allCreatedIds: string[] = [];
+          let currentSelectedIds = selectedIds; // Track selection across tool calls
+
+          console.log(`[AIAgent] Executing ${response.toolCalls.length} tool call(s)...`);
 
           // Execute each tool call sequentially
-          for (const toolCall of response.toolCalls) {
-            console.log('[AIAgent] Executing tool call:', toolCall);
+          for (let i = 0; i < response.toolCalls.length; i++) {
+            const toolCall = response.toolCalls[i];
+            console.log(`[AIAgent] Tool call ${i + 1}/${response.toolCalls.length}:`, toolCall.name, toolCall.arguments);
             
             // Prepare context for tools that need it (like selection and move)
+            // Use currentSelectedIds which gets updated after each tool
             const context = {
               shapes,
               texts,
-              setSelection,
-              selectedIds,
+              setSelection: (ids: string[]) => {
+                // Update both the store and our local tracker
+                setSelection(ids);
+                currentSelectedIds = ids;
+                console.log('[AIAgent] Selection updated to:', ids);
+              },
+              selectedIds: currentSelectedIds,
             };
             
             const result = await executeTool(
