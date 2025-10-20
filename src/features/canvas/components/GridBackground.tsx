@@ -19,6 +19,7 @@ interface GridBackgroundProps {
   stageX: number;         // Stage X position (for viewport culling)
   stageY: number;         // Stage Y position (for viewport culling)
   scale: number;          // Current zoom scale
+  visible?: boolean;      // Whether grid is visible (default true)
 }
 
 /**
@@ -31,6 +32,7 @@ export function GridBackground({
   stageX,
   stageY,
   scale,
+  visible = true,
 }: GridBackgroundProps): React.ReactElement {
   // Grid configuration from centralized constants
   const PRIMARY_SPACING = GRID_CONSTANTS.primarySpacing;
@@ -61,7 +63,7 @@ export function GridBackground({
         height={CANVAS_SIZE}
         fill={GRID_CONSTANTS.backgroundColor}
       />
-      {gridLines.vertical.map((x) => {
+      {visible && gridLines.vertical.map((x) => {
         const isAccent = isAccentLine(x, PRIMARY_SPACING, ACCENT_EVERY);
         return (
           <Line
@@ -73,7 +75,7 @@ export function GridBackground({
           />
         );
       })}
-      {gridLines.horizontal.map((y) => {
+      {visible && gridLines.horizontal.map((y) => {
         const isAccent = isAccentLine(y, PRIMARY_SPACING, ACCENT_EVERY);
         return (
           <Line

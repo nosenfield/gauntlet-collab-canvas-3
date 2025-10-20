@@ -15,7 +15,6 @@ import { useViewport } from '../store/viewportStore';
 import { useCanvasInteractions } from '../hooks/useCanvasInteractions';
 import { CanvasLayers } from './CanvasLayers';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { FPSMonitor } from './FPSMonitor';
 import { useAuth } from '@/features/auth/store/authStore';
 import { useCursorTracking } from '@/features/presence/hooks/useCursorTracking';
 import { useLockToolIntegration } from '@/features/displayObjects/common/hooks/useLockToolIntegration';
@@ -23,6 +22,9 @@ import { useToolShortcuts } from '@/features/displayObjects/common/hooks/useTool
 import { useSelectionShortcuts } from '@/features/displayObjects/common/hooks/useSelectionShortcuts';
 import { useClipboard } from '@/features/displayObjects/common/hooks/useClipboard';
 import { useArrowKeyMovement } from '@/features/displayObjects/common/hooks/useArrowKeyMovement';
+import { useExport } from '../hooks/useExport';
+import { useExportShortcut } from '../hooks/useExportShortcut';
+import { useGridToggle } from '../hooks/useGridToggle';
 import { TransformModal } from '@/features/displayObjects/common/components/TransformModal';
 import { useTool } from '@/features/displayObjects/common/store/toolStore';
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
@@ -77,6 +79,16 @@ export function Canvas(): React.ReactElement {
   
   // Handle arrow key movement for selected objects
   useArrowKeyMovement(user?.userId);
+  
+  // Export functionality
+  const { exportAsPNG } = useExport({ stageRef });
+  // const { exportAsPNG, exportAsSVG, exportSelection } = useExport({ stageRef }); // TODO: Add export menu for SVG and selection export
+  
+  // Handle Cmd+S keyboard shortcut for export
+  useExportShortcut({ onExport: exportAsPNG });
+  
+  // Grid visibility toggle (G key)
+  const { isGridVisible } = useGridToggle();
   
   // Text creation hook
   const { handleCanvasClick: handleTextClick, isTextTool } = useTextCreation();
@@ -161,6 +173,7 @@ export function Canvas(): React.ReactElement {
           stageX={viewport.x}
           stageY={viewport.y}
           scale={viewport.scale}
+          isGridVisible={isGridVisible}
           selectedIds={selectedIds}
           onShapeClick={handleShapeClick}
         isCollectionDragging={isCollectionDragging}
@@ -191,9 +204,6 @@ export function Canvas(): React.ReactElement {
         visible={showTransformModal}
         onRotationCornersChange={handleRotationCornersChange}
       />
-
-      {/* FPS Monitor - Development only */}
-      <FPSMonitor />
     </div>
   );
 }

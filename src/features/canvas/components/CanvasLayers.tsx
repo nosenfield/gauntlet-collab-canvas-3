@@ -32,6 +32,7 @@ interface CanvasLayersProps {
   stageX: number;
   stageY: number;
   scale: number;
+  isGridVisible?: boolean;
   
   // Shape layer props
   selectedIds: string[];
@@ -81,6 +82,7 @@ export function CanvasLayers({
   stageX,
   stageY,
   scale,
+  isGridVisible = true,
   
   // Shapes
   selectedIds,
@@ -125,6 +127,7 @@ export function CanvasLayers({
         stageX={stageX}
         stageY={stageY}
         scale={scale}
+        visible={isGridVisible}
       />
       
       {/* Layer 2: Shapes (interactive) */}

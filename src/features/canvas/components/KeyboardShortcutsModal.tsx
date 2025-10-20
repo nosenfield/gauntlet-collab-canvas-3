@@ -63,6 +63,32 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
         </div>
 
         <div className="shortcuts-modal-content">
+          {/* File Section */}
+          <div className="shortcuts-section">
+            <h4 className="shortcuts-section-title">File</h4>
+            <div className="shortcuts-list">
+              <div className="shortcut-item">
+                <span className="shortcut-label">Export as PNG</span>
+                <div className="shortcut-combo">
+                  <kbd className="shortcut-key">{modKey}</kbd>
+                  <span className="shortcut-plus">+</span>
+                  <kbd className="shortcut-key">S</kbd>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* View Section */}
+          <div className="shortcuts-section">
+            <h4 className="shortcuts-section-title">View</h4>
+            <div className="shortcuts-list">
+              <div className="shortcut-item">
+                <span className="shortcut-label">Toggle Grid</span>
+                <kbd className="shortcut-key">G</kbd>
+              </div>
+            </div>
+          </div>
+
           {/* Tools Section */}
           <div className="shortcuts-section">
             <h4 className="shortcuts-section-title">Tools</h4>
