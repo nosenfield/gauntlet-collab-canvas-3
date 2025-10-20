@@ -10,10 +10,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSelection } from '../store/selectionStore';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useTexts } from '@/features/displayObjects/texts/store/textsStore';
-import { createShape } from '@/features/displayObjects/shapes/services/shapeService';
-import { createText } from '@/features/displayObjects/texts/services/textService';
+import { createShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
+import { createTextsBatch } from '@/features/displayObjects/texts/services/textService';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
 import type { TextDisplayObject } from '@/features/displayObjects/texts/types';
+import type { CreateShapeData } from '@/features/displayObjects/shapes/types';
+import type { CreateTextData } from '@/features/displayObjects/texts/types';
 
 /**
  * Clipboard item can be either a shape or text
@@ -91,13 +93,16 @@ export function useClipboard(userId: string | undefined) {
     try {
       const newIds: string[] = [];
 
-      // Create new objects with offset positions
-      for (const item of clipboard) {
+      // Separate shapes and texts for batch operations
+      const shapesToCreate: CreateShapeData[] = [];
+      const textsToCreate: CreateTextData[] = [];
+
+      // Prepare data for batch creation
+      clipboard.forEach(item => {
         if (item.type === 'shape') {
           const shape = item.data as ShapeDisplayObject;
           
-          // Create new shape with offset position
-          const newId = await createShape(userId, {
+          shapesToCreate.push({
             type: shape.type,
             x: shape.x + offset,
             y: shape.y + offset,
@@ -109,6 +114,7 @@ export function useClipboard(userId: string | undefined) {
             strokeWidth: shape.strokeWidth,
             opacity: shape.opacity,
             blendMode: shape.blendMode,
+            zIndex: Date.now(), // Assign new z-index for pasted objects
             ...(shape.type === 'rectangle' && {
               width: shape.width,
               height: shape.height,
@@ -123,13 +129,10 @@ export function useClipboard(userId: string | undefined) {
               points: shape.points,
             }),
           });
-          
-          newIds.push(newId);
         } else if (item.type === 'text') {
           const text = item.data as TextDisplayObject;
           
-          // Create new text with offset position (returns TextDisplayObject)
-          const newText = await createText(userId, {
+          textsToCreate.push({
             content: text.content,
             x: text.x + offset,
             y: text.y + offset,
@@ -143,13 +146,23 @@ export function useClipboard(userId: string | undefined) {
             width: text.width,
             height: text.height,
           });
-          
-          newIds.push(newText.id);
         }
+      });
+
+      // Batch create shapes (single Firestore write for all shapes)
+      if (shapesToCreate.length > 0) {
+        const shapeIds = await createShapesBatch(userId, shapesToCreate);
+        newIds.push(...shapeIds);
+      }
+
+      // Batch create texts (single Firestore write for all texts)
+      if (textsToCreate.length > 0) {
+        const createdTexts = await createTextsBatch(userId, textsToCreate);
+        newIds.push(...createdTexts.map(t => t.id));
       }
 
       const pasteType = offset === 0 ? 'in place' : `with ${offset}px offset`;
-      console.log(`[Clipboard] Pasted ${newIds.length} objects ${pasteType}`);
+      console.log(`[Clipboard] Pasted ${newIds.length} objects ${pasteType} (batched)`);
 
       // Select the newly pasted objects
       // Wait a bit for Firestore to sync

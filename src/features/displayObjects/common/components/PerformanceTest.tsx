@@ -12,8 +12,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/store/authStore';
-import { createShape } from '@/features/displayObjects/shapes/services/shapeService';
-import { createText } from '@/features/displayObjects/texts/services/textService';
+import { createShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
+import { createTextsBatch } from '@/features/displayObjects/texts/services/textService';
+import type { CreateShapeData } from '@/features/displayObjects/shapes/types';
+import type { CreateTextData } from '@/features/displayObjects/texts/types';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useTexts } from '@/features/displayObjects/texts/store/textsStore';
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
@@ -131,6 +133,7 @@ export function PerformanceTest(): React.ReactElement | null {
 
   /**
    * Spawn multiple objects based on test configuration
+   * Uses batch creation for optimal performance
    */
   const spawnObjects = async () => {
     if (!user) {
@@ -149,12 +152,14 @@ export function PerformanceTest(): React.ReactElement | null {
     const startTime = performance.now();
     
     try {
-      const promises: Promise<string>[] = [];
+      const shapesToCreate: CreateShapeData[] = [];
+      const textsToCreate: CreateTextData[] = [];
       const typesArray = Array.from(selectedTypes);
       
       // Canvas center is at (5000, 5000) in a 10,000 x 10,000 canvas
       const CANVAS_CENTER = 5000;
       
+      // Prepare all objects for batch creation
       for (let i = 0; i < spawnCount; i++) {
         let x: number, y: number;
         
@@ -191,85 +196,80 @@ export function PerformanceTest(): React.ReactElement | null {
         
         switch (objectType) {
           case 'rectangle':
-            promises.push(
-              createShape(user.userId, {
-                type: 'rectangle',
-                x,
-                y,
-                width: 60,
-                height: 60,
-                fillColor: hexColor,
-                strokeColor: '#000000',
-                strokeWidth: 1,
-              })
-            );
+            shapesToCreate.push({
+              type: 'rectangle',
+              x,
+              y,
+              width: 60,
+              height: 60,
+              fillColor: hexColor,
+              strokeColor: '#000000',
+              strokeWidth: 1,
+              zIndex: Date.now() + i, // Unique z-index
+            });
             break;
             
           case 'circle':
-            promises.push(
-              createShape(user.userId, {
-                type: 'circle',
-                x,
-                y,
-                radius: 30,
-                fillColor: hexColor,
-                strokeColor: '#000000',
-                strokeWidth: 1,
-              })
-            );
+            shapesToCreate.push({
+              type: 'circle',
+              x,
+              y,
+              radius: 30,
+              fillColor: hexColor,
+              strokeColor: '#000000',
+              strokeWidth: 1,
+              zIndex: Date.now() + i, // Unique z-index
+            });
             break;
             
           case 'line':
-            promises.push(
-              createShape(user.userId, {
-                type: 'line',
-                x,
-                y,
-                points: [0, 0, 60, 60],
-                fillColor: 'transparent',
-                strokeColor: hexColor,
-                strokeWidth: 2,
-              })
-            );
+            shapesToCreate.push({
+              type: 'line',
+              x,
+              y,
+              points: [0, 0, 60, 60],
+              fillColor: 'transparent',
+              strokeColor: hexColor,
+              strokeWidth: 2,
+              zIndex: Date.now() + i, // Unique z-index
+            });
             break;
             
           case 'text':
-            promises.push(
-              createText(user.userId, {
-                x,
-                y,
-                content: `Text ${i + 1}`,
-                fontSize: 16,
-                color: hexColor,
-              }).then(text => text.id)
-            );
+            textsToCreate.push({
+              x,
+              y,
+              content: `Text ${i + 1}`,
+              fontSize: 16,
+              color: hexColor,
+            });
             break;
-        }
-        
-        // Batch in groups of 20 to avoid overwhelming Firestore
-        if (promises.length >= 20) {
-          await Promise.all(promises);
-          promises.length = 0;
-          
-          // Small delay between batches
-          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
       
-      // Create remaining objects
-      if (promises.length > 0) {
-        await Promise.all(promises);
+      // Batch create all objects (single write per type)
+      const batchPromises: Promise<any>[] = [];
+      
+      if (shapesToCreate.length > 0) {
+        batchPromises.push(createShapesBatch(user.userId, shapesToCreate));
       }
+      
+      if (textsToCreate.length > 0) {
+        batchPromises.push(createTextsBatch(user.userId, textsToCreate));
+      }
+      
+      await Promise.all(batchPromises);
       
       const endTime = performance.now();
       const duration = ((endTime - startTime) / 1000).toFixed(2);
       
       const totalObjects = shapes.length + texts.length;
       setLastTestResults(
-        `✅ Created ${spawnCount} objects in ${duration}s\n` +
+        `✅ Created ${spawnCount} objects in ${duration}s (BATCHED)\n` +
         `Types: ${Array.from(selectedTypes).join(', ')}\n` +
         `Pattern: ${spawnPattern}\n` +
-        `Total objects on canvas: ${totalObjects}`
+        `Total objects on canvas: ${totalObjects}\n` +
+        `Shapes batched: ${shapesToCreate.length}, Texts batched: ${textsToCreate.length}`
       );
     } catch (error) {
       console.error('[PerformanceTest] Error spawning objects:', error);

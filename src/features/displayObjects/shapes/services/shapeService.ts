@@ -368,6 +368,104 @@ export const updateShapesBatch = async (
 };
 
 /**
+ * Create multiple shapes atomically using batch write
+ * 
+ * Batch writes trigger only ONE real-time update event instead of N events.
+ * Use this for copy/paste operations or bulk creation.
+ * 
+ * Note: Firestore batch operations have a limit of 500 operations per batch.
+ * This function will automatically split into multiple batches if needed.
+ * 
+ * @param userId - ID of user creating the shapes
+ * @param shapesData - Array of shape creation data
+ * @returns Promise resolving to array of created shape IDs
+ */
+export const createShapesBatch = async (
+  userId: string,
+  shapesData: CreateShapeData[]
+): Promise<string[]> => {
+  try {
+    if (shapesData.length === 0) {
+      return [];
+    }
+
+    console.log(`[ShapeService] Batch creating ${shapesData.length} shapes...`);
+
+    const createdIds: string[] = [];
+    const BATCH_SIZE = 500; // Firestore limit
+
+    // Process in chunks of 500
+    for (let i = 0; i < shapesData.length; i += BATCH_SIZE) {
+      const batch = writeBatch(firestore);
+      const chunk = shapesData.slice(i, i + BATCH_SIZE);
+
+      // Generate document refs and build shape docs
+      for (const shapeData of chunk) {
+        const defaults = DEFAULT_SHAPE_PROPERTIES[shapeData.type];
+        
+        // Build shape document with defaults (round numeric values to 2 decimal places)
+        const shapeDoc = {
+          category: 'shape',
+          type: shapeData.type,
+          
+          // Position
+          x: roundPosition(shapeData.x),
+          y: roundPosition(shapeData.y),
+          
+          // Transform
+          rotation: roundNumericProperty(shapeData.rotation ?? defaults.rotation),
+          scaleX: roundNumericProperty(shapeData.scaleX ?? defaults.scaleX),
+          scaleY: roundNumericProperty(shapeData.scaleY ?? defaults.scaleY),
+          
+          // Visual properties
+          fillColor: shapeData.fillColor ?? defaults.fillColor,
+          strokeColor: shapeData.strokeColor ?? defaults.strokeColor,
+          strokeWidth: roundNumericProperty(shapeData.strokeWidth ?? defaults.strokeWidth),
+          opacity: roundNumericProperty(shapeData.opacity ?? defaults.opacity),
+          
+          // Dimensions (type-specific)
+          ...(shapeData.type === 'rectangle' && {
+            width: roundNumericProperty(shapeData.width ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.rectangle).width),
+            height: roundNumericProperty(shapeData.height ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.rectangle).height),
+            borderRadius: roundNumericProperty(shapeData.borderRadius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.rectangle).borderRadius),
+          }),
+          ...(shapeData.type === 'circle' && {
+            radius: roundNumericProperty(shapeData.radius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.circle).radius),
+            width: roundNumericProperty(shapeData.width ?? (shapeData.radius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.circle).radius) * 2),
+            height: roundNumericProperty(shapeData.height ?? (shapeData.radius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.circle).radius) * 2),
+          }),
+          ...(shapeData.type === 'line' && {
+            points: shapeData.points ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.line).points,
+          }),
+          
+          // Z-index
+          zIndex: shapeData.zIndex ?? 0,
+          
+          // Metadata
+          createdBy: userId,
+          createdAt: serverTimestamp(),
+          lastModifiedBy: userId,
+          lastModifiedAt: serverTimestamp(),
+        };
+
+        // Create a new document reference
+        const docRef = doc(getShapesCollection());
+        batch.set(docRef, shapeDoc);
+        createdIds.push(docRef.id);
+      }
+
+      await batch.commit();
+    }
+
+    console.log(`[ShapeService] Successfully batch created ${createdIds.length} shapes`);
+    return createdIds;
+  } catch (error) {
+    console.error('[ShapeService] Error batch creating shapes:', error);
+    throw error;
+  }
+};
+
+/**
  * Update Z-index for multiple shapes (reordering)
  * 
  * Uses batch writes for atomic updates and reduced network overhead.

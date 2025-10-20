@@ -256,6 +256,92 @@ export const deleteAllTexts = async (): Promise<number> => {
 };
 
 /**
+ * Create multiple text objects atomically using batch write
+ * 
+ * Batch writes trigger only ONE real-time update event instead of N events.
+ * Use this for copy/paste operations or bulk creation.
+ * 
+ * Note: Firestore batch operations have a limit of 500 operations per batch.
+ * This function will automatically split into multiple batches if needed.
+ * 
+ * @param userId - ID of the user creating the texts
+ * @param textsData - Array of text creation data
+ * @returns Promise resolving to array of created text objects
+ */
+export const createTextsBatch = async (
+  userId: string,
+  textsData: CreateTextData[]
+): Promise<TextDisplayObject[]> => {
+  try {
+    if (textsData.length === 0) {
+      return [];
+    }
+
+    console.log(`[TextService] Batch creating ${textsData.length} texts...`);
+
+    const createdTexts: TextDisplayObject[] = [];
+    const BATCH_SIZE = 500; // Firestore limit
+    const now = Timestamp.fromDate(new Date());
+
+    // Process in chunks of 500
+    for (let i = 0; i < textsData.length; i += BATCH_SIZE) {
+      const batch = writeBatch(firestore);
+      const chunk = textsData.slice(i, i + BATCH_SIZE);
+
+      // Generate document refs and build text docs
+      for (const textData of chunk) {
+        const newText = {
+          // BaseDisplayObject fields
+          category: 'text' as const,
+          x: roundPosition(textData.x),
+          y: roundPosition(textData.y),
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          zIndex: 0,
+          createdBy: userId,
+          createdAt: serverTimestamp(),
+          lastModifiedBy: userId,
+          lastModifiedAt: serverTimestamp(),
+          
+          // TextDisplayObject specific fields
+          content: textData.content ?? DEFAULT_TEXT_PROPERTIES.content,
+          width: roundNumericProperty(textData.width ?? DEFAULT_TEXT_PROPERTIES.width),
+          height: roundNumericProperty(textData.height ?? DEFAULT_TEXT_PROPERTIES.height),
+          fontFamily: textData.fontFamily ?? DEFAULT_TEXT_PROPERTIES.fontFamily,
+          fontSize: roundNumericProperty(textData.fontSize ?? DEFAULT_TEXT_PROPERTIES.fontSize),
+          fontWeight: (textData.fontWeight ?? DEFAULT_TEXT_PROPERTIES.fontWeight) as 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900,
+          textAlign: textData.textAlign ?? DEFAULT_TEXT_PROPERTIES.textAlign,
+          lineHeight: roundNumericProperty(textData.lineHeight ?? DEFAULT_TEXT_PROPERTIES.lineHeight),
+          color: textData.color ?? DEFAULT_TEXT_PROPERTIES.color,
+          opacity: roundNumericProperty(textData.opacity ?? DEFAULT_TEXT_PROPERTIES.opacity),
+        };
+
+        // Create a new document reference
+        const docRef = doc(getTextsCollection());
+        batch.set(docRef, newText);
+
+        // Add to return array (with placeholder timestamps)
+        createdTexts.push({
+          ...newText,
+          id: docRef.id,
+          createdAt: now,
+          lastModifiedAt: now,
+        });
+      }
+
+      await batch.commit();
+    }
+
+    console.log(`[TextService] Successfully batch created ${createdTexts.length} texts`);
+    return createdTexts;
+  } catch (error) {
+    console.error('[TextService] Error batch creating texts:', error);
+    throw error;
+  }
+};
+
+/**
  * Update Z-index for multiple texts (reordering)
  * 
  * Uses batch writes for atomic updates and reduced network overhead.
