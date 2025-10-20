@@ -56,5 +56,6 @@ export interface ToolExecutionResult {
   success: boolean;
   createdObjectIds: string[];
   error?: string;
+  message?: string;  // Optional message for user feedback (e.g., "Selected 3 objects")
 }
 

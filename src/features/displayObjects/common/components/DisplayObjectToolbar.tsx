@@ -127,17 +127,24 @@ export function DisplayObjectToolbar() {
     }
   }, [selectedIds, shapes, texts, clearSelection]);
 
-  // Keyboard shortcut for delete
+  // Keyboard shortcuts for delete and AI modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Check if Delete or Backspace key is pressed
+      // Don't trigger if user is typing in an input/textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+      
+      // Spacebar - Open AI modal
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        openModal();
+        return;
+      }
+      
+      // Delete or Backspace - Delete selected objects
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        // Don't trigger if user is typing in an input/textarea
-        const target = e.target as HTMLElement;
-        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-          return;
-        }
-        
         // Prevent default backspace navigation
         e.preventDefault();
         
@@ -150,7 +157,7 @@ export function DisplayObjectToolbar() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIds, handleDelete]);
+  }, [selectedIds, handleDelete, openModal]);
 
   return (
     <div className="display-object-toolbar">

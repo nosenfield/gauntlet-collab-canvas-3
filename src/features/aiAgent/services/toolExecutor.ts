@@ -5,11 +5,17 @@
  * Maps OpenAI tool calls to canvas operations
  */
 
-import { createShape } from '@/features/displayObjects/shapes/services/shapeService';
-import { createText } from '@/features/displayObjects/texts/services/textService';
-import type { CreateShapeData } from '@/features/displayObjects/shapes/types';
-import type { CreateTextData } from '@/features/displayObjects/texts/types';
+import { createShape, updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
+import { createText, updateTextsBatch } from '@/features/displayObjects/texts/services/textService';
+import type { CreateShapeData, ShapeDisplayObject, UpdateShapeData } from '@/features/displayObjects/shapes/types';
+import type { CreateTextData, TextDisplayObject, UpdateTextData } from '@/features/displayObjects/texts/types';
 import type { ToolExecutionResult } from '../types';
+
+/**
+ * Selection callback type
+ * Used to pass selection function from useAIAgent to toolExecutor
+ */
+export type SelectionCallback = (objectIds: string[]) => void;
 
 /**
  * Execute a tool call by name with given arguments
@@ -17,12 +23,19 @@ import type { ToolExecutionResult } from '../types';
  * @param toolName - Name of the tool to execute
  * @param args - Arguments from OpenAI function call
  * @param userId - ID of the user executing the command
+ * @param context - Optional context for tools that need additional data
  * @returns Promise resolving to execution result with created object IDs
  */
 export async function executeTool(
   toolName: string,
   args: Record<string, any>,
-  userId: string
+  userId: string,
+  context?: {
+    shapes?: ShapeDisplayObject[];
+    texts?: TextDisplayObject[];
+    setSelection?: SelectionCallback;
+    selectedIds?: string[];
+  }
 ): Promise<ToolExecutionResult> {
   try {
     console.log(`[ToolExecutor] Executing tool: ${toolName}`, args);
@@ -39,6 +52,12 @@ export async function executeTool(
       
       case 'create_text':
         return await executeCreateText(args, userId);
+      
+      case 'select_objects':
+        return await executeSelectObjects(args, context);
+      
+      case 'move_objects':
+        return await executeMoveObjects(args, userId, context);
       
       default:
         console.error(`[ToolExecutor] Unknown tool: ${toolName}`);
@@ -347,6 +366,361 @@ async function executeCreateText(
       success: false,
       createdObjectIds: [],
       error: error instanceof Error ? error.message : 'Failed to create text',
+    };
+  }
+}
+
+/**
+ * Execute object selection tool
+ * 
+ * Searches through existing display objects and selects those matching the criteria
+ * 
+ * @param args - Filter criteria from OpenAI
+ * @param context - Context containing shapes, texts, and selection function
+ * @returns Promise resolving to execution result
+ */
+async function executeSelectObjects(
+  args: Record<string, any>,
+  context?: {
+    shapes?: ShapeDisplayObject[];
+    texts?: TextDisplayObject[];
+    setSelection?: SelectionCallback;
+    selectedIds?: string[];
+  }
+): Promise<ToolExecutionResult> {
+  try {
+    // Validate context
+    if (!context || !context.shapes || !context.texts || !context.setSelection) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'Selection context not available',
+      };
+    }
+
+    const { shapes, texts, setSelection } = context;
+    const matchedIds: string[] = [];
+
+    console.log('[ToolExecutor] Selecting objects with criteria:', args);
+
+    // Filter shapes
+    if (!args.category || args.category === 'shape') {
+      for (const shape of shapes) {
+        if (matchesShapeCriteria(shape, args)) {
+          matchedIds.push(shape.id);
+        }
+      }
+    }
+
+    // Filter texts
+    if (!args.category || args.category === 'text') {
+      for (const text of texts) {
+        if (matchesTextCriteria(text, args)) {
+          matchedIds.push(text.id);
+        }
+      }
+    }
+
+    // Apply selection
+    if (matchedIds.length > 0) {
+      setSelection(matchedIds);
+      console.log(`[ToolExecutor] Selected ${matchedIds.length} objects:`, matchedIds);
+      
+      return {
+        success: true,
+        createdObjectIds: [], // No objects created, but we use this for selected IDs
+        message: `Selected ${matchedIds.length} object(s)`,
+      };
+    } else {
+      console.log('[ToolExecutor] No objects matched the criteria');
+      
+      return {
+        success: true,
+        createdObjectIds: [],
+        message: 'No objects found matching the criteria',
+      };
+    }
+  } catch (error) {
+    console.error('[ToolExecutor] Error selecting objects:', error);
+    return {
+      success: false,
+      createdObjectIds: [],
+      error: error instanceof Error ? error.message : 'Failed to select objects',
+    };
+  }
+}
+
+/**
+ * Check if a shape matches the given criteria
+ */
+function matchesShapeCriteria(shape: ShapeDisplayObject, criteria: Record<string, any>): boolean {
+  // Type filter
+  if (criteria.type && shape.type !== criteria.type) {
+    return false;
+  }
+
+  // Fill color filter (case-insensitive hex comparison)
+  if (criteria.fillColor) {
+    const normalizedCriteria = criteria.fillColor.toUpperCase();
+    const normalizedShape = shape.fillColor.toUpperCase();
+    if (normalizedShape !== normalizedCriteria) {
+      return false;
+    }
+  }
+
+  // Stroke color filter (case-insensitive hex comparison)
+  if (criteria.strokeColor) {
+    const normalizedCriteria = criteria.strokeColor.toUpperCase();
+    const normalizedShape = shape.strokeColor.toUpperCase();
+    if (normalizedShape !== normalizedCriteria) {
+      return false;
+    }
+  }
+
+  // Width filters (for rectangles)
+  if ('width' in shape) {
+    if (criteria.minWidth !== undefined && shape.width < criteria.minWidth) {
+      return false;
+    }
+    if (criteria.maxWidth !== undefined && shape.width > criteria.maxWidth) {
+      return false;
+    }
+  }
+
+  // Height filters (for rectangles)
+  if ('height' in shape) {
+    if (criteria.minHeight !== undefined && shape.height < criteria.minHeight) {
+      return false;
+    }
+    if (criteria.maxHeight !== undefined && shape.height > criteria.maxHeight) {
+      return false;
+    }
+  }
+
+  // Radius filters (for circles)
+  if (shape.type === 'circle') {
+    if (criteria.minRadius !== undefined && shape.radius < criteria.minRadius) {
+      return false;
+    }
+    if (criteria.maxRadius !== undefined && shape.radius > criteria.maxRadius) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Check if a text object matches the given criteria
+ */
+function matchesTextCriteria(text: TextDisplayObject, criteria: Record<string, any>): boolean {
+  // Color filter (case-insensitive hex comparison)
+  if (criteria.color) {
+    const normalizedCriteria = criteria.color.toUpperCase();
+    const normalizedText = text.color.toUpperCase();
+    if (normalizedText !== normalizedCriteria) {
+      return false;
+    }
+  }
+
+  // Content filter (case-insensitive partial match)
+  if (criteria.content) {
+    const normalizedCriteria = criteria.content.toLowerCase();
+    const normalizedContent = text.content.toLowerCase();
+    if (!normalizedContent.includes(normalizedCriteria)) {
+      return false;
+    }
+  }
+
+  // Width filters
+  if (criteria.minWidth !== undefined && text.width < criteria.minWidth) {
+    return false;
+  }
+  if (criteria.maxWidth !== undefined && text.width > criteria.maxWidth) {
+    return false;
+  }
+
+  // Height filters
+  if (criteria.minHeight !== undefined && text.height < criteria.minHeight) {
+    return false;
+  }
+  if (criteria.maxHeight !== undefined && text.height > criteria.maxHeight) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Execute move objects tool
+ * 
+ * Moves selected display objects to a new position
+ * Supports absolute positioning, relative offsets, and center alignment
+ * 
+ * @param args - Movement parameters from OpenAI
+ * @param userId - ID of the user performing the move
+ * @param context - Context containing shapes, texts, and selected IDs
+ * @returns Promise resolving to execution result
+ */
+async function executeMoveObjects(
+  args: Record<string, any>,
+  userId: string,
+  context?: {
+    shapes?: ShapeDisplayObject[];
+    texts?: TextDisplayObject[];
+    setSelection?: SelectionCallback;
+    selectedIds?: string[];
+  }
+): Promise<ToolExecutionResult> {
+  try {
+    // Validate context
+    if (!context || !context.shapes || !context.texts || !context.selectedIds) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'Move context not available',
+      };
+    }
+
+    const { shapes, texts, selectedIds } = context;
+
+    // Check if any objects are selected
+    if (selectedIds.length === 0) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'No objects selected. Please select objects first.',
+      };
+    }
+
+    console.log('[ToolExecutor] Moving objects with params:', args);
+    console.log('[ToolExecutor] Selected IDs:', selectedIds);
+
+    // Get selected objects
+    const selectedShapes = shapes.filter(s => selectedIds.includes(s.id));
+    const selectedTexts = texts.filter(t => selectedIds.includes(t.id));
+    const allSelectedObjects = [...selectedShapes, ...selectedTexts];
+
+    if (allSelectedObjects.length === 0) {
+      return {
+        success: false,
+        createdObjectIds: [],
+        error: 'Selected objects not found',
+      };
+    }
+
+    // Calculate current bounding box center of selected objects
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    for (const obj of allSelectedObjects) {
+      const objMinX = obj.x;
+      const objMinY = obj.y;
+      
+      // Calculate max based on object type
+      let objMaxX = obj.x;
+      let objMaxY = obj.y;
+      
+      if ('width' in obj && 'height' in obj) {
+        objMaxX = obj.x + obj.width;
+        objMaxY = obj.y + obj.height;
+      }
+      
+      minX = Math.min(minX, objMinX);
+      minY = Math.min(minY, objMinY);
+      maxX = Math.max(maxX, objMaxX);
+      maxY = Math.max(maxY, objMaxY);
+    }
+    
+    const currentCenterX = (minX + maxX) / 2;
+    const currentCenterY = (minY + maxY) / 2;
+
+    console.log('[ToolExecutor] Current selection center:', { x: currentCenterX, y: currentCenterY });
+
+    // Determine target position
+    let targetCenterX = currentCenterX;
+    let targetCenterY = currentCenterY;
+
+    // Handle alignToCenter flag
+    if (args.alignToCenter === true) {
+      targetCenterX = 5000; // Canvas center
+      targetCenterY = 5000;
+    }
+
+    // Handle absolute positioning
+    if (args.x !== undefined) {
+      targetCenterX = args.x;
+    }
+    if (args.y !== undefined) {
+      targetCenterY = args.y;
+    }
+
+    // Handle relative offsets
+    if (args.offsetX !== undefined) {
+      targetCenterX = currentCenterX + args.offsetX;
+    }
+    if (args.offsetY !== undefined) {
+      targetCenterY = currentCenterY + args.offsetY;
+    }
+
+    // Calculate the delta to apply to all objects
+    const deltaX = targetCenterX - currentCenterX;
+    const deltaY = targetCenterY - currentCenterY;
+
+    console.log('[ToolExecutor] Moving by delta:', { deltaX, deltaY });
+    console.log('[ToolExecutor] New center:', { x: targetCenterX, y: targetCenterY });
+
+    // Prepare batch updates
+    const shapeUpdates: Array<{ shapeId: string; updates: UpdateShapeData }> = [];
+    const textUpdates: Array<{ textId: string; updates: UpdateTextData }> = [];
+
+    // Update shapes
+    for (const shape of selectedShapes) {
+      shapeUpdates.push({
+        shapeId: shape.id,
+        updates: {
+          x: shape.x + deltaX,
+          y: shape.y + deltaY,
+        },
+      });
+    }
+
+    // Update texts
+    for (const text of selectedTexts) {
+      textUpdates.push({
+        textId: text.id,
+        updates: {
+          x: text.x + deltaX,
+          y: text.y + deltaY,
+        },
+      });
+    }
+
+    // Execute batch updates
+    const updatePromises: Promise<void>[] = [];
+    
+    if (shapeUpdates.length > 0) {
+      updatePromises.push(updateShapesBatch(userId, shapeUpdates));
+    }
+    
+    if (textUpdates.length > 0) {
+      updatePromises.push(updateTextsBatch(userId, textUpdates));
+    }
+
+    await Promise.all(updatePromises);
+
+    console.log(`[ToolExecutor] Moved ${allSelectedObjects.length} objects successfully`);
+
+    return {
+      success: true,
+      createdObjectIds: [],
+      message: `Moved ${allSelectedObjects.length} object(s) to position (${Math.round(targetCenterX)}, ${Math.round(targetCenterY)})`,
+    };
+  } catch (error) {
+    console.error('[ToolExecutor] Error moving objects:', error);
+    return {
+      success: false,
+      createdObjectIds: [],
+      error: error instanceof Error ? error.message : 'Failed to move objects',
     };
   }
 }

@@ -8,6 +8,8 @@
 import { useCallback } from 'react';
 import { useAuth } from '@/features/auth/store/authStore';
 import { useSelection } from '@/features/displayObjects/common/store/selectionStore';
+import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
+import { useTexts } from '@/features/displayObjects/texts/store/textsStore';
 import { processCommand } from '../services/openaiService';
 import { executeTool } from '../services/toolExecutor';
 
@@ -31,7 +33,9 @@ import { executeTool } from '../services/toolExecutor';
  */
 export function useAIAgent() {
   const { user } = useAuth();
-  const { setSelection } = useSelection();
+  const { setSelection, selectedIds } = useSelection();
+  const { shapes } = useShapes();
+  const { texts } = useTexts();
 
   /**
    * Execute a natural language command
@@ -39,7 +43,7 @@ export function useAIAgent() {
    * Flow:
    * 1. Send command to OpenAI for interpretation
    * 2. Execute any tool calls returned
-   * 3. Auto-select created objects
+   * 3. Auto-select created objects (or handle selection tool)
    * 
    * @param userCommand - Natural language command from user
    * @throws Error if user not authenticated or execution fails
@@ -75,20 +79,34 @@ export function useAIAgent() {
           for (const toolCall of response.toolCalls) {
             console.log('[AIAgent] Executing tool call:', toolCall);
             
+            // Prepare context for tools that need it (like selection and move)
+            const context = {
+              shapes,
+              texts,
+              setSelection,
+              selectedIds,
+            };
+            
             const result = await executeTool(
               toolCall.name,
               toolCall.arguments,
-              user.userId
+              user.userId,
+              context
             );
 
             if (!result.success) {
               throw new Error(result.error || 'Tool execution failed');
             }
 
+            // Show message if tool provided one (e.g., selection results)
+            if (result.message) {
+              console.log(`[AIAgent] Tool message: ${result.message}`);
+            }
+
             allCreatedIds.push(...result.createdObjectIds);
           }
 
-          // Step 4: Auto-select created objects
+          // Step 4: Auto-select created objects (only for creation tools)
           if (allCreatedIds.length > 0) {
             // Small delay to ensure Firestore write completes and triggers real-time listener
             setTimeout(() => {
@@ -113,7 +131,7 @@ export function useAIAgent() {
         throw new Error('Failed to execute command. Please try again.');
       }
     },
-    [user, setSelection]
+    [user, setSelection, shapes, texts, selectedIds]
   );
 
   return {

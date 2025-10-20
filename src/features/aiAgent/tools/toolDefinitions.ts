@@ -205,6 +205,116 @@ export const textCreationTool: ChatCompletionTool = {
 };
 
 /**
+ * Display Object Selection Tool
+ * 
+ * Selects display objects based on their properties
+ * Searches through all existing objects and creates a collection selection
+ */
+export const selectObjectsTool: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'select_objects',
+    description: 'Selects display objects on the canvas based on their properties. Use this when the user wants to select, find, or choose objects by their characteristics (e.g., "select all red circles", "select the blue rectangle", "find all text objects").',
+    parameters: {
+      type: 'object',
+      properties: {
+        category: {
+          type: 'string',
+          enum: ['shape', 'text'],
+          description: 'Filter by object category. Use "shape" for rectangles, circles, and lines. Use "text" for text objects.',
+        },
+        type: {
+          type: 'string',
+          enum: ['rectangle', 'circle', 'line'],
+          description: 'Filter by shape type (only applies when category is "shape"). Use "rectangle" for rectangles/squares, "circle" for circles, "line" for lines.',
+        },
+        fillColor: {
+          type: 'string',
+          description: 'Filter by fill color as hex string (e.g., "#FF0000" for red, "#3B82F6" for blue). Common colors: red=#FF0000, green=#00FF00, blue=#3B82F6, yellow=#FFFF00, purple=#A855F7, orange=#F97316, white=#FFFFFF, black=#000000.',
+        },
+        strokeColor: {
+          type: 'string',
+          description: 'Filter by stroke/border color as hex string (e.g., "#000000" for black borders).',
+        },
+        color: {
+          type: 'string',
+          description: 'Filter text objects by text color as hex string (e.g., "#000000" for black text).',
+        },
+        content: {
+          type: 'string',
+          description: 'Filter text objects by content. Can be exact match or partial match (case-insensitive).',
+        },
+        minWidth: {
+          type: 'number',
+          description: 'Filter objects with width greater than or equal to this value (in pixels).',
+        },
+        maxWidth: {
+          type: 'number',
+          description: 'Filter objects with width less than or equal to this value (in pixels).',
+        },
+        minHeight: {
+          type: 'number',
+          description: 'Filter objects with height greater than or equal to this value (in pixels).',
+        },
+        maxHeight: {
+          type: 'number',
+          description: 'Filter objects with height less than or equal to this value (in pixels).',
+        },
+        minRadius: {
+          type: 'number',
+          description: 'Filter circles with radius greater than or equal to this value (in pixels).',
+        },
+        maxRadius: {
+          type: 'number',
+          description: 'Filter circles with radius less than or equal to this value (in pixels).',
+        },
+      },
+      required: [], // All parameters optional - at least one should be provided
+    },
+  },
+};
+
+/**
+ * Move Objects Tool
+ * 
+ * Changes the position of selected display objects
+ * Can move to absolute position or relative offset
+ */
+export const moveObjectsTool: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'move_objects',
+    description: 'Moves selected display objects to a new position. Use this when the user wants to move, reposition, or relocate selected objects. Can move to absolute coordinates or apply relative offsets. Canvas is 10,000x10,000 pixels with center at (5000, 5000).',
+    parameters: {
+      type: 'object',
+      properties: {
+        x: {
+          type: 'number',
+          description: 'Absolute X coordinate to move objects to. If provided, moves all selected objects so their collective center is at this X position. Canvas center is 5000.',
+        },
+        y: {
+          type: 'number',
+          description: 'Absolute Y coordinate to move objects to. If provided, moves all selected objects so their collective center is at this Y position. Canvas center is 5000.',
+        },
+        offsetX: {
+          type: 'number',
+          description: 'Relative X offset in pixels. Moves all selected objects by this amount horizontally. Positive values move right, negative move left.',
+        },
+        offsetY: {
+          type: 'number',
+          description: 'Relative Y offset in pixels. Moves all selected objects by this amount vertically. Positive values move down, negative move up.',
+        },
+        alignToCenter: {
+          type: 'boolean',
+          description: 'If true, moves selected objects to the canvas center (5000, 5000). Use this when user says "move to center" or "center the selection".',
+        },
+      },
+      required: [], // At least one parameter should be provided
+    },
+  },
+};
+
+/**
  * All Available Tools
  * 
  * Array of all tools available to the AI agent
@@ -214,4 +324,6 @@ export const allTools: ChatCompletionTool[] = [
   circleCreationTool,
   lineCreationTool,
   textCreationTool,
+  selectObjectsTool,
+  moveObjectsTool,
 ];
