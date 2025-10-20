@@ -138,6 +138,7 @@ export function validateShapeData(id: string, data: any): ValidationResult<Shape
     scaleX: data.scaleX,
     scaleY: data.scaleY,
     opacity: data.opacity,
+    blendMode: data.blendMode, // Optional blend mode
     zIndex: data.zIndex,
     fillColor: data.fillColor,
     strokeColor: data.strokeColor,
@@ -220,6 +221,7 @@ export function validateTextData(id: string, data: any): ValidationResult<TextDi
     scaleX: data.scaleX,
     scaleY: data.scaleY,
     opacity: data.opacity,
+    blendMode: data.blendMode, // Optional blend mode
     zIndex: data.zIndex,
     content: data.content,
     width: data.width,

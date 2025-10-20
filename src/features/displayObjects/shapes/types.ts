@@ -89,6 +89,7 @@ export interface CreateShapeData {
   strokeWidth?: number;
   borderRadius?: number; // Rectangle only
   opacity?: number;
+  blendMode?: string;  // BlendMode from common/types (imported as string to avoid circular dependency)
   rotation?: number;
   scaleX?: number;
   scaleY?: number;
@@ -119,6 +120,7 @@ export interface UpdateShapeData {
   strokeWidth?: number;
   borderRadius?: number; // Rectangle only
   opacity?: number;
+  blendMode?: string;  // BlendMode from common/types
   
   // Layer
   zIndex?: number;

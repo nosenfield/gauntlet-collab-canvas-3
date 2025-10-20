@@ -129,6 +129,7 @@ export function TextObject({
       // Styling
       fill={text.color}
       opacity={text.opacity}
+      globalCompositeOperation={text.blendMode || 'source-over'}
       
       // Interaction
       onClick={handleClick}

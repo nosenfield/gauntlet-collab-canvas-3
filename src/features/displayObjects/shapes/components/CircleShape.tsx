@@ -118,6 +118,7 @@ export function CircleShape({
       stroke={shape.strokeColor}
       strokeWidth={shape.strokeWidth}
       opacity={shape.opacity}
+      globalCompositeOperation={shape.blendMode || 'source-over'}
       
       // Interaction
       onClick={handleClick}

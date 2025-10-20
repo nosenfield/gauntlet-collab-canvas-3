@@ -129,6 +129,7 @@ export interface BaseDisplayObject {
   
   // Visual properties
   opacity: number;                     // 0-1 (default: 1)
+  blendMode?: BlendMode;               // Blend mode (default: 'source-over'), optional for backward compatibility
   
   // Layer management
   zIndex: number;                      // Layer order (higher = in front)
@@ -180,6 +181,9 @@ export const DISPLAY_OBJECT_CONSTANTS = {
   // Opacity range
   MIN_OPACITY: 0,
   MAX_OPACITY: 1,
+  
+  // Blend mode
+  DEFAULT_BLEND_MODE: 'source-over' as BlendMode,
 } as const;
 
 /**

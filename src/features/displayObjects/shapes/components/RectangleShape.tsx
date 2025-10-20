@@ -122,6 +122,7 @@ export function RectangleShape({
       strokeWidth={shape.strokeWidth}
       opacity={shape.opacity}
       cornerRadius={shape.borderRadius || 0}
+      globalCompositeOperation={shape.blendMode || 'source-over'}
       
       // Interaction
       onClick={handleClick}

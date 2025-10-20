@@ -61,6 +61,7 @@ export interface CreateTextData {
   lineHeight?: number;
   color?: string;
   opacity?: number;
+  blendMode?: string;  // BlendMode from common/types
 }
 
 /**
@@ -79,6 +80,7 @@ export interface UpdateTextData {
   lineHeight?: number;
   color?: string;
   opacity?: number;
+  blendMode?: string;  // BlendMode from common/types
   rotation?: number;
   scaleX?: number;
   scaleY?: number;

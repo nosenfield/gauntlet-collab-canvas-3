@@ -168,6 +168,7 @@ export function LineShape({
       stroke={shape.strokeColor}
       strokeWidth={shape.strokeWidth}
       opacity={shape.opacity}
+      globalCompositeOperation={shape.blendMode || 'source-over'}
       lineCap="round"
       lineJoin="round"
       

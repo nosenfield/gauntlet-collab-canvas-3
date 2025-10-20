@@ -9,11 +9,12 @@
  */
 
 import React, { useCallback } from 'react';
-import type { TransformableObject } from '../../types';
+import type { TransformableObject, BlendMode } from '../../types';
 import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
 import { updateTextsBatch } from '@/features/displayObjects/texts/services/textService';
 import { calculateCollectionAABB, getAABBCenter } from '../../utils/boundingBoxUtils';
 import { NumberInput } from './NumberInput';
+import { BlendModeSelector } from './BlendModeSelector';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useTexts } from '@/features/displayObjects/texts/store/textsStore';
 import { useAlignment } from '../../hooks/useAlignment';
@@ -44,6 +45,7 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
   const scaleX = getCommonValue<number>(selectedObjects, 'scaleX');
   const scaleY = getCommonValue<number>(selectedObjects, 'scaleY');
   const opacity = getCommonValue<number>(selectedObjects, 'opacity');
+  const blendMode = getCommonValue<BlendMode | undefined>(selectedObjects, 'blendMode');
   const zIndex = getCommonValue<number>(selectedObjects, 'zIndex');
   
   // Z-index management - we'll implement custom simple logic for the buttons
@@ -378,6 +380,45 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
     }
   }, [selectedObjects, userId]);
   
+  /**
+   * Update blend mode for all selected objects
+   */
+  const updateBlendMode = useCallback(async (newBlendMode: BlendMode) => {
+    if (!userId || selectedObjects.length === 0) return;
+    
+    try {
+      // Separate shapes and texts for batch updates
+      const shapes = selectedObjects.filter(obj => obj.category === 'shape');
+      const texts = selectedObjects.filter(obj => obj.category === 'text');
+      
+      const promises: Promise<void>[] = [];
+      
+      // Update shapes
+      if (shapes.length > 0) {
+        const shapeUpdates = shapes.map(obj => ({
+          shapeId: obj.id,
+          updates: { blendMode: newBlendMode },
+        }));
+        
+        promises.push(updateShapesBatch(userId, shapeUpdates));
+      }
+      
+      // Update texts
+      if (texts.length > 0) {
+        const textUpdates = texts.map(obj => ({
+          textId: obj.id,
+          updates: { blendMode: newBlendMode },
+        }));
+        
+        promises.push(updateTextsBatch(userId, textUpdates));
+      }
+      
+      await Promise.all(promises);
+    } catch (error) {
+      console.error('[UniversalProperties] Error updating blend mode:', error);
+    }
+  }, [selectedObjects, userId]);
+  
   return (
     <div className="properties-modal__section">
       <div className="properties-modal__section-title">Universal Properties</div>
@@ -554,6 +595,14 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
               suffix="%"
             />
           </div>
+        </div>
+        
+        {/* Blend Mode */}
+        <div className="properties-modal__field properties-modal__field--full">
+          <BlendModeSelector
+            value={blendMode === 'mixed' ? 'mixed' : (blendMode || 'source-over')}
+            onChange={updateBlendMode}
+          />
         </div>
         
         {/* Z-Index (Layer Order) */}
