@@ -7,8 +7,8 @@
 
 import { useEffect, useCallback } from 'react';
 import { useTool, type ToolType, TOOL_LABELS } from '../store/toolStore';
-import { deleteShape } from '@/features/displayObjects/shapes/services/shapeService';
-import { deleteText } from '@/features/displayObjects/texts/services/textService';
+import { deleteShapes } from '@/features/displayObjects/shapes/services/shapeService';
+import { deleteTexts } from '@/features/displayObjects/texts/services/textService';
 import { useSelection } from '../store/selectionStore';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useTexts } from '@/features/displayObjects/texts/store/textsStore';
@@ -54,7 +54,7 @@ function ToolButton({ tool, isActive, onClick }: ToolButtonProps) {
       case 'circle':
         return '○'; // Circle
       case 'line':
-        return '/'; // Line
+        return '╲'; // Line
       case 'text':
         return 'T'; // Text
     }
@@ -100,24 +100,39 @@ export function DisplayObjectToolbar() {
     }
     
     try {
-      // Determine which IDs are shapes vs texts by checking the stores
-      const shapeIds = new Set(shapes.map(s => s.id));
-      const textIds = new Set(texts.map(t => t.id));
+      // Separate selected IDs into shapes and texts
+      const shapeIdSet = new Set(shapes.map(s => s.id));
+      const textIdSet = new Set(texts.map(t => t.id));
       
-      // Delete all selected objects
-      const deletePromises = selectedIds.map(async (id) => {
-        if (shapeIds.has(id)) {
-          return deleteShape(id);
-        } else if (textIds.has(id)) {
-          return deleteText(id);
+      const shapeIdsToDelete: string[] = [];
+      const textIdsToDelete: string[] = [];
+      
+      selectedIds.forEach((id) => {
+        if (shapeIdSet.has(id)) {
+          shapeIdsToDelete.push(id);
+        } else if (textIdSet.has(id)) {
+          textIdsToDelete.push(id);
+        } else {
+          console.warn(`[Toolbar] Could not find object with ID: ${id}`);
         }
-        // If ID not found, log warning but continue
-        console.warn(`[Toolbar] Could not find object with ID: ${id}`);
       });
       
-      await Promise.all(deletePromises);
+      // Use batch delete operations for efficiency
+      const deletePromises: Promise<number>[] = [];
       
-      console.log(`[Toolbar] Deleted ${selectedIds.length} objects from canvas`);
+      if (shapeIdsToDelete.length > 0) {
+        deletePromises.push(deleteShapes(shapeIdsToDelete));
+      }
+      
+      if (textIdsToDelete.length > 0) {
+        deletePromises.push(deleteTexts(textIdsToDelete));
+      }
+      
+      // Wait for all batch deletions to complete
+      const results = await Promise.all(deletePromises);
+      const totalDeleted = results.reduce((sum, count) => sum + count, 0);
+      
+      console.log(`[Toolbar] Batch deleted ${totalDeleted} objects from canvas (${shapeIdsToDelete.length} shapes, ${textIdsToDelete.length} texts)`);
       
       // Clear selection after deletion
       clearSelection();
