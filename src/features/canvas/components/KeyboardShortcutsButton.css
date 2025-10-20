@@ -1,0 +1,60 @@
+/**
+ * Keyboard Shortcuts Button Styles
+ * Styled similarly to the debug auth panel
+ */
+
+.keyboard-shortcuts-button {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  
+  /* Styling similar to debug auth panel */
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 10px 12px;
+  
+  cursor: pointer;
+  z-index: 9998;
+  
+  transition: all 0.2s ease;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.keyboard-shortcuts-button:hover {
+  background: rgba(30, 30, 30, 0.95);
+  border-color: #444;
+  transform: scale(1.05);
+}
+
+.keyboard-shortcuts-button:hover .keyboard-shortcuts-button__label {
+  color: #fff;
+}
+
+.keyboard-shortcuts-button:active {
+  transform: scale(0.98);
+}
+
+.keyboard-shortcuts-button__label {
+  font-size: 11px;
+  font-family: monospace;
+  color: #888;
+  line-height: 1;
+  user-select: none;
+  text-transform: lowercase;
+}
+
+/* Ensure button doesn't interfere with other UI elements */
+@media (max-width: 768px) {
+  .keyboard-shortcuts-button {
+    padding: 8px 10px;
+  }
+
+  .keyboard-shortcuts-button__label {
+    font-size: 10px;
+  }
+}
+

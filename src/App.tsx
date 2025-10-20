@@ -15,6 +15,7 @@ import { TextsProvider } from '@/features/displayObjects/texts/store/textsStore'
 import { SelectionProvider } from '@/features/displayObjects/common/store/selectionStore';
 import { startLockCleanupService } from '@/features/displayObjects/common/services/lockService';
 import { PerformanceTest } from '@/features/displayObjects/common/components/PerformanceTest';
+import { KeyboardShortcutsButton } from '@/features/canvas/components/KeyboardShortcutsButton';
 import './App.css';
 
 /**
@@ -44,6 +45,7 @@ function AppContent() {
       {/* <AlignmentControls /> */}
       <PropertiesModal />
       <PerformanceTest />
+      <KeyboardShortcutsButton />
       <ViewportProvider>
         <Canvas />
       </ViewportProvider>
