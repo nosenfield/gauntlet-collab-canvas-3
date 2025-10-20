@@ -106,11 +106,11 @@ export const DEFAULT_TEXT_PROPERTIES: Readonly<{
   width: 200,
   height: 100,
   fontFamily: 'Arial',
-  fontSize: 16,
+  fontSize: 32,
   fontWeight: 400,
   textAlign: 'left',
   lineHeight: 1.2,
-  color: '#000000',
+  color: '#FFFFFF',
   opacity: 1.0,
 } as const;
 

@@ -473,7 +473,7 @@ export function PerformanceTest(): React.ReactElement | null {
                 defaultValue=""
               >
                 <option value="">Select command...</option>
-                <option value="Create a red circle at position 100, 200">Create a red circle at position 100, 200</option>
+                <option value="Create a red circle at position 4000, 5000">Create a red circle at position 4000, 5000</option>
                 <option value="Add a text layer that says 'Hello World'">Add a text layer that says 'Hello World'</option>
                 <option value="Make a 200x300 rectangle">Make a 200x300 rectangle</option>
               </select>
