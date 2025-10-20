@@ -18,6 +18,7 @@ import {
   type AlignmentType,
   type AlignmentUpdate,
 } from '../utils/alignmentUtils';
+import { roundPosition } from '../utils/transformMath';
 
 /**
  * Alignment operation result

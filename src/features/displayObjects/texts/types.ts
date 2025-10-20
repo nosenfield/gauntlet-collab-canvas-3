@@ -102,7 +102,7 @@ export const DEFAULT_TEXT_PROPERTIES: Readonly<{
   color: string;
   opacity: number;
 }> = {
-  content: 'Double-click to edit',
+  content: 'Hello world! 👋🌎',
   width: 200,
   height: 100,
   fontFamily: 'Arial',

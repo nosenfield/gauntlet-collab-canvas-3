@@ -8,7 +8,7 @@
  * - Updates in real-time
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/store/authStore';
 import { useAllActiveUsers } from '../hooks/useActiveUsers';
 import { UserPresenceItem } from './UserPresenceItem';
@@ -31,6 +31,27 @@ export function UserPresenceSidebar(): React.ReactElement | null {
     minHeight: 150,
     storageKey: 'user-presence-modal-height'
   });
+
+  // Toggle debug panel with 'A' key (development only)
+  useEffect(() => {
+    // Only enable hotkey in development mode
+    if (!import.meta.env.DEV) return;
+
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Don't trigger if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      
+      // Don't trigger if any modifier keys are pressed (e.g., Cmd+A for Select All)
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      
+      if (e.key === 'a' || e.key === 'A') {
+        setShowDebugPanel((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
 
   // Sort users: current user first, then others alphabetically
   const sortedUsers = useMemo(() => {

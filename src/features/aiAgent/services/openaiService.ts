@@ -104,11 +104,17 @@ export async function processCommand(userCommand: string): Promise<AIResponse> {
 
     // Check if model wants to call a tool
     if (message.tool_calls && message.tool_calls.length > 0) {
-      const toolCalls = message.tool_calls.map(call => ({
-        id: call.id,
-        name: call.function.name,
-        arguments: JSON.parse(call.function.arguments),
-      }));
+      const toolCalls = message.tool_calls.map(call => {
+        // Type guard for standard tool calls
+        if (call.type === 'function' && 'function' in call) {
+          return {
+            id: call.id,
+            name: call.function.name,
+            arguments: JSON.parse(call.function.arguments),
+          };
+        }
+        throw new Error(`Unsupported tool call type: ${call.type}`);
+      });
       
       console.log('[OpenAI] Tool calls:', toolCalls);
       

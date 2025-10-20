@@ -41,6 +41,8 @@ const TEXT_ALIGNMENTS = ['left', 'center', 'right', 'justify'] as const;
 export function TextProperties({ selectedTexts, userId }: TextPropertiesProps): React.ReactElement {
   // Get common values
   const content = getCommonValue<string>(selectedTexts, 'content');
+  const width = getCommonValue<number>(selectedTexts, 'width');
+  const height = getCommonValue<number>(selectedTexts, 'height');
   const fontFamily = getCommonValue<string>(selectedTexts, 'fontFamily');
   const fontSize = getCommonValue<number>(selectedTexts, 'fontSize');
   const fontWeight = getCommonValue<number>(selectedTexts, 'fontWeight');
@@ -62,7 +64,7 @@ export function TextProperties({ selectedTexts, userId }: TextPropertiesProps): 
       if (selectedTexts.length === 0) return;
       
       // Round numeric properties to 2 decimal places
-      const processedValue = (key === 'fontSize' || key === 'lineHeight') 
+      const processedValue = (key === 'fontSize' || key === 'lineHeight' || key === 'width' || key === 'height') 
         ? roundNumericProperty(value)
         : value;
       
@@ -110,6 +112,32 @@ export function TextProperties({ selectedTexts, userId }: TextPropertiesProps): 
             onFocus={handleContentFocus}
             onBlur={handleContentBlur}
             rows={3}
+          />
+        </div>
+        
+        {/* Width */}
+        <div className="properties-modal__field">
+          <label className="properties-modal__label">Width</label>
+          <NumberInput
+            value={width}
+            onChange={(value) => updateProperty('width', value)}
+            min={50}
+            max={2000}
+            step={1}
+            suffix="px"
+          />
+        </div>
+        
+        {/* Height */}
+        <div className="properties-modal__field">
+          <label className="properties-modal__label">Height</label>
+          <NumberInput
+            value={height}
+            onChange={(value) => updateProperty('height', value)}
+            min={50}
+            max={2000}
+            step={1}
+            suffix="px"
           />
         </div>
         

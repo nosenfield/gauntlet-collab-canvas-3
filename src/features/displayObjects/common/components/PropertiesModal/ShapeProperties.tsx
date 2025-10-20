@@ -53,10 +53,16 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
   // Check if all selected shapes are lines (lines don't have fill)
   const allLines = selectedShapes.length > 0 && selectedShapes.every(s => s.type === 'line');
   
-  // Border radius only for rectangles
+  // Rectangle-specific properties
   const rectangles = selectedShapes.filter((s): s is RectangleShape => s.type === 'rectangle');
-  const hasBorderRadius = rectangles.length > 0;
-  const borderRadius = hasBorderRadius 
+  const hasRectangleProps = rectangles.length > 0;
+  const width = hasRectangleProps 
+    ? getRectangleCommonValue<number>(rectangles, 'width')
+    : 'mixed';
+  const height = hasRectangleProps 
+    ? getRectangleCommonValue<number>(rectangles, 'height')
+    : 'mixed';
+  const borderRadius = hasRectangleProps 
     ? getRectangleCommonValue<number | undefined>(rectangles, 'borderRadius')
     : 'mixed';
   
@@ -93,7 +99,7 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
     
     try {
       // Round numeric properties to 2 decimal places
-      const processedValue = (key === 'borderRadius') 
+      const processedValue = (key === 'borderRadius' || key === 'width' || key === 'height') 
         ? roundNumericProperty(value)
         : value;
       
@@ -114,6 +120,46 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
       <div className="properties-modal__section-title">Shape Properties</div>
       
       <div className="properties-modal__grid">
+        {/* Width (rectangles only) */}
+        {hasRectangleProps && (
+          <div className="properties-modal__field">
+            <label className="properties-modal__label">
+              Width
+              {rectangles.length !== selectedShapes.length && (
+                <span className="properties-modal__label-note"> (rectangles only)</span>
+              )}
+            </label>
+            <NumberInput
+              value={width}
+              onChange={(value) => updateRectangleProperty('width', value)}
+              min={1}
+              max={2000}
+              step={1}
+              suffix="px"
+            />
+          </div>
+        )}
+        
+        {/* Height (rectangles only) */}
+        {hasRectangleProps && (
+          <div className="properties-modal__field">
+            <label className="properties-modal__label">
+              Height
+              {rectangles.length !== selectedShapes.length && (
+                <span className="properties-modal__label-note"> (rectangles only)</span>
+              )}
+            </label>
+            <NumberInput
+              value={height}
+              onChange={(value) => updateRectangleProperty('height', value)}
+              min={1}
+              max={2000}
+              step={1}
+              suffix="px"
+            />
+          </div>
+        )}
+        
         {/* Fill Color */}
         <div className="properties-modal__field properties-modal__field--full">
           <label className="properties-modal__label">
@@ -150,7 +196,7 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
         </div>
         
         {/* Border Radius (rectangles only) */}
-        {hasBorderRadius && (
+        {hasRectangleProps && (
           <div className="properties-modal__field properties-modal__field--full">
             <label className="properties-modal__label">
               Border Radius
