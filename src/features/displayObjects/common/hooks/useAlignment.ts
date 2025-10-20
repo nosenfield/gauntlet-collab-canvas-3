@@ -55,14 +55,14 @@ export function useAlignment() {
       throw new Error('User not authenticated');
     }
 
-    // Partition updates by category
+    // Partition updates by category and round positions
     const shapeUpdates = updates
       .filter(update => shapes.some(s => s.id === update.objectId))
       .map(update => ({
         shapeId: update.objectId,
         updates: {
-          ...(update.x !== undefined && { x: update.x }),
-          ...(update.y !== undefined && { y: update.y }),
+          ...(update.x !== undefined && { x: roundPosition(update.x) }),
+          ...(update.y !== undefined && { y: roundPosition(update.y) }),
         },
       }));
 
@@ -71,8 +71,8 @@ export function useAlignment() {
       .map(update => ({
         textId: update.objectId,
         updates: {
-          ...(update.x !== undefined && { x: update.x }),
-          ...(update.y !== undefined && { y: update.y }),
+          ...(update.x !== undefined && { x: roundPosition(update.x) }),
+          ...(update.y !== undefined && { y: roundPosition(update.y) }),
         },
       }));
 

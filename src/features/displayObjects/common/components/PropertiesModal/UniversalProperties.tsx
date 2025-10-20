@@ -18,6 +18,7 @@ import { BlendModeSelector } from './BlendModeSelector';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useTexts } from '@/features/displayObjects/texts/store/textsStore';
 import { useAlignment } from '../../hooks/useAlignment';
+import { roundPosition, roundNumericProperty } from '../../utils/transformMath';
 
 interface UniversalPropertiesProps {
   selectedObjects: TransformableObject[];
@@ -288,10 +289,10 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
           return {
             shapeId: obj.id,
             updates: {
-              x: newX,
-              y: newY,
-              scaleX: constrainedScaleX,
-              scaleY: constrainedScaleY,
+              x: roundPosition(newX),
+              y: roundPosition(newY),
+              scaleX: roundNumericProperty(constrainedScaleX),
+              scaleY: roundNumericProperty(constrainedScaleY),
             },
           };
         }).filter((update): update is NonNullable<typeof update> => update !== null);
@@ -339,10 +340,10 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
           return {
             textId: obj.id,
             updates: {
-              x: newX,
-              y: newY,
-              scaleX: constrainedScaleX,
-              scaleY: constrainedScaleY,
+              x: roundPosition(newX),
+              y: roundPosition(newY),
+              scaleX: roundNumericProperty(constrainedScaleX),
+              scaleY: roundNumericProperty(constrainedScaleY),
             },
           };
         }).filter((update): update is NonNullable<typeof update> => update !== null);
@@ -355,7 +356,12 @@ export function UniversalProperties({ selectedObjects, userId }: UniversalProper
         }
       } else {
         // For non-scale properties, simple batch update
-        const updates = { [key]: value };
+        // Round numeric values to 2 decimal places (positions, rotation, opacity, etc.)
+        const updates = (key === 'x' || key === 'y') 
+          ? { [key]: roundPosition(value) }
+          : (key === 'rotation' || key === 'opacity')
+          ? { [key]: roundNumericProperty(value) }
+          : { [key]: value };
         
         if (shapes.length > 0) {
           const shapeBatchUpdates = shapes.map(shape => ({

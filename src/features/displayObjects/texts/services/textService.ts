@@ -23,6 +23,7 @@ import { firestore } from '@/api/firebase';
 import type { TextDisplayObject, CreateTextData, UpdateTextData } from '../types';
 import { DEFAULT_TEXT_PROPERTIES } from '../types';
 import { validateTextBatch } from '../../common/utils/dataValidation';
+import { roundPosition, roundNumericProperty } from '../../common/utils/transformMath';
 
 // Firestore collection paths
 const DOCUMENT_ID = 'main';
@@ -46,8 +47,8 @@ export const createText = async (
     const newText = {
       // BaseDisplayObject fields
       category: 'text' as const,
-      x: textData.x,
-      y: textData.y,
+      x: roundPosition(textData.x),
+      y: roundPosition(textData.y),
       rotation: 0,
       scaleX: 1,
       scaleY: 1,
@@ -59,15 +60,15 @@ export const createText = async (
       
       // TextDisplayObject specific fields
       content: textData.content ?? DEFAULT_TEXT_PROPERTIES.content,
-      width: textData.width ?? DEFAULT_TEXT_PROPERTIES.width,
-      height: textData.height ?? DEFAULT_TEXT_PROPERTIES.height,
+      width: roundNumericProperty(textData.width ?? DEFAULT_TEXT_PROPERTIES.width),
+      height: roundNumericProperty(textData.height ?? DEFAULT_TEXT_PROPERTIES.height),
       fontFamily: textData.fontFamily ?? DEFAULT_TEXT_PROPERTIES.fontFamily,
-      fontSize: textData.fontSize ?? DEFAULT_TEXT_PROPERTIES.fontSize,
+      fontSize: roundNumericProperty(textData.fontSize ?? DEFAULT_TEXT_PROPERTIES.fontSize),
       fontWeight: (textData.fontWeight ?? DEFAULT_TEXT_PROPERTIES.fontWeight) as 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900,
       textAlign: textData.textAlign ?? DEFAULT_TEXT_PROPERTIES.textAlign,
-      lineHeight: textData.lineHeight ?? DEFAULT_TEXT_PROPERTIES.lineHeight,
+      lineHeight: roundNumericProperty(textData.lineHeight ?? DEFAULT_TEXT_PROPERTIES.lineHeight),
       color: textData.color ?? DEFAULT_TEXT_PROPERTIES.color,
-      opacity: textData.opacity ?? DEFAULT_TEXT_PROPERTIES.opacity,
+      opacity: roundNumericProperty(textData.opacity ?? DEFAULT_TEXT_PROPERTIES.opacity),
     };
     
     const docRef = await addDoc(textsCol, newText);

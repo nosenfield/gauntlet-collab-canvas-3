@@ -12,6 +12,7 @@ import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useTexts } from '@/features/displayObjects/texts/store/textsStore';
 import { updateShape } from '@/features/displayObjects/shapes/services/shapeService';
 import { updateText } from '@/features/displayObjects/texts/services/textService';
+import { roundPosition } from '../utils/transformMath';
 
 /**
  * Movement amounts
@@ -52,14 +53,14 @@ export function useArrowKeyMovement(userId: string | undefined) {
         if (shape) {
           // Update shape position
           return updateShape(id, userId, {
-            x: shape.x + deltaX,
-            y: shape.y + deltaY,
+            x: roundPosition(shape.x + deltaX),
+            y: roundPosition(shape.y + deltaY),
           });
         } else if (text) {
           // Update text position
           return updateText(userId, id, {
-            x: text.x + deltaX,
-            y: text.y + deltaY,
+            x: roundPosition(text.x + deltaX),
+            y: roundPosition(text.y + deltaY),
           });
         }
       });

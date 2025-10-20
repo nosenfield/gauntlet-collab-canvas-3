@@ -22,6 +22,7 @@ import {
 import { firestore } from '@/api/firebase';
 import type { ShapeDisplayObject, CreateShapeData, UpdateShapeData } from '../types';
 import { DEFAULT_SHAPE_PROPERTIES } from '../types';
+import { roundPosition, roundNumericProperty } from '@/features/displayObjects/common/utils/transformMath';
 import { validateShapeData, validateShapeBatch } from '../../common/utils/dataValidation';
 
 /**
@@ -52,36 +53,36 @@ export const createShape = async (
   try {
     const defaults = DEFAULT_SHAPE_PROPERTIES[shapeData.type];
     
-    // Build shape document with defaults
+    // Build shape document with defaults (round numeric values to 2 decimal places)
     const shapeDoc = {
       category: 'shape',
       type: shapeData.type,
       
       // Position
-      x: shapeData.x,
-      y: shapeData.y,
+      x: roundPosition(shapeData.x),
+      y: roundPosition(shapeData.y),
       
       // Transform
-      rotation: shapeData.rotation ?? defaults.rotation,
-      scaleX: shapeData.scaleX ?? defaults.scaleX,
-      scaleY: shapeData.scaleY ?? defaults.scaleY,
+      rotation: roundNumericProperty(shapeData.rotation ?? defaults.rotation),
+      scaleX: roundNumericProperty(shapeData.scaleX ?? defaults.scaleX),
+      scaleY: roundNumericProperty(shapeData.scaleY ?? defaults.scaleY),
       
       // Visual properties
       fillColor: shapeData.fillColor ?? defaults.fillColor,
       strokeColor: shapeData.strokeColor ?? defaults.strokeColor,
-      strokeWidth: shapeData.strokeWidth ?? defaults.strokeWidth,
-      opacity: shapeData.opacity ?? defaults.opacity,
+      strokeWidth: roundNumericProperty(shapeData.strokeWidth ?? defaults.strokeWidth),
+      opacity: roundNumericProperty(shapeData.opacity ?? defaults.opacity),
       
       // Dimensions (type-specific)
       ...(shapeData.type === 'rectangle' && {
-        width: shapeData.width ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.rectangle).width,
-        height: shapeData.height ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.rectangle).height,
-        borderRadius: shapeData.borderRadius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.rectangle).borderRadius,
+        width: roundNumericProperty(shapeData.width ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.rectangle).width),
+        height: roundNumericProperty(shapeData.height ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.rectangle).height),
+        borderRadius: roundNumericProperty(shapeData.borderRadius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.rectangle).borderRadius),
       }),
       ...(shapeData.type === 'circle' && {
-        radius: shapeData.radius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.circle).radius,
-        width: shapeData.width ?? (shapeData.radius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.circle).radius) * 2,
-        height: shapeData.height ?? (shapeData.radius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.circle).radius) * 2,
+        radius: roundNumericProperty(shapeData.radius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.circle).radius),
+        width: roundNumericProperty(shapeData.width ?? (shapeData.radius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.circle).radius) * 2),
+        height: roundNumericProperty(shapeData.height ?? (shapeData.radius ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.circle).radius) * 2),
       }),
       ...(shapeData.type === 'line' && {
         points: shapeData.points ?? (defaults as typeof DEFAULT_SHAPE_PROPERTIES.line).points,

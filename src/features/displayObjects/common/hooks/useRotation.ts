@@ -10,7 +10,7 @@ import { useSelection } from '../store/selectionStore';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useAuth } from '@/features/auth/store/authStore';
 import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
-import { rotateCollection, rotatePointAroundCenter } from '../utils/transformMath';
+import { rotateCollection, rotatePointAroundCenter, roundPosition, roundNumericProperty } from '../utils/transformMath';
 import { calculateCollectionOBB } from '../utils/boundingBoxUtils';
 import type { Point } from '../types';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
@@ -176,9 +176,9 @@ export function useRotation(collectionCenter: Point | null) {
           const batchUpdates = rotatedObjects.map(obj => ({
             shapeId: obj.id,
             updates: {
-              x: obj.x,
-              y: obj.y,
-              rotation: obj.rotation,
+              x: roundPosition(obj.x),
+              y: roundPosition(obj.y),
+              rotation: roundNumericProperty(obj.rotation),
             },
           }));
           
@@ -223,9 +223,9 @@ export function useRotation(collectionCenter: Point | null) {
       const batchUpdates = rotatedObjects.map(obj => ({
         shapeId: obj.id,
         updates: {
-          x: obj.x,
-          y: obj.y,
-          rotation: obj.rotation,
+          x: roundPosition(obj.x),
+          y: roundPosition(obj.y),
+          rotation: roundNumericProperty(obj.rotation),
         },
       }));
       

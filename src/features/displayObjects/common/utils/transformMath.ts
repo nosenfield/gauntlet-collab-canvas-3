@@ -310,3 +310,38 @@ export function normalizeAngle(angle: number): number {
   return normalized;
 }
 
+/**
+ * Round position to 2 decimal places
+ * Prevents floating point precision artifacts and ensures consistent positioning
+ * 
+ * @param value - Position value to round
+ * @returns Position rounded to 2 decimal places
+ * 
+ * @example
+ * ```typescript
+ * roundPosition(123.456789) // returns 123.46
+ * roundPosition(99.9999999) // returns 100.00
+ * ```
+ */
+export function roundPosition(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+/**
+ * Round numeric property to 2 decimal places
+ * Use for scale, rotation, opacity, dimensions, and other numeric properties
+ * 
+ * @param value - Numeric value to round
+ * @returns Value rounded to 2 decimal places
+ * 
+ * @example
+ * ```typescript
+ * roundNumericProperty(1.456789) // returns 1.46
+ * roundNumericProperty(45.9999) // returns 46.00
+ * roundNumericProperty(0.33333) // returns 0.33
+ * ```
+ */
+export function roundNumericProperty(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+

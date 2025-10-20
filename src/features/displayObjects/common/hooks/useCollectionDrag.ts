@@ -9,6 +9,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import type { TransformableObject } from '../types';
 import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
 import { updateTextsBatch } from '@/features/displayObjects/texts/services/textService';
+import { roundPosition } from '../utils/transformMath';
 
 /**
  * Drag state for collection
@@ -129,7 +130,7 @@ export function useCollectionDrag(
       if (shapes.length > 0) {
         const shapeBatchUpdates = shapes.map(shape => ({
           shapeId: shape.id,
-          updates: { x: shape.x, y: shape.y },
+          updates: { x: roundPosition(shape.x), y: roundPosition(shape.y) },
         }));
         promises.push(updateShapesBatch(userId, shapeBatchUpdates));
       }
@@ -137,7 +138,7 @@ export function useCollectionDrag(
       if (texts.length > 0) {
         const textBatchUpdates = texts.map(text => ({
           textId: text.id,
-          updates: { x: text.x, y: text.y },
+          updates: { x: roundPosition(text.x), y: roundPosition(text.y) },
         }));
         promises.push(updateTextsBatch(userId, textBatchUpdates));
       }
@@ -180,7 +181,7 @@ export function useCollectionDrag(
         if (shapes.length > 0) {
           const shapeBatchUpdates = shapes.map(shape => ({
             shapeId: shape.id,
-            updates: { x: shape.x, y: shape.y },
+            updates: { x: roundPosition(shape.x), y: roundPosition(shape.y) },
           }));
           promises.push(updateShapesBatch(userId, shapeBatchUpdates));
         }
@@ -188,7 +189,7 @@ export function useCollectionDrag(
         if (texts.length > 0) {
           const textBatchUpdates = texts.map(text => ({
             textId: text.id,
-            updates: { x: text.x, y: text.y },
+            updates: { x: roundPosition(text.x), y: roundPosition(text.y) },
           }));
           promises.push(updateTextsBatch(userId, textBatchUpdates));
         }

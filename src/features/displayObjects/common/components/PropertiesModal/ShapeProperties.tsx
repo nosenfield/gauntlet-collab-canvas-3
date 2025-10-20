@@ -13,6 +13,7 @@ import type { ShapeDisplayObject, RectangleShape } from '@/features/displayObjec
 import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
 import { NumberInput } from './NumberInput';
 import { ColorInput } from './ColorInput';
+import { roundNumericProperty } from '../../utils/transformMath';
 
 interface ShapePropertiesProps {
   selectedShapes: ShapeDisplayObject[];
@@ -67,10 +68,15 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
     if (!userId) return;
     
     try {
+      // Round numeric properties to 2 decimal places
+      const processedValue = (key === 'strokeWidth') 
+        ? roundNumericProperty(value)
+        : value;
+      
       // Batch update all shapes
       const batchUpdates = selectedShapes.map(shape => ({
         shapeId: shape.id,
-        updates: { [key]: value },
+        updates: { [key]: processedValue },
       }));
       
       await updateShapesBatch(userId, batchUpdates);
@@ -86,10 +92,15 @@ export function ShapeProperties({ selectedShapes, userId }: ShapePropertiesProps
     if (!userId || rectangles.length === 0) return;
     
     try {
+      // Round numeric properties to 2 decimal places
+      const processedValue = (key === 'borderRadius') 
+        ? roundNumericProperty(value)
+        : value;
+      
       // Only update rectangles
       const batchUpdates = rectangles.map(rect => ({
         shapeId: rect.id,
-        updates: { [key]: value },
+        updates: { [key]: processedValue },
       }));
       
       await updateShapesBatch(userId, batchUpdates);

@@ -16,6 +16,7 @@ import type { TextDisplayObject } from '@/features/displayObjects/texts/types';
 import { updateTextsBatch } from '@/features/displayObjects/texts/services/textService';
 import { NumberInput } from './NumberInput';
 import { ColorInput } from './ColorInput';
+import { roundNumericProperty } from '../../utils/transformMath';
 
 interface TextPropertiesProps {
   selectedTexts: TextDisplayObject[];
@@ -60,10 +61,15 @@ export function TextProperties({ selectedTexts, userId }: TextPropertiesProps): 
     try {
       if (selectedTexts.length === 0) return;
       
+      // Round numeric properties to 2 decimal places
+      const processedValue = (key === 'fontSize' || key === 'lineHeight') 
+        ? roundNumericProperty(value)
+        : value;
+      
       // Batch update all texts
       const batchUpdates = selectedTexts.map(text => ({
         textId: text.id,
-        updates: { [key]: value },
+        updates: { [key]: processedValue },
       }));
       
       await updateTextsBatch(userId, batchUpdates);

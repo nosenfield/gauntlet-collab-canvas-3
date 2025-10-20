@@ -10,7 +10,7 @@ import { useSelection } from '../store/selectionStore';
 import { useShapes } from '@/features/displayObjects/shapes/store/shapesStore';
 import { useAuth } from '@/features/auth/store/authStore';
 import { updateShapesBatch } from '@/features/displayObjects/shapes/services/shapeService';
-import { scaleCollection } from '../utils/transformMath';
+import { scaleCollection, roundPosition, roundNumericProperty } from '../utils/transformMath';
 import type { Point } from '../types';
 import type { ShapeDisplayObject } from '@/features/displayObjects/shapes/types';
 
@@ -144,10 +144,10 @@ export function useScale(collectionCenter: Point | null) {
           const batchUpdates = scaledObjects.map(obj => ({
             shapeId: obj.id,
             updates: {
-              x: obj.x,
-              y: obj.y,
-              scaleX: obj.scaleX,
-              scaleY: obj.scaleY,
+              x: roundPosition(obj.x),
+              y: roundPosition(obj.y),
+              scaleX: roundNumericProperty(obj.scaleX),
+              scaleY: roundNumericProperty(obj.scaleY),
             },
           }));
           
@@ -192,10 +192,10 @@ export function useScale(collectionCenter: Point | null) {
       const batchUpdates = scaledObjects.map(obj => ({
         shapeId: obj.id,
         updates: {
-          x: obj.x,
-          y: obj.y,
-          scaleX: obj.scaleX,
-          scaleY: obj.scaleY,
+          x: roundPosition(obj.x),
+          y: roundPosition(obj.y),
+          scaleX: roundNumericProperty(obj.scaleX),
+          scaleY: roundNumericProperty(obj.scaleY),
         },
       }));
       
